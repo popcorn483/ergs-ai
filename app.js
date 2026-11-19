@@ -699,7 +699,7 @@ $('#shareIssueBtn').addEventListener('click', () => { const id = location.hash.s
 /* ---------- automatic updates ----------
    The app fingerprints its own files. When anything is pushed to GitHub, open and installed copies
    notice within minutes (and whenever they're reopened) and refresh themselves – no version numbers to bump. */
-const WATCH = ['index.html', 'app.js', 'style.css', 'config.js', 'share.js', 'tips.js', 'sheets.js', 'content.enc'];
+const WATCH = ['index.html', 'app.js', 'style.css', 'config.js', 'share.js', 'tips.js', 'skills.js', 'sheets.js', 'content.enc'];
 let BUILD = null, updating = false;
 async function fingerprint() {
   const bufs = await Promise.all(WATCH.map(f => fetch(f + '?v=' + Date.now(), { cache: 'no-store' }).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })));
@@ -907,7 +907,9 @@ window.addEventListener('hashchange', () => { if (location.hash !== '#binder') B
 
 /* ---------- quick tips ---------- */
 const slug = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
-const BUILTIN_TIPS = (window.NL_TIPS || []).map(([app, level, title, why, steps]) => ({ id: slug(app + '-' + title), app, level, title, why, steps: (steps || []).filter(Boolean) }));
+const mkTip = path => ([app, level, title, why, steps]) => ({ id: slug(app + '-' + title), app, level, title, why, steps: (steps || []).filter(Boolean), path });
+// NL_SKILLS is the computer-skills path for less confident staff: shown in order, every other day
+const BUILTIN_TIPS = [...(window.NL_TIPS || []).map(mkTip(false)), ...(window.NL_SKILLS || []).map(mkTip(true))];
 let TIPSTATE = { hidden: {}, custom: {}, used: {} };
 let TIPLOG = null;   // { 'YYYY-MM-DD': tipId } – every Tip of the day, logged once per day
 const allTips = () => [...BUILTIN_TIPS, ...Object.entries(TIPSTATE.custom).filter(([, t]) => t && t.title).map(([id, t]) => ({ id, custom: true, app: t.app, level: t.level, title: t.title, why: t.why || '', steps: (t.steps || []).filter(Boolean) }))];
@@ -923,8 +925,13 @@ async function loadTipLog() {
 }
 // pick today's tip: the next beginner-friendly tip that has never been Tip of the day (oldest-used first once all have had a turn)
 function chooseTip(vis) {
-  const beg = vis.filter(t => t.level === 'New to this'), pool = beg.length ? beg : vis;
   const lastUsed = {}; Object.entries(TIPLOG || {}).forEach(([day, id]) => { if (!lastUsed[id] || day > lastUsed[id]) lastUsed[id] = day; });
+  // alternate days: the computer-skills path (in order), then the other tips
+  const dayNo = Math.floor(Date.parse(todayKey() + 'T12:00:00Z') / 864e5);
+  const pathFresh = vis.filter(t => t.path && !lastUsed[t.id]), otherVis = vis.filter(t => !t.path);
+  if (pathFresh.length && (dayNo % 2 === 0 || !otherVis.some(t => !lastUsed[t.id]))) return pathFresh[0];
+  vis = otherVis.length ? otherVis : vis;
+  const beg = vis.filter(t => t.level === 'New to this'), pool = beg.length ? beg : vis;
   const fresh = pool.filter(t => !lastUsed[t.id]);
   if (fresh.length) return fresh[0];
   return [...pool].sort((a, b) => (lastUsed[a.id] || '').localeCompare(lastUsed[b.id] || ''))[0];
@@ -1156,7 +1163,7 @@ async function downloadSeries() {
 const SHEETS = (window.NL_SHEETS || []).map((x, k) => ({ ...x, n: k + 1, id: slug(x.app + '-' + x.title) }));
 let SHEETHIDE = {}, shFilt = { q: '', app: '', level: '' }, shWired = false;
 const visibleSheets = () => SHEETS.filter(x => !SHEETHIDE[x.id]);
-const appFamily = a => /google|gmail/i.test(a) ? 'g' : /word|powerpoint|excel|teams|onenote|outlook/i.test(a) ? 'm' : /ai/i.test(a) ? 'ai' : 'it';
+const appFamily = a => /google|gmail/i.test(a) ? 'g' : /word|powerpoint|excel|teams|onenote|outlook/i.test(a) ? 'm' : /\bai\b/i.test(a) ? 'ai' : 'it';
 function renderSheets() {
   const apps = [...new Set(SHEETS.map(x => x.app))];
   if (!shWired) {

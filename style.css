@@ -715,3 +715,7 @@ body.clean .help-link{display:none}
 @media (max-width:720px){.bp-cover b{font-size:15px}}
 body.clean .binder-promo .bp-cover b,.binder-promo .bp-cover b{font-size:9.5px;line-height:1.05}
 .brand b{line-height:1.15}
+/* computer-skills path tips */
+[data-app="Computer basics"],[data-app="Keyboard shortcuts"],[data-app="Files & folders"],[data-app="Internet & Chrome"],[data-app="Typing & text"],[data-app="Printing & displays"]{color:#5b3a8c}
+[data-app="Staying safe online"]{color:#8a5a00}
+.td-card [data-app="Computer basics"],.td-card [data-app="Keyboard shortcuts"],.td-card [data-app="Files & folders"],.td-card [data-app="Internet & Chrome"],.td-card [data-app="Typing & text"],.td-card [data-app="Printing & displays"],.td-card [data-app="Staying safe online"]{color:inherit}
