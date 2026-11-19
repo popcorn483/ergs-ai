@@ -92,10 +92,35 @@ function hideSplash(minMs) {
   const wait = Math.max(0, minMs - (performance.now() - SPLASH_T0));
   return new Promise(r => setTimeout(() => { sp.classList.add('out'); setTimeout(() => { sp.remove(); r(); }, 650); }, wait));
 }
+function mountIntro() {
+  document.querySelectorAll('.coin-edge').forEach(ed => { ed.innerHTML = Array.from({ length: 14 }, (_, i) => `<i style="transform:translateZ(${(-6.5 + i).toFixed(1)}px)"></i>`).join(''); });
+  document.querySelectorAll('.sp-title').forEach(t => { if (t.classList.contains('split')) return; const txt = t.textContent; t.setAttribute('aria-label', txt); t.innerHTML = [...txt].map((ch, i) => ch === ' ' ? ' ' : `<span class="ch" aria-hidden="true" style="--i:${i}">${esc(ch)}</span>`).join(''); t.classList.add('split'); });
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll('.sp-net').forEach(cv => {
+    const host = cv.closest('.splash,.gate'); host.insertBefore(cv, host.querySelector('.sp-bg').nextSibling);
+    if (reduce) return;
+    const ctx = cv.getContext('2d'); let W, H, pts = [], raf;
+    const size = () => { const d = Math.min(2, devicePixelRatio || 1); W = cv.width = host.clientWidth * d; H = cv.height = host.clientHeight * d; const n = Math.round(Math.min(90, W * H / (26000 * d * d))); pts = Array.from({ length: n }, () => ({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * .35 * d, vy: (Math.random() - .5) * .35 * d, r: (Math.random() * 1.6 + .6) * d, g: Math.random() < .3 })); };
+    size(); addEventListener('resize', size);
+    const draw = () => {
+      if (!cv.isConnected) return; raf = requestAnimationFrame(draw); if (host.hidden) return; if (!W || W !== Math.round(host.clientWidth * Math.min(2, devicePixelRatio || 1))) size();
+      ctx.clearRect(0, 0, W, H); const L = 140 * (devicePixelRatio || 1);
+      for (const p of pts) { p.x += p.vx; p.y += p.vy; if (p.x < 0 || p.x > W) p.vx *= -1; if (p.y < 0 || p.y > H) p.vy *= -1; }
+      for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) { const a = pts[i], b = pts[j], d = Math.hypot(a.x - b.x, a.y - b.y); if (d < L) { ctx.strokeStyle = `rgba(217,192,140,${(1 - d / L) * .28})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); } }
+      for (const p of pts) { ctx.fillStyle = p.g ? 'rgba(244,223,166,.9)' : 'rgba(170,195,235,.65)'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill(); }
+    };
+    draw();
+  });
+  if (reduce) return;
+  const tilt = (x, y) => document.querySelectorAll('.coin3d').forEach(c => { c.style.setProperty('--ty', (x * 22).toFixed(1) + 'deg'); c.style.setProperty('--tx', (-y * 18).toFixed(1) + 'deg'); });
+  addEventListener('pointermove', e => { if (document.querySelector('.splash,.gate:not([hidden])')) tilt(e.clientX / innerWidth - .5, e.clientY / innerHeight - .5); }, { passive: true });
+  addEventListener('deviceorientation', e => { if (e.gamma != null && document.querySelector('.splash,.gate:not([hidden])')) tilt(Math.max(-1, Math.min(1, e.gamma / 40)) / 2, Math.max(-1, Math.min(1, (e.beta - 45) / 40)) / 2); }, { passive: true });
+}
 async function boot() {
   $('#gateCrest').src = $('#mastCrest').src = $('#splashCrest').src = window.ERGS_CREST || '';
+  mountIntro();
   const raw = LS.get('ergsNL.k') || SS.get('ergsNL.k');
-  if (raw) { try { KEY = await importRaw(raw); if (await tryKey()) { start(); return hideSplash(2200); } } catch (e) {} }
+  if (raw) { try { KEY = await importRaw(raw); if (await tryKey()) { start(); return hideSplash(2600); } } catch (e) {} }
   $('#splash')?.remove(); $('#gate').hidden = false; setTimeout(() => $('#pw').focus(), 1500);   // first visit: the password screen plays the same intro
 }
 $('#gateForm').addEventListener('submit', async e => {
