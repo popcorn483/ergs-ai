@@ -113,8 +113,8 @@ window.NL_TIPS = [
   ['Press Windows + Shift + S.', 'Drag a box around what you want.', 'Paste it (Ctrl + V) into your document.']],
  ['Windows & Chrome', N, 'Reopen a tab you closed', 'Closed the page you needed? Bring it straight back.',
   ['Press Ctrl + Shift + T.', 'Press it again to bring back earlier tabs.']],
- ['Windows & Chrome', N, 'Paste something you copied earlier', 'Clipboard history keeps the last few things you copied.',
-  ['Press Windows + V.', 'The first time, click Turn on.', 'Pick the item you want to paste.']],
+ ['Windows & Chrome', N, 'Paste something you copied earlier', 'Clipboard history keeps the last few things you copied (if it’s switched on for your computer).',
+  ['Press Windows + V.', 'If you see a Turn on button, click it. If nothing appears, your computer has it switched off – copy and paste one item at a time instead.', 'Pick the item you want to paste.']],
 
  // ---------- more: AI first steps ----------
  ['AI first steps', N, 'Ask for options, not one answer', 'Seeing a few versions side by side makes it easy to pick the best – or combine them.',
@@ -303,8 +303,8 @@ window.NL_TIPS = [
   ['In Word, PowerPoint or Excel: File → Info → Version History (or click the file name at the top).', 'In Google Docs: File → Version history → See version history.', 'Open an older version and choose Restore.']],
  ['OneDrive & Google Drive', X, 'Recover a deleted file', 'Deleted something from OneDrive or Google Drive? It goes to a recycle bin first, for a limited time.',
   ['OneDrive: go to office.com → OneDrive → Recycle bin.', 'Google Drive: go to drive.google.com → Bin.', 'Select the file and click Restore.']],
- ['OneDrive & Google Drive', X, 'Work on files with no internet', 'Keep important files available offline – for trips, or if the network drops.',
-  ['OneDrive: right-click a file or folder in File Explorer → Always keep on this device.', 'Google Drive: in Drive settings, turn on Offline (Chrome).', 'Changes upload automatically when you’re back online.']],
+ ['OneDrive & Google Drive', X, 'Work on files with no internet', 'Keep important files available offline on your own school laptop – for trips, or if the network drops. (Not on shared classroom computers.)',
+  ['On your school laptop, OneDrive: right-click a file or folder in File Explorer → Always keep on this device.', 'Google Drive: in Drive settings, turn on Offline (Chrome).', 'Changes upload automatically when you’re back online.']],
  ['OneDrive & Google Drive', X, 'Understand the OneDrive icons', 'The small icons in File Explorer tell you where a file is stored.',
   ['A cloud icon means it’s online only – it downloads when you open it.', 'A green tick means it’s also on this computer.', 'Red ✕ means a sync problem – click the OneDrive cloud in the taskbar to see why.']],
  ['OneDrive & Google Drive', X, 'Edit together in real time', 'Several colleagues can work in the same document at once – ideal for schemes of work and reports.',
