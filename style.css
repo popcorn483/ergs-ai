@@ -708,3 +708,10 @@ body.clean .help-link{display:none}
 .who th{text-align:left;font:600 12px var(--head);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 8px;border-bottom:2px solid var(--line)}
 .who td{padding:7px 8px;border-bottom:1px solid var(--line)}
 .who .yes{color:var(--green);font-weight:600}
+/* longer name: ERGS Digital Skills & AI */
+.sp-title{font-size:clamp(32px,7vw,48px);line-height:1.05;max-width:12ch;text-align:center;margin-left:auto;margin-right:auto}
+.cvf-title h1{font-size:2.7em;line-height:1.02}
+.bp-cover b{font-size:19px;line-height:1.05}
+@media (max-width:720px){.bp-cover b{font-size:15px}}
+body.clean .binder-promo .bp-cover b,.binder-promo .bp-cover b{font-size:9.5px;line-height:1.05}
+.brand b{line-height:1.15}

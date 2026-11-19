@@ -1,4 +1,4 @@
-// AI in School: A Teacher's Guide — newsletter library
+// ERGS Digital Skills & AI: A Teacher's Guide — issue library
 // Content is encrypted with the staff password; release state lives in Firestore (ergs-ai project).
 // Firebase loads on demand, so the library still opens if Firebase is unreachable (releases then fall back to defaults).
 let initializeApp, getFirestore, doc, collection, onSnapshot, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect;
@@ -190,8 +190,8 @@ function render() {
   document.body.classList.toggle('binder-on', h === 'binder');
   if (h === 'admin') { $('#admin').hidden = false; renderAdmin(); }
   else if (h === 'binder') { $('#binder').hidden = false; Binder.open(); }
-  else if (h === 'tips') { if (!canManage()) { location.replace('#help'); return; } $('#tips').hidden = false; renderTips(); document.title = 'Quick tips · AI in School'; }
-  else if (h === 'help') { $('#help').hidden = false; renderSheets(); document.title = 'Help sheets · AI in School'; }
+  else if (h === 'tips') { if (!canManage()) { location.replace('#help'); return; } $('#tips').hidden = false; renderTips(); document.title = 'Quick tips · ERGS Digital Skills & AI'; }
+  else if (h === 'help') { $('#help').hidden = false; renderSheets(); document.title = 'Help sheets · ERGS Digital Skills & AI'; }
   else if (h.startsWith('sheet-')) { $('#sheetView').hidden = false; renderSheet(+h.slice(6)); }
   else if (h.startsWith('issue-')) { $('#reader').hidden = false; renderReader(h.slice(6)); }
   else { $('#library').hidden = false; renderLibrary(); }
@@ -203,7 +203,7 @@ function buildChips() {
   sel.addEventListener('change', e => { const v = e.target.value; filt.theme = v.startsWith('th:') ? v.slice(3) : ''; filt.tool = v.startsWith('tl:') ? v.slice(3) : ''; renderLibrary(); });
 }
 function miniCover(i) {
-  return `<div class="mini"><div class="mh"><small>AI in School</small><b>${esc(i.title)}</b><i>${i.n}</i></div><div class="kick">${esc(i.kicker || i.theme || '')}</div><div class="mb"><div><span style="height:34px"></span><span class="y" style="height:16px"></span><span style="height:12px"></span></div><div><span class="g" style="height:26px"></span><span style="height:22px"></span></div></div></div>`;
+  return `<div class="mini"><div class="mh"><small>ERGS Digital Skills &amp; AI</small><b>${esc(i.title)}</b><i>${i.n}</i></div><div class="kick">${esc(i.kicker || i.theme || '')}</div><div class="mb"><div><span style="height:34px"></span><span class="y" style="height:16px"></span><span style="height:12px"></span></div><div><span class="g" style="height:26px"></span><span style="height:22px"></span></div></div></div>`;
 }
 function coverHTML(i) {
   if (i.thumb && i.thumb.startsWith('data:')) return `<img alt="" src="${esc(i.thumb)}">`;
@@ -268,7 +268,7 @@ function tplHTML(i) {
   const paras = (Array.isArray(i.intro) ? i.intro : String(i.intro || '').split(/\n\s*\n/)).filter(Boolean).map(p => `<p>${esc(p)}</p>`).join('');
   const meta = [i.kicker, i.difficulty && 'Difficulty: ' + i.difficulty, i.read && 'Est. read time: ' + i.read, (i.tools || []).length && 'Tools: ' + i.tools.join(', ')].filter(Boolean).map(esc).join('<span class="sep">|</span>');
   return `<div class="sheet">
-  <header class="nl-head"><h1>AI in School: A Teacher’s Guide</h1><p>Whole-School AI Skills CPD Portfolio | ${esc(i.title)}</p><span class="nl-issue">Issue ${i.n}</span></header>
+  <header class="nl-head"><h1>ERGS Digital Skills &amp; AI: A Teacher’s Guide</h1><p>Whole-School AI Skills CPD Portfolio | ${esc(i.title)}</p><span class="nl-issue">Issue ${i.n}</span></header>
   ${meta ? `<div class="nl-meta">${meta}</div>` : ''}
   <div class="nl-body">
     ${i.aim ? `<p class="nl-aim">${esc(i.aim)}</p>` : ''}
@@ -317,7 +317,7 @@ function renderReader(id) {
   $('#nextBtn').onclick = () => { location.hash = 'issue-' + visible[idx + 1].id; };
   $('#printBtn').onclick = () => window.print();
   $('#editIssueBtn').hidden = !canManage() || inPool; $('#editIssueBtn').onclick = () => startEdit(i);
-  document.title = `Issue ${i.n}: ${i.title} · AI in School`;
+  document.title = `Issue ${i.n}: ${i.title} · ERGS Digital Skills & AI`;
   if (i.kind === 'tpl') sheet.innerHTML = tplHTML(i);
   else {
     const pages = i.imgs || (i.pageDocs || []);
@@ -643,7 +643,7 @@ const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platfor
 let deferredInstall = null;
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; });   // install is offered in the share panel
-window.addEventListener('appinstalled', () => { $('#installBtn').hidden = true; toast('Installed – find AI in School on your home screen'); });
+window.addEventListener('appinstalled', () => { $('#installBtn').hidden = true; toast('Installed – find ERGS AI on your home screen'); });
 $('#installBtn').addEventListener('click', async () => {
   if (deferredInstall) { deferredInstall.prompt(); await deferredInstall.userChoice.catch(() => {}); deferredInstall = null; $('#installBtn').hidden = true; }
   else if (isIOS) $('#iosTip').hidden = false;
@@ -716,7 +716,7 @@ async function checkUpdate() {
     const busy = location.hash === '#admin' && !$('#formPanel')?.hidden;   // don't throw away a half-typed issue
     if (document.hidden || !busy) { await refreshApp(); return; }
     const bar = document.createElement('div'); bar.className = 'updbar';
-    bar.innerHTML = '<span>A new version of AI in School is ready.</span><button class="btn small primary">Update now</button>';
+    bar.innerHTML = '<span>A new version of ERGS Digital Skills &amp; AI is ready.</span><button class="btn small primary">Update now</button>';
     bar.querySelector('button').onclick = refreshApp; document.body.appendChild(bar);
   } catch (e) {}
 }
@@ -760,7 +760,7 @@ const Binder = (() => {
       el.classList.add('cv-front');
       el.innerHTML = `<div class="cvf-spine"></div>
         <div class="cvf-top"><img src="${window.ERGS_CREST || ''}" alt=""><div><b>Enniskillen Royal Grammar School</b><span>Staff Professional Learning</span></div></div>
-        <div class="cvf-title"><p class="cvf-eyebrow">Whole-School AI Skills CPD Portfolio</p><h1>AI in School</h1><h2>A Teacher’s Guide</h2><div class="cvf-rule"></div>
+        <div class="cvf-title"><p class="cvf-eyebrow">Whole-School AI Skills CPD Portfolio</p><h1>ERGS Digital<br>Skills &amp; AI</h1><h2>A Teacher’s Guide</h2><div class="cvf-rule"></div>
           <p class="cvf-lede">Practical, classroom-focused guidance on using Microsoft Copilot, Google Gemini and NotebookLM to support teaching and learning.</p></div>
         <div class="cvf-foot"><div><small>Collected edition</small><b>${n} issues</b></div><div><small>Academic year</small><b>${y}–${String(y + 1).slice(2)}</b></div><div><small>Audience</small><b>All teaching staff</b></div></div>`;
     } else if (p.kind === 'contents') {
@@ -773,7 +773,7 @@ const Binder = (() => {
         <p class="cvb-text">Each issue focuses on one practical skill, with a prompt to try, examples across the curriculum and a short challenge to use in your own classroom.</p>
         <div class="cvb-rule"></div>
         <dl><dt>Approved tools</dt><dd>Microsoft Copilot · Google Gemini · NotebookLM</dd><dt>Guiding principle</dt><dd>AI supports professional judgement – it never replaces it.</dd><dt>Data protection</dt><dd>Never enter pupil names or personal information into AI tools.</dd></dl></div>
-        <div class="cvb-foot"><img src="${window.ERGS_CREST || ''}" alt=""><div><b>Enniskillen Royal Grammar School</b><span>AI in School: A Teacher’s Guide · For staff use only</span></div></div>`;
+        <div class="cvb-foot"><img src="${window.ERGS_CREST || ''}" alt=""><div><b>Enniskillen Royal Grammar School</b><span>ERGS Digital Skills &amp; AI: A Teacher’s Guide · For staff use only</span></div></div>`;
     } else if (p.kind === 'info') {
       el.innerHTML = `<div class="bk-info"><small>Issue ${p.issue.n}</small><h3>${esc(p.issue.title)}</h3><p>${esc(p.issue.summary || '')}</p><a href="#issue-${esc(p.issue.id)}">Open this issue</a></div>`;
     } else {
@@ -899,7 +899,7 @@ const Binder = (() => {
   }
   return {
     active: false, print,
-    open() { this.active = true; wire(); const s2 = JSON.stringify(issuesInBinder().map(i => i.id + status(i))); if (!built || s2 !== sig) { buildPages(); built = true; sig = s2; spread = 0; } layout(); draw(); document.title = 'Binder · AI in School'; },
+    open() { this.active = true; wire(); const s2 = JSON.stringify(issuesInBinder().map(i => i.id + status(i))); if (!built || s2 !== sig) { buildPages(); built = true; sig = s2; spread = 0; } layout(); draw(); document.title = 'Binder · ERGS Digital Skills & AI'; },
     refresh() { const s2 = JSON.stringify(issuesInBinder().map(i => i.id + status(i))); if (s2 !== sig) { sig = s2; buildPages(); spread = Math.min(spread, maxSpread()); layout(); draw(); } }
   };
 })();
@@ -1121,7 +1121,7 @@ async function downloadSeries() {
     try { const cr = await new Promise((ok, no) => { const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0); ok([c.toDataURL('image/png'), im.naturalWidth, im.naturalHeight]); }; im.onerror = no; im.src = window.ERGS_CREST; });
       const ch = 44, cw = ch * cr[1] / cr[2]; pdf.addImage(cr[0], 'PNG', 105 - cw / 2, 58, cw, ch); } catch (e) {}
     pdf.setTextColor(217, 192, 140); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.text('ENNISKILLEN ROYAL GRAMMAR SCHOOL', 105, 120, { align: 'center', charSpace: 1 });
-    pdf.setTextColor(255, 255, 255); pdf.setFont('times', 'bold'); pdf.setFontSize(40); pdf.text('AI in School', 105, 140, { align: 'center' });
+    pdf.setTextColor(255, 255, 255); pdf.setFont('times', 'bold'); pdf.setFontSize(40); pdf.text('Digital Skills & AI', 105, 140, { align: 'center' });
     pdf.setFont('times', 'italic'); pdf.setFontSize(20); pdf.setTextColor(201, 212, 230); pdf.text("A Teacher's Guide", 105, 152, { align: 'center' });
     pdf.setDrawColor(184, 149, 90); pdf.setLineWidth(0.6); pdf.line(85, 162, 125, 162);
     pdf.setFont('helvetica', 'normal'); pdf.setFontSize(11); pdf.setTextColor(214, 222, 234);
@@ -1147,7 +1147,7 @@ async function downloadSeries() {
       }
     }
     msg.textContent = 'Saving…';
-    pdf.save(`AI in School - ${which === 'all' ? 'Full series' : 'Released issues'} (${list.length} issues).pdf`);
+    pdf.save(`ERGS Digital Skills & AI - ${which === 'all' ? 'Full series' : 'Released issues'} (${list.length} issues).pdf`);
     msg.textContent = `Downloaded ${list.length} issues (${total + 2} pages).`;
   } catch (e) { console.warn(e); msg.textContent = 'Couldn’t build the PDF: ' + (e.message || e); }
   btn.disabled = false;
@@ -1195,7 +1195,7 @@ function sheetHTML(x) {
         </aside>
       </div>
     </div>
-    <footer class="hs-foot"><span>ERGS AI · AI in School: A Teacher’s Guide · Staff help sheets</span><span>Approved AI tools: Copilot · Gemini · NotebookLM</span></footer>
+    <footer class="hs-foot"><span>ERGS Digital Skills &amp; AI · Staff help sheets</span><span>Approved AI tools: Copilot · Gemini · NotebookLM</span></footer>
   </article>`;
 }
 function fitSheet(el) {   // size the type so each sheet fills one A4 page without spilling over

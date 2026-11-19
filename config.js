@@ -1,4 +1,4 @@
-// AI in School newsletter settings.
+// ERGS Digital Skills & AI settings.
 // The Firebase values are public by design: the Firestore rules decide who can release issues.
 window.NL_CONFIG = {
   // ERGS AI's own Firebase project

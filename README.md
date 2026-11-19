@@ -1,4 +1,4 @@
-# AI in School: A Teacher's Guide
+# ERGS Digital Skills & AI: A Teacher's Guide
 
 The ERGS staff AI newsletter library. Live at **https://popcorn483.github.io/ergs-ai/**
 
