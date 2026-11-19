@@ -309,6 +309,15 @@ function cardHTML(i) {
 function latestIssue() { const live = allIssues().filter(i => status(i) === 'live'); return live[live.length - 1]; }
 function fmtDate(d) { if (!d) return ''; const x = new Date(d + 'T12:00:00'); return x.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
 
+function carousel() {
+  const g = $('#grid'), btns = document.querySelectorAll('.car-btn');
+  const upd = () => { const end = g.scrollLeft + g.clientWidth >= g.scrollWidth - 4; g.classList.toggle('at-end', end); btns[0].disabled = g.scrollLeft < 4; btns[1].disabled = end; };
+  if (!g.dataset.car) {
+    g.dataset.car = 1; g.addEventListener('scroll', upd, { passive: true }); addEventListener('resize', upd);
+    btns.forEach(b => b.addEventListener('click', () => g.scrollBy({ left: +b.dataset.car * Math.max(260, g.clientWidth * .8), behavior: 'smooth' })));
+  }
+  g.scrollLeft = 0; requestAnimationFrame(upd);
+}
 function renderLibrary() {
   const all = allIssues(), live = all.filter(i => status(i) === 'live'), soon = all.filter(i => status(i) !== 'live' && status(i) !== 'removed');
   { const th = new Set(live.map(i => i.theme)).size;
@@ -330,7 +339,7 @@ function renderLibrary() {
   const g = $('#grid');
   g.innerHTML = liveShown.map(cardHTML).join('') + (soonShown.length ? `<h2 style="grid-column:1/-1;font:800 20px var(--head);color:var(--navy);margin:16px 0 0">Not yet released <small style="font:600 13px var(--body);color:var(--muted)">– only you can see these</small></h2>` + soonShown.map(cardHTML).join('') : '');
   $('#empty').hidden = liveShown.length + soonShown.length > 0;
-  hydrateImgs(g);
+  hydrateImgs(g); carousel();
   g.querySelectorAll('[data-quick]').forEach(b => b.addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation();
     const i = all.find(x => x.id === b.dataset.quick); const lk = status(i) !== 'live';
