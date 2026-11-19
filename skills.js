@@ -62,7 +62,7 @@ window.NL_SKILLS = [
  ['Staying secure', X, 'Change your C2k password the easy way', 'Three random words make a password that is strong and easy to remember.',
   ['On a school computer, press Ctrl + Alt + Delete and choose Change a password – or use C2k School Services → Change Your Password from home.', 'Choose three unrelated words with a number and a capital, e.g. “Tractor7violinharbour”.', 'Never use your C2k password for anything personal.']],
  ['Chrome & the web', X, 'Keep personal accounts off school computers', 'Signing in to personal email or shopping on a school PC risks mixing accounts – or leaving them signed in.',
-  ['If you must check something personal, press Ctrl + Shift + N for an Incognito window.', 'Sign in there; nothing is saved when you close it.', 'Close every Incognito window before you leave the room.']],
+  ['Use your phone for personal email, banking and shopping rather than a school computer.', 'If you do sign in to something personal, sign out before you leave (click your picture or initials → Sign out).', 'Never let Chrome save a personal password on a school computer – click Never when it asks.']],
  ['Windows shortcuts', X, 'Annotate a screenshot before sharing', 'Circle the button, highlight the step, then share.',
   ['Press Windows key + Shift + S and drag around the area.', 'Click the notification to open it in the Snipping Tool.', 'Use the pen or highlighter, then Ctrl + C to copy it into a slide or email.']],
  ['Windows shortcuts', X, 'Record a short screen video', 'Show pupils or colleagues exactly how to do something – once.',
