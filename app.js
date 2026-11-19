@@ -699,7 +699,7 @@ $('#shareIssueBtn').addEventListener('click', () => { const id = location.hash.s
 /* ---------- automatic updates ----------
    The app fingerprints its own files. When anything is pushed to GitHub, open and installed copies
    notice within minutes (and whenever they're reopened) and refresh themselves – no version numbers to bump. */
-const WATCH = ['index.html', 'app.js', 'style.css', 'config.js', 'share.js', 'tips.js', 'skills.js', 'skills-art.js', 'skillart-draw.js', 'sheets.js', 'content.enc'];
+const WATCH = ['index.html', 'app.js', 'style.css', 'config.js', 'share.js', 'tips.js', 'skills.js', 'skills-art.js', 'tips-art.js', 'skillart-draw.js', 'sheets.js', 'content.enc'];
 let BUILD = null, updating = false;
 async function fingerprint() {
   const bufs = await Promise.all(WATCH.map(f => fetch(f + '?v=' + Date.now(), { cache: 'no-store' }).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })));
@@ -916,7 +916,7 @@ const allTips = () => [...BUILTIN_TIPS, ...Object.entries(TIPSTATE.custom).filte
 const visibleTips = () => allTips().filter(t => !TIPSTATE.hidden[t.id]);
 let tipFilt = { q: '', app: '', level: '', used: '' }, tipOffset = 0, tipsWired = false, tipFormOpen = false;
 // picture for a tip: your own screenshot if added, otherwise the drawn illustration (computer-skills tips)
-const tipArt = t => { const id = (TIPSTATE.img || {})[t.id]; if (id) return `<figure class="tip-art photo"><img data-tipimg="${esc(id)}" alt="Screenshot for ${esc(t.title)}"></figure>`; const sp = t.path && window.NL_SKILL_ART && window.NL_SKILL_ART[t.title]; return sp && window.skillArtSVG ? `<figure class="tip-art">${window.skillArtSVG(sp)}</figure>` : ''; };
+const tipArt = t => { const id = (TIPSTATE.img || {})[t.id]; if (id) return `<figure class="tip-art photo"><img data-tipimg="${esc(id)}" alt="Screenshot for ${esc(t.title)}"></figure>`; const sp = window.NL_SKILL_ART && window.NL_SKILL_ART[t.title]; return sp && window.skillArtSVG ? `<figure class="tip-art">${window.skillArtSVG(sp)}</figure>` : ''; };
 const tipBody = t => `<p class="tip-why">${esc(t.why)}</p>${tipArt(t)}${t.steps.length ? `<ol class="tip-steps">${t.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}`;
 const tipCard = t => `<article class="tip-card"><div class="tip-top"><span class="tip-app" data-app="${esc(t.app)}">${esc(t.app)}</span><span class="tip-lvl${t.level === 'New to this' ? ' new' : ''}">${esc(t.level)}</span></div><h3>${esc(t.title)}</h3>${tipBody(t)}${canManage() ? tipAdminHTML(t) : ''}</article>`;
 const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };

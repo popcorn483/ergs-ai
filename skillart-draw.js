@@ -69,7 +69,7 @@ function screen(s, X, Y, W, H) {
     s.styles.forEach((b, i) => { o += R(bx, cy, 74, 30, { fill: i === s.hl ? HL : '#fff', stroke: i === s.hl ? BLUE : LINE, sw: i === s.hl ? 1.6 : 1 }) + T(bx + 8, cy + 19, b, { size: i === 1 ? 12 : i === 2 ? 11 : 10, w: i ? 600 : 400, fill: i ? '#1f4f8f' : INK }); bx += 80; });
     cy += 38;
   }
-  if (s.search) { o += R(cx + cw - 170, cy + 4, 158, 22, { stroke: BLUE, sw: 1.5 }) + T(cx + cw - 160, cy + 19, '🔍 ' + s.search, { size: 11 }); cy += 30; }
+  if (s.search) { const sw2 = Math.min(cw - 24, Math.max(158, tw(s.search, 11) + 40)); o += R(cx + cw - sw2 - 12, cy + 4, sw2, 22, { stroke: BLUE, sw: 1.5 }) + T(cx + cw - sw2 - 2, cy + 19, '🔍 ' + s.search, { size: 11 }); cy += 30; }
   let mx = cx, mw = cw;
   if (s.side) {
     o += R(cx + 1, cy, 128, ch() - 2, { rx: 0, fill: '#f6f7f9' });
@@ -143,6 +143,36 @@ function screen(s, X, Y, W, H) {
   }
   if (s.fullscreen) { o += R(X, Y, W, H, { rx: 8, fill: '#fdfdfd', stroke: '#c3cad5' }) + T(X + 30, Y + 50, 'The water cycle', { size: 22, w: 700, fill: '#0f2c52' }); for (let i = 0; i < 5; i++) o += R(X + 30, Y + 70 + i * 18, W - 140 - (i % 2) * 60, 8, { fill: '#d6dbe3' }); o += R(X + W / 2 - 110, Y + 12, 220, 22, { rx: 11, fill: 'rgba(27,36,48,.85)' }) + T(X + W / 2, Y + 27, 'Press F11 to exit full screen', { size: 10.5, fill: '#fff', anchor: 'middle' }); }
   if (s.say) s.say.forEach((l, i) => { const sx = cx + 20 + (i % 2) * 230, sy = cy + 4 + Math.floor(i / 2) * 44; o += R(sx, sy, 200, 32, { rx: 16, fill: HL, stroke: BLUE }) + T(sx + 100, sy + 21, '🗣 ' + l, { size: 12, anchor: 'middle' }); });
+  if (s.chat) {
+    let by = cy + 8;
+    s.chat.forEach(([who, msg]) => {
+      const me = who === 'me', lines = [], words = String(msg).split(' '); let cur = '';
+      words.forEach(w => { if (tw(cur + ' ' + w, 11) > 300 && cur) { lines.push(cur); cur = w; } else cur = cur ? cur + ' ' + w : w; }); if (cur) lines.push(cur);
+      const bw = Math.min(330, Math.max(...lines.map(l => tw(l, 11))) + 24), bh = lines.length * 15 + 12, bx = me ? X + W - bw - 14 : X + 14;
+      if (by + bh > Y + H - 6) return;
+      o += R(bx, by, bw, bh, { rx: 10, fill: me ? '#dbe8fb' : '#f1f3f6', stroke: me ? '#b9d0f0' : LINE });
+      lines.forEach((l, i) => o += T(bx + 12, by + 19 + i * 15, l, { size: 11, w: me ? 600 : 400 }));
+      by += bh + 8;
+    });
+  }
+  if (s.grid) {
+    const g = s.grid, gx = s.side ? mx + 22 : cx + 40, cwid = Math.min(110, (cx + cw - gx - 16) / g.cols.length), gy = cy + 6;
+    g.cols.forEach((h, j) => { o += R(gx + j * cwid, gy, cwid, 20, { rx: 0, fill: '#eef1f5', stroke: LINE }) + T(gx + j * cwid + 6, gy + 14, h + (g.filter ? '  ▾' : ''), { size: 10.5, w: 700 }); });
+    g.rows.forEach((r, i) => {
+      o += T(gx - 14, gy + 34 + i * 20, String(i + 2), { size: 9.5, fill: MUT, anchor: 'middle' });
+      r.forEach((v, j) => { const hl = (g.hl || []).some(([a, b]) => a === i && b === j), sc = g.scale === j && typeof v === 'number' ? (v >= 70 ? '#c6efce' : v >= 50 ? '#ffeb9c' : '#ffc7ce') : null;
+        o += R(gx + j * cwid, gy + 20 + i * 20, cwid, 20, { rx: 0, fill: sc || (hl ? HL : '#fff'), stroke: hl ? BLUE : LINE, sw: hl ? 1.6 : 1 }) + T(gx + j * cwid + 6, gy + 34 + i * 20, String(v), { size: 10.5, w: hl ? 700 : 400 }); });
+    });
+    if (g.freeze) o += `<line x1="${gx}" y1="${gy + 20}" x2="${gx + g.cols.length * cwid}" y2="${gy + 20}" stroke="#2f6f3e" stroke-width="2.5"/><line x1="${gx + cwid}" y1="${gy}" x2="${gx + cwid}" y2="${gy + 20 + g.rows.length * 20}" stroke="#2f6f3e" stroke-width="2.5"/>`;
+  }
+  if (s.slide) {
+    const sx = cx + (s.side ? 136 : 20), sw = cw - (s.side ? 156 : 40), sh = Math.min(ch() - 16, sw * 0.56);
+    o += R(sx, cy + 8, sw, sh, { fill: s.slide.dark ? '#0b0b0b' : '#fff', stroke: LINE }) + T(sx + 16, cy + 34, s.slide.title || '', { size: 14, w: 700, fill: s.slide.dark ? '#fff' : '#0f2c52' });
+    (s.slide.lines || []).forEach((l, i) => o += T(sx + 22, cy + 56 + i * 16, l, { size: 11, fill: s.slide.dark ? '#ddd' : INK }));
+    if (s.slide.laser) o += `<circle cx="${sx + sw * 0.62}" cy="${cy + 8 + sh * 0.55}" r="7" fill="#ff2a2a" opacity=".9"/><circle cx="${sx + sw * 0.62}" cy="${cy + 8 + sh * 0.55}" r="13" fill="#ff2a2a" opacity=".25"/>`;
+    if (s.slide.caption) o += R(sx + 20, cy + sh - 22, sw - 40, 22, { fill: 'rgba(0,0,0,.75)' }) + T(sx + sw / 2, cy + sh - 7, s.slide.caption, { size: 11, fill: '#fff', anchor: 'middle' });
+    if (s.slide.big) o += T(sx + sw / 2, cy + 8 + sh / 2 + 14, s.slide.big, { size: 40, w: 800, fill: '#0f2c52', anchor: 'middle' });
+  }
   if (s.menu) {
     const [ax, ay] = s.menu.at, w = Math.max(...s.menu.items.map(i => tw(i, 11))) + 34, mxx = X + ax, myy = Y + ay;
     o += `<rect x="${mxx + 3}" y="${myy + 3}" width="${w}" height="${s.menu.items.length * 22 + 8}" rx="6" fill="rgba(0,0,0,.15)"/>` + R(mxx, myy, w, s.menu.items.length * 22 + 8, { rx: 6, stroke: '#c3cad5' });
