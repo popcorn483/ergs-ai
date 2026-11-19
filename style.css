@@ -694,3 +694,17 @@ body.clean .help-link{display:none}
 #bankPanel select{padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit}
 .ordbtns{display:inline-flex;gap:4px;margin-right:6px;flex-wrap:wrap}
 .ordbtns .btn{padding-left:8px;padding-right:8px}
+
+.gate-name{width:100%;max-width:360px;margin-bottom:10px;opacity:0;animation:spUp .7s 1.3s ease forwards}
+.gate-name input{width:100%;border:0;outline:0;border-radius:8px;font:400 17px var(--body);padding:15px 16px;color:var(--ink);background:#fff;box-shadow:0 14px 40px rgba(0,0,0,.35)}
+.gate-name input:focus{box-shadow:0 0 0 3px rgba(217,192,140,.55),0 14px 40px rgba(0,0,0,.35)}
+.nameprompt{position:fixed;inset:0;z-index:300;background:rgba(11,24,48,.55);display:grid;place-items:center;padding:20px}
+.nameprompt[hidden]{display:none}
+.np-card{background:#fff;border-radius:12px;padding:24px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:12px}
+.np-card h2{margin:0;font:600 22px var(--serif);color:var(--navy)}
+.np-card p{margin:0;color:var(--muted);font-size:15px}
+.np-card input{font:inherit;font-size:17px;padding:12px;border:1px solid var(--line);border-radius:8px}
+.who{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:10px}
+.who th{text-align:left;font:600 12px var(--head);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 8px;border-bottom:2px solid var(--line)}
+.who td{padding:7px 8px;border-bottom:1px solid var(--line)}
+.who .yes{color:var(--green);font-weight:600}

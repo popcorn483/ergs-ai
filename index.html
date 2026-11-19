@@ -46,8 +46,9 @@
     <h1 class="sp-title">AI in School</h1>
     <p class="sp-sub">A Teacher’s Guide</p>
     <div class="sp-rule"></div>
-    <p class="gate-lede">Whole-School AI Skills CPD Portfolio. Enter the staff password once – this device will remember it.</p>
+    <p class="gate-lede">Whole-School AI Skills CPD Portfolio. Enter your name and the staff password once – this device will remember them.</p>
     <label class="sr" for="pw">Staff password</label>
+    <div class="gate-name"><input id="gName" type="text" placeholder="Your first and last name" autocomplete="name" maxlength="60" required></div>
     <div class="gate-field"><input id="pw" type="password" placeholder="Staff password" autocomplete="current-password" required><button type="submit" aria-label="Open the library">Open <span aria-hidden="true">→</span></button></div>
     <p class="err" id="gateErr" role="alert"></p>
   </form>
@@ -188,6 +189,7 @@
   <p>Tap the <b>Share</b> button <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v7h14v-7"/></svg> in Safari, then choose <b>Add to Home Screen</b>.</p>
   <button class="btn small" id="iosClose">Got it</button>
 </div>
+<div id="namePrompt" class="nameprompt" hidden><form class="np-card" id="nameForm"><h2>Who’s using this device?</h2><p>Add your name once so the AI lead can see who’s using the guide. You won’t be asked again.</p><input id="npName" type="text" placeholder="First and last name" autocomplete="name" maxlength="60" required><button class="btn primary" type="submit">Save</button></form></div>
 <div id="viewSwitch" class="viewswitch" role="group" aria-label="Switch view" hidden><button data-v="staff">Staff view</button><button data-v="editor">Editor view</button></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 

@@ -106,6 +106,7 @@ $('#gateForm').addEventListener('submit', async e => {
     if (!(await tryKey())) throw 0;
     const raw = b64e(new Uint8Array(await crypto.subtle.exportKey('raw', KEY)));
     LS.set('ergsNL.k', raw);   // enter it once – this device stays unlocked
+    const nm = $('#gName').value.trim().replace(/\s+/g, ' ').slice(0, 60); if (nm) LS.set('ergsNL.name', nm);
     $('#gate').classList.add('leaving'); setTimeout(() => { $('#gate').hidden = true; start(); }, 450);
   } catch (err) { $('#gateErr').textContent = 'That password isn’t right. Please try again.'; const f = $('.gate-field'); f.classList.remove('shake'); void f.offsetWidth; f.classList.add('shake'); }
   btn.disabled = false;
@@ -146,8 +147,16 @@ async function completeLink(emailTyped) {
 }
 
 /* ---------- rendering ---------- */
+const cleanName = s => s.trim().replace(/\s+/g, ' ').slice(0, 60);
+function askName() {
+  if (LS.get('ergsNL.name')) return;
+  const p = $('#namePrompt'); p.hidden = false; setTimeout(() => $('#npName').focus(), 200);
+  $('#nameForm').addEventListener('submit', e => { e.preventDefault(); const n = cleanName($('#npName').value); if (n.split(' ').length < 2) { $('#npName').setCustomValidity('Please add your first and last name'); $('#npName').reportValidity(); return; } LS.set('ergsNL.name', n); p.hidden = true; LS.set('ergsNL.devT', '0'); trackVisit(); });
+  $('#npName').addEventListener('input', () => $('#npName').setCustomValidity(''));
+}
 function start() {
   $('#app').hidden = false;
+  askName();
   buildChips();
   startFirebase();
   window.addEventListener('hashchange', route);
@@ -1039,25 +1048,27 @@ async function trackVisit() {
   try {
     if (!DB || !KEY) return;
     let id = LS.get('ergsNL.dev'); if (!id) { id = 'd' + Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join(''); LS.set('ergsNL.dev', id); }
-    const lastSent = +LS.get('ergsNL.devT') || 0; if (Date.now() - lastSent < 6 * 3600e3) return;   // at most every 6 hours
+    const name = LS.get('ergsNL.name') || '';
+    const lastSent = +LS.get('ergsNL.devT') || 0; if (Date.now() - lastSent < 6 * 3600e3 && LS.get('ergsNL.nameSent') === name) return;   // at most every 6 hours (sooner if the name is new)
     const t = await visitToken(), ref = doc(DB, 'newsletterVisits', id);
     const app = standalone(), mob = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     let prev = null; try { const s = await getDoc(ref); if (s.exists()) prev = s.data(); } catch (e) {}
-    if (prev) await setDoc(ref, { t, first: prev.first, last: serverTimestamp(), n: (prev.n || 1) + 1, app: app || !!prev.app, mob });
-    else await setDoc(ref, { t, first: serverTimestamp(), last: serverTimestamp(), n: 1, app, mob });
-    LS.set('ergsNL.devT', String(Date.now()));
+    const nm = name ? { name } : (prev && prev.name ? { name: prev.name } : {});
+    if (prev) await setDoc(ref, { t, first: prev.first, last: serverTimestamp(), n: (prev.n || 1) + 1, app: app || !!prev.app, mob, ...nm });
+    else await setDoc(ref, { t, first: serverTimestamp(), last: serverTimestamp(), n: 1, app, mob, ...nm });
+    LS.set('ergsNL.devT', String(Date.now())); LS.set('ergsNL.nameSent', name);
   } catch (e) { console.warn('visit', e.code || e); }
 }
 async function renderUsage() {
   const el = $('#usagePanel'); if (!el) return;
   try {
     const snap = await getDocs(collection(DB, 'newsletterVisits'));
-    const now = Date.now(), day = 864e5, rows = snap.docs.map(d => d.data()).map(x => ({ first: x.first?.toMillis?.() || 0, last: x.last?.toMillis?.() || 0, n: x.n || 1, app: !!x.app, mob: !!x.mob }));
+    const now = Date.now(), day = 864e5, rows = snap.docs.map(d => d.data()).map(x => ({ name: x.name || '', first: x.first?.toMillis?.() || 0, last: x.last?.toMillis?.() || 0, n: x.n || 1, app: !!x.app, mob: !!x.mob }));
     const total = rows.length, a7 = rows.filter(r => now - r.last < 7 * day).length, a30 = rows.filter(r => now - r.last < 30 * day).length;
     const n7 = rows.filter(r => now - r.first < 7 * day).length, apps = rows.filter(r => r.app).length, phones = rows.filter(r => r.mob).length, visits = rows.reduce((t, r) => t + r.n, 0);
     const weeks = Array.from({ length: 8 }, (_, k) => rows.filter(r => r.first && now - r.first >= (7 - k) * 7 * day && now - r.first < (8 - k) * 7 * day).length);
     const mx = Math.max(1, ...weeks);
-    el.innerHTML = `<h2>Staff usage</h2><p class="muted">Each device that has entered the staff password is counted once. Anonymous – no names or emails are stored.</p>
+    el.innerHTML = `<h2>Staff usage</h2><p class="muted">Each device that has entered the staff password is counted once. Staff give their name the first time they log in.</p>
       <div class="usage-grid">
         <div><b>${total}</b><span>devices unlocked</span></div>
         <div><b>${a7}</b><span>active in the last 7 days</span></div>
@@ -1067,7 +1078,11 @@ async function renderUsage() {
         <div><b>${visits}</b><span>visits in total</span></div>
       </div>
       <div class="usage-bars" aria-label="New devices per week, last 8 weeks">${weeks.map((w, k) => `<div title="${w} new"><i style="height:${Math.round(w / mx * 100)}%"></i><small>${k === 7 ? 'This wk' : (7 - k) + 'w'}</small><em>${w || ''}</em></div>`).join('')}</div>
-      <p class="muted usage-note">New devices per week · ${phones} of ${total} are phones or tablets. One person may use more than one device.</p>`;
+      <p class="muted usage-note">New devices per week · ${phones} of ${total} are phones or tablets. One person may use more than one device.</p>
+      <h3 style="margin:22px 0 0;font:600 18px var(--serif);color:var(--navy)">Who’s using ERGS AI</h3>
+      <div style="overflow-x:auto"><table class="who"><thead><tr><th>Name</th><th>First used</th><th>Last used</th><th>Visits</th><th>App installed</th><th>Device</th></tr></thead><tbody>
+      ${rows.slice().sort((x, y) => y.last - x.last).map(r => `<tr><td>${r.name ? esc(r.name) : '<span class="muted">Not given yet</span>'}</td><td>${r.first ? new Date(r.first).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '–'}</td><td>${r.last ? new Date(r.last).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '–'}</td><td>${r.n}</td><td>${r.app ? '<span class="yes">✓ Yes</span>' : 'No'}</td><td>${r.mob ? 'Phone / tablet' : 'Computer'}</td></tr>`).join('')}
+      </tbody></table></div>`;
   } catch (e) {
     el.innerHTML = /permission/.test(String(e.code || e.message))
       ? `<h2>Staff usage</h2><p class="note">Usage counting needs a one-off Firebase rules update. Add the <b>newsletterVisits</b> block from <code>firestore-rules-snippet.txt</code> to your Firestore rules – counting starts as soon as it’s published.</p>`

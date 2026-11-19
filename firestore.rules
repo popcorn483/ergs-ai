@@ -23,14 +23,16 @@ service cloud.firestore {
       allow get: if true;
       allow list, delete: if nlEditor();
       allow write: if nlEditor();   // lets the editor bring records across from the old project
-      allow create: if id.size() <= 40 && request.resource.data.keys().hasOnly(['t','first','last','n','app','mob'])
+      allow create: if id.size() <= 40 && request.resource.data.keys().hasOnly(['t','first','last','n','app','mob','name'])
         && request.resource.data.t == '0ddd4e393a7f0180e83d86fa' && request.resource.data.first == request.time
         && request.resource.data.last == request.time && request.resource.data.n == 1
-        && request.resource.data.app is bool && request.resource.data.mob is bool;
-      allow update: if request.resource.data.keys().hasOnly(['t','first','last','n','app','mob'])
+        && request.resource.data.app is bool && request.resource.data.mob is bool
+        && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 60));
+      allow update: if request.resource.data.keys().hasOnly(['t','first','last','n','app','mob','name'])
         && request.resource.data.t == '0ddd4e393a7f0180e83d86fa' && request.resource.data.first == resource.data.first
         && request.resource.data.last == request.time && request.resource.data.n == resource.data.n + 1
-        && request.resource.data.app is bool && request.resource.data.mob is bool;
+        && request.resource.data.app is bool && request.resource.data.mob is bool
+        && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 60));
     }
     // Tip of the day log: one doc per date.
     match /newsletterTipLog/{day} {
