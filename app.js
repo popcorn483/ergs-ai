@@ -319,6 +319,7 @@ function carousel() {
     real.slice().reverse().forEach(c => g.prepend(mk(c))); real.forEach(c => g.append(mk(c)));
   }
   const setW = () => loop ? real[0].offsetLeft - g.children[0].offsetLeft : 0;
+  const startX = () => { const L = real[real.length - 1]; return loop ? L.offsetLeft - g.children[0].offsetLeft : Math.max(0, L.offsetLeft - g.children[0].offsetLeft); };   // open on the latest issue
   const jump = dx => { g.style.scrollSnapType = 'none'; g.style.scrollBehavior = 'auto'; g.scrollLeft += dx; requestAnimationFrame(() => { g.style.scrollSnapType = ''; g.style.scrollBehavior = ''; }); };
   const fix = () => { if (!g.classList.contains('looping')) return; const w = setW(); if (!w) return; if (g.scrollLeft < w * .5) jump(w); else if (g.scrollLeft > w * 1.5) jump(-w); };
   const upd = () => {
@@ -331,8 +332,9 @@ function carousel() {
     addEventListener('resize', () => { upd(); fix(); });
     btns.forEach(b => b.addEventListener('click', () => { fix(); g.scrollBy({ left: +b.dataset.car * Math.max(260, g.clientWidth * .8), behavior: 'smooth' }); }));
   }
-  g.style.scrollBehavior = 'auto'; g.scrollLeft = setW(); g.style.scrollBehavior = '';
-  requestAnimationFrame(() => { if (loop) g.scrollLeft = setW(); upd(); });
+  const clean = document.body.classList.contains('clean');
+  g.style.scrollBehavior = 'auto'; g.scrollLeft = clean ? startX() : 0; g.style.scrollBehavior = '';
+  requestAnimationFrame(() => { if (clean) g.scrollLeft = startX(); upd(); });
 }
 function renderLibrary() {
   const all = allIssues(), live = all.filter(i => status(i) === 'live'), soon = all.filter(i => status(i) !== 'live' && status(i) !== 'removed');
@@ -351,7 +353,7 @@ function renderLibrary() {
     ab.innerHTML = `<b>Editor view</b><span>Locked issues are shown greyed out – only you can open them.</span><span class="spacer"></span>${next ? `<button class="btn small primary" id="relNext">Release next: Issue ${next.n}</button>` : ''}<a class="btn small" href="#admin">Release desk</a>`;
     $('#relNext')?.addEventListener('click', () => setRelease(next.id, { s: 'live' }, `Issue ${next.n} released`));
   }
-  const liveShown = live.filter(matches).reverse(), soonShown = canManage() ? soon.filter(matches) : [];   // staff never see what's still to come
+  const liveShown = document.body.classList.contains('clean') ? live.filter(matches) : live.filter(matches).reverse(), soonShown = canManage() ? soon.filter(matches) : [];   // staff never see what's still to come
   const g = $('#grid');
   g.innerHTML = liveShown.map(cardHTML).join('') + (soonShown.length ? `<h2 style="grid-column:1/-1;font:800 20px var(--head);color:var(--navy);margin:16px 0 0">Not yet released <small style="font:600 13px var(--body);color:var(--muted)">– only you can see these</small></h2>` + soonShown.map(cardHTML).join('') : '');
   $('#empty').hidden = liveShown.length + soonShown.length > 0;
