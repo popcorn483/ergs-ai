@@ -908,7 +908,7 @@ window.addEventListener('hashchange', () => { if (location.hash !== '#binder') B
 /* ---------- quick tips ---------- */
 const slug = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
 const mkTip = path => ([app, level, title, why, steps]) => ({ id: slug(app + '-' + title), app, level, title, why, steps: (steps || []).filter(Boolean), path });
-// NL_SKILLS is the computer-skills path for less confident staff: shown in order, every other day
+// NL_SKILLS is the computer-skills path (time-saving tricks): shown in order, every other day
 const BUILTIN_TIPS = [...(window.NL_TIPS || []).map(mkTip(false)), ...(window.NL_SKILLS || []).map(mkTip(true))];
 let TIPSTATE = { hidden: {}, custom: {}, used: {} };
 let TIPLOG = null;   // { 'YYYY-MM-DD': tipId } – every Tip of the day, logged once per day
