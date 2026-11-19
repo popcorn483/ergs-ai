@@ -121,7 +121,7 @@ async function startFirebase() {
   onSnapshot(doc(DB, 'newsletter', 'state'), async s => {
     let d = (s.exists() && s.data()) || {};
     // Until the editor copies the data across, keep using the old release settings (read-only) so nothing locked appears early
-    if (!s.exists() && C.oldFirebase) { try { const o = await getDoc(doc((OLDRO ||= getFirestore(initializeApp(C.oldFirebase, 'old-ro'))), 'newsletter', 'state')); if (o.exists()) d = o.data(); } catch (e) { console.warn('old state', e); } } RELEASES = d.releases || {}; SERIES = Array.isArray(d.series) ? d.series : null; MIGRATED = !!d.migratedFrom; TIPSTATE = { hidden: d.hiddenTips || {}, custom: d.customTips || {}, used: d.usedTips || {} }; SHEETHIDE = d.hiddenSheets || {}; render(); if (location.hash === '#tips') renderTips(); if (location.hash === '#help') renderSheets(); }, e => console.warn('state', e));
+    if (!s.exists() && C.oldFirebase) { try { const o = await getDoc(doc((OLDRO ||= getFirestore(initializeApp(C.oldFirebase, 'old-ro'))), 'newsletter', 'state')); if (o.exists()) d = o.data(); } catch (e) { console.warn('old state', e); } } RELEASES = d.releases || {}; SERIES = Array.isArray(d.series) ? d.series : null; MIGRATED = !!d.migratedFrom; TIPSTATE = { hidden: d.hiddenTips || {}, custom: d.customTips || {}, used: d.usedTips || {}, img: d.tipImgs || {} }; SHEETHIDE = d.hiddenSheets || {}; render(); if (location.hash === '#tips') renderTips(); if (location.hash === '#help') renderSheets(); }, e => console.warn('state', e));
   onSnapshot(collection(DB, 'newsletterIssues'), async s => {
     const out = [];
     for (const d of s.docs) { try { const x = await decJSON(d.data().enc); out.push({ ...x, id: 'c' + d.id, docId: d.id }); } catch (e) {} }
@@ -699,7 +699,7 @@ $('#shareIssueBtn').addEventListener('click', () => { const id = location.hash.s
 /* ---------- automatic updates ----------
    The app fingerprints its own files. When anything is pushed to GitHub, open and installed copies
    notice within minutes (and whenever they're reopened) and refresh themselves – no version numbers to bump. */
-const WATCH = ['index.html', 'app.js', 'style.css', 'config.js', 'share.js', 'tips.js', 'skills.js', 'sheets.js', 'content.enc'];
+const WATCH = ['index.html', 'app.js', 'style.css', 'config.js', 'share.js', 'tips.js', 'skills.js', 'skills-art.js', 'skillart-draw.js', 'sheets.js', 'content.enc'];
 let BUILD = null, updating = false;
 async function fingerprint() {
   const bufs = await Promise.all(WATCH.map(f => fetch(f + '?v=' + Date.now(), { cache: 'no-store' }).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })));
@@ -910,12 +910,14 @@ const slug = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, 
 const mkTip = path => ([app, level, title, why, steps]) => ({ id: slug(app + '-' + title), app, level, title, why, steps: (steps || []).filter(Boolean), path });
 // NL_SKILLS is the computer-skills path (time-saving tricks): shown in order, every other day
 const BUILTIN_TIPS = [...(window.NL_TIPS || []).map(mkTip(false)), ...(window.NL_SKILLS || []).map(mkTip(true))];
-let TIPSTATE = { hidden: {}, custom: {}, used: {} };
+let TIPSTATE = { hidden: {}, custom: {}, used: {}, img: {} };
 let TIPLOG = null;   // { 'YYYY-MM-DD': tipId } – every Tip of the day, logged once per day
 const allTips = () => [...BUILTIN_TIPS, ...Object.entries(TIPSTATE.custom).filter(([, t]) => t && t.title).map(([id, t]) => ({ id, custom: true, app: t.app, level: t.level, title: t.title, why: t.why || '', steps: (t.steps || []).filter(Boolean) }))];
 const visibleTips = () => allTips().filter(t => !TIPSTATE.hidden[t.id]);
 let tipFilt = { q: '', app: '', level: '', used: '' }, tipOffset = 0, tipsWired = false, tipFormOpen = false;
-const tipBody = t => `<p class="tip-why">${esc(t.why)}</p>${t.steps.length ? `<ol class="tip-steps">${t.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}`;
+// picture for a tip: your own screenshot if added, otherwise the drawn illustration (computer-skills tips)
+const tipArt = t => { const id = (TIPSTATE.img || {})[t.id]; if (id) return `<figure class="tip-art photo"><img data-tipimg="${esc(id)}" alt="Screenshot for ${esc(t.title)}"></figure>`; const sp = t.path && window.NL_SKILL_ART && window.NL_SKILL_ART[t.title]; return sp && window.skillArtSVG ? `<figure class="tip-art">${window.skillArtSVG(sp)}</figure>` : ''; };
+const tipBody = t => `<p class="tip-why">${esc(t.why)}</p>${tipArt(t)}${t.steps.length ? `<ol class="tip-steps">${t.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}`;
 const tipCard = t => `<article class="tip-card"><div class="tip-top"><span class="tip-app" data-app="${esc(t.app)}">${esc(t.app)}</span><span class="tip-lvl${t.level === 'New to this' ? ' new' : ''}">${esc(t.level)}</span></div><h3>${esc(t.title)}</h3>${tipBody(t)}${canManage() ? tipAdminHTML(t) : ''}</article>`;
 const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const fmtDay = k => new Date(k + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -950,6 +952,7 @@ async function ensureTodayTip() {
 // staff only see tips that have already had their day (Tip of the day, or marked as used) before today
 const releasedTips = () => visibleTips().filter(t => tipUses(t.id).some(u => u.day < todayKey()));
 function lastUse(id) { return tipUses(id).map(u => u.day).sort().pop() || ''; }
+new MutationObserver(() => document.querySelectorAll('img[data-tipimg]:not([src])').forEach(im => { im.setAttribute('src', 'data:image/gif;base64,R0lGODlhAQABAAAAACw='); customPageImg(im.dataset.tipimg).then(u => { im.src = u; }).catch(() => { im.closest('figure')?.remove(); }); })).observe(document.documentElement, { childList: true, subtree: true });
 function renderTipDay() {
   const el = $('#tipDay'); if (!el) return;
   const vis = visibleTips(); if (!vis.length) { el.hidden = true; return; } el.hidden = false;
@@ -982,7 +985,7 @@ function tipUses(id) {   // all dates a tip was used: as Tip of the day, or mark
 function tipAdminHTML(t) {
   const uses = tipUses(t.id);
   const usedLine = uses.length ? `<div class="tip-used"><b>Used ${uses.length}×</b> · ${uses.slice(0, 3).map(u => `${fmtDay(u.day)} <span>(${u.how === 'Tip of the day' ? 'tip of the day' : 'marked'})</span>`).join(', ')}${uses.length > 3 ? '…' : ''}</div>` : '<div class="tip-used none">Not used yet</div>';
-  return `${usedLine}<div class="tip-admin">${t.custom ? '<span class="muted">Added by you</span>' : ''}${TIPLOG && TIPLOG[todayKey()] === t.id ? '<span class="tip-today">Today’s tip</span>' : `<button class="btn small primary" data-tiptoday="${esc(t.id)}">Use this today</button>`}<button class="btn small" data-tipused="${esc(t.id)}">Mark as used today</button><button class="btn small" data-tiphide="${esc(t.id)}">Hide</button></div>`;
+  return `${usedLine}<div class="tip-admin">${t.custom ? '<span class="muted">Added by you</span>' : ''}${TIPLOG && TIPLOG[todayKey()] === t.id ? '<span class="tip-today">Today’s tip</span>' : `<button class="btn small primary" data-tiptoday="${esc(t.id)}">Use this today</button>`}<button class="btn small" data-tipused="${esc(t.id)}">Mark as used today</button><button class="btn small" data-tippic="${esc(t.id)}">${(TIPSTATE.img || {})[t.id] ? 'Replace screenshot' : 'Add screenshot'}</button>${(TIPSTATE.img || {})[t.id] ? `<button class="btn small" data-tippicrm="${esc(t.id)}">${t.path ? 'Back to drawing' : 'Remove screenshot'}</button>` : ''}<button class="btn small" data-tiphide="${esc(t.id)}">Hide</button></div>`;
 }
 function saveTipState(patch, msg) {
   if (!ADMIN || !DB) return toast('Sign in at Staff admin to change tips');
@@ -1051,6 +1054,27 @@ function renderTips() {
     saveTipState({ usedTips: { [id]: days } }, 'Marked as used today');
   }));
   document.querySelectorAll('[data-tipshow]').forEach(b => b.addEventListener('click', () => saveTipState({ hiddenTips: { [b.dataset.tipshow]: false } }, 'Tip restored')));
+  document.querySelectorAll('[data-tippic]').forEach(b => b.addEventListener('click', () => {
+    if (!ADMIN || !DB) return toast('Sign in at Staff admin to change tips');
+    const id = b.dataset.tippic, inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = async () => {
+      const f = inp.files[0]; if (!f) return; b.disabled = true; b.textContent = 'Uploading…';
+      try {
+        const bmp = await createImageBitmap(f), sc = Math.min(1, 1400 / bmp.width), c = document.createElement('canvas');
+        c.width = Math.round(bmp.width * sc); c.height = Math.round(bmp.height * sc); c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+        const docId = 'tip-' + id.slice(0, 60) + '-' + Date.now().toString(36), old = (TIPSTATE.img || {})[id];
+        await setDoc(doc(DB, 'newsletterImgs', docId), { data: b64e(await enc(await fitJpeg(c))) });
+        await saveTipState({ tipImgs: { [id]: docId } }, 'Screenshot added');
+        if (old) deleteDoc(doc(DB, 'newsletterImgs', old)).catch(() => {});
+      } catch (e) { toast('Couldn’t add the screenshot: ' + (e.code || e.message)); b.disabled = false; }
+    };
+    inp.click();
+  }));
+  document.querySelectorAll('[data-tippicrm]').forEach(b => b.addEventListener('click', async () => {
+    const id = b.dataset.tippicrm, old = (TIPSTATE.img || {})[id];
+    await saveTipState({ tipImgs: { [id]: null } }, 'Screenshot removed');
+    if (old) deleteDoc(doc(DB, 'newsletterImgs', old)).catch(() => {});
+  }));
 }
 /* ---------- anonymous usage: one record per device that has unlocked the site ----------
    Stores a random device id, first/last visit, visit count, installed-app and phone flags. No names or emails.

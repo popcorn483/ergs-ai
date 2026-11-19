@@ -719,3 +719,10 @@ body.clean .binder-promo .bp-cover b,.binder-promo .bp-cover b{font-size:9.5px;l
 [data-app="Windows shortcuts"],[data-app="Text & typing"],[data-app="Chrome & the web"],[data-app="Files & folders"],[data-app="Printing & display"]{color:#5b3a8c}
 [data-app="Staying secure"]{color:#8a5a00}
 .td-card [data-app="Windows shortcuts"],.td-card [data-app="Text & typing"],.td-card [data-app="Chrome & the web"],.td-card [data-app="Files & folders"],.td-card [data-app="Printing & display"],.td-card [data-app="Staying secure"]{color:inherit}
+
+/* tip pictures (drawn illustrations or your own screenshots) */
+.tip-art{margin:10px 0 8px;background:#f4f6f9;border:1px solid var(--line);border-radius:8px;padding:6px;overflow:hidden}
+.tip-art svg{display:block;width:100%;height:auto}
+.tip-art.photo{padding:0;background:#fff}
+.tip-art.photo img{display:block;width:100%;height:auto}
+.td-card .tip-art{background:#fff;border-color:rgba(255,255,255,.4);max-width:560px}
