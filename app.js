@@ -311,12 +311,28 @@ function fmtDate(d) { if (!d) return ''; const x = new Date(d + 'T12:00:00'); re
 
 function carousel() {
   const g = $('#grid'), btns = document.querySelectorAll('.car-btn');
-  const upd = () => { const end = g.scrollLeft + g.clientWidth >= g.scrollWidth - 4; g.classList.toggle('at-end', end); btns[0].disabled = g.scrollLeft < 4; btns[1].disabled = end; };
-  if (!g.dataset.car) {
-    g.dataset.car = 1; g.addEventListener('scroll', upd, { passive: true }); addEventListener('resize', upd);
-    btns.forEach(b => b.addEventListener('click', () => g.scrollBy({ left: +b.dataset.car * Math.max(260, g.clientWidth * .8), behavior: 'smooth' })));
+  const real = [...g.children].filter(c => c.classList.contains('card') && !c.classList.contains('car-clone'));
+  const loop = document.body.classList.contains('clean') && real.length > 3;
+  g.classList.toggle('looping', loop);
+  if (loop) {   // one copy of the set either side, so swiping or the arrows wrap round seamlessly
+    const mk = c => { const k = c.cloneNode(true); k.classList.add('car-clone'); k.setAttribute('aria-hidden', 'true'); k.tabIndex = -1; return k; };
+    real.slice().reverse().forEach(c => g.prepend(mk(c))); real.forEach(c => g.append(mk(c)));
   }
-  g.scrollLeft = 0; requestAnimationFrame(upd);
+  const setW = () => loop ? real[0].offsetLeft - g.children[0].offsetLeft : 0;
+  const jump = dx => { g.style.scrollSnapType = 'none'; g.style.scrollBehavior = 'auto'; g.scrollLeft += dx; requestAnimationFrame(() => { g.style.scrollSnapType = ''; g.style.scrollBehavior = ''; }); };
+  const fix = () => { if (!g.classList.contains('looping')) return; const w = setW(); if (!w) return; if (g.scrollLeft < w * .5) jump(w); else if (g.scrollLeft > w * 1.5) jump(-w); };
+  const upd = () => {
+    if (g.classList.contains('looping')) { g.classList.remove('at-end'); btns.forEach(b => b.disabled = false); return; }
+    const end = g.scrollLeft + g.clientWidth >= g.scrollWidth - 4; g.classList.toggle('at-end', end); btns[0].disabled = g.scrollLeft < 4; btns[1].disabled = end;
+  };
+  if (!g.dataset.car) {
+    g.dataset.car = 1; let tm;
+    g.addEventListener('scroll', () => { upd(); clearTimeout(tm); tm = setTimeout(fix, 140); }, { passive: true });
+    addEventListener('resize', () => { upd(); fix(); });
+    btns.forEach(b => b.addEventListener('click', () => { fix(); g.scrollBy({ left: +b.dataset.car * Math.max(260, g.clientWidth * .8), behavior: 'smooth' }); }));
+  }
+  g.style.scrollBehavior = 'auto'; g.scrollLeft = setW(); g.style.scrollBehavior = '';
+  requestAnimationFrame(() => { if (loop) g.scrollLeft = setW(); upd(); });
 }
 function renderLibrary() {
   const all = allIssues(), live = all.filter(i => status(i) === 'live'), soon = all.filter(i => status(i) !== 'live' && status(i) !== 'removed');
@@ -339,7 +355,7 @@ function renderLibrary() {
   const g = $('#grid');
   g.innerHTML = liveShown.map(cardHTML).join('') + (soonShown.length ? `<h2 style="grid-column:1/-1;font:800 20px var(--head);color:var(--navy);margin:16px 0 0">Not yet released <small style="font:600 13px var(--body);color:var(--muted)">– only you can see these</small></h2>` + soonShown.map(cardHTML).join('') : '');
   $('#empty').hidden = liveShown.length + soonShown.length > 0;
-  hydrateImgs(g); carousel();
+  carousel(); hydrateImgs(g);
   g.querySelectorAll('[data-quick]').forEach(b => b.addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation();
     const i = all.find(x => x.id === b.dataset.quick); const lk = status(i) !== 'live';
