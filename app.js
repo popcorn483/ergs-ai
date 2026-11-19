@@ -699,7 +699,7 @@ $('#shareIssueBtn').addEventListener('click', () => { const id = location.hash.s
 /* ---------- automatic updates ----------
    The app fingerprints its own files. When anything is pushed to GitHub, open and installed copies
    notice within minutes (and whenever they're reopened) and refresh themselves – no version numbers to bump. */
-const WATCH = ['index.html', 'app.js', 'style.css', 'config.js', 'share.js', 'tips.js', 'skills.js', 'skills-art.js', 'tips-art.js', 'skillart-draw.js', 'sheets.js', 'content.enc'];
+const WATCH = ['index.html', 'app.js', 'style.css', 'config.js', 'share.js', 'tips.js', 'skills.js', 'skills-art.js', 'tips-art.js', 'skillart-draw.js', 'tipshots.js', 'sheets.js', 'content.enc'];
 let BUILD = null, updating = false;
 async function fingerprint() {
   const bufs = await Promise.all(WATCH.map(f => fetch(f + '?v=' + Date.now(), { cache: 'no-store' }).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })));
@@ -916,7 +916,7 @@ const allTips = () => [...BUILTIN_TIPS, ...Object.entries(TIPSTATE.custom).filte
 const visibleTips = () => allTips().filter(t => !TIPSTATE.hidden[t.id]);
 let tipFilt = { q: '', app: '', level: '', used: '' }, tipOffset = 0, tipsWired = false, tipFormOpen = false;
 // picture for a tip: your own screenshot if added, otherwise the drawn illustration (computer-skills tips)
-const tipArt = t => { const id = (TIPSTATE.img || {})[t.id]; if (id) return `<figure class="tip-art photo"><img data-tipimg="${esc(id)}" alt="Screenshot for ${esc(t.title)}"></figure>`; const sp = window.NL_SKILL_ART && window.NL_SKILL_ART[t.title]; return sp && window.skillArtSVG ? `<figure class="tip-art">${window.skillArtSVG(sp)}</figure>` : ''; };
+const tipArt = t => { const id = (TIPSTATE.img || {})[t.id]; if (id) return `<figure class="tip-art photo"><img data-tipimg="${esc(id)}" alt="Screenshot for ${esc(t.title)}"></figure>`; const sh = window.NL_TIP_SHOTS && window.NL_TIP_SHOTS[t.title]; if (sh) return `<figure class="tip-art photo"><img src="${esc(sh)}" loading="lazy" alt="Screenshot for ${esc(t.title)}"></figure>`; const sp = window.NL_SKILL_ART && window.NL_SKILL_ART[t.title]; return sp && window.skillArtSVG ? `<figure class="tip-art">${window.skillArtSVG(sp)}</figure>` : ''; };
 const tipBody = t => `<p class="tip-why">${esc(t.why)}</p>${tipArt(t)}${t.steps.length ? `<ol class="tip-steps">${t.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}`;
 const tipCard = t => `<article class="tip-card"><div class="tip-top"><span class="tip-app" data-app="${esc(t.app)}">${esc(t.app)}</span><span class="tip-lvl${t.level === 'New to this' ? ' new' : ''}">${esc(t.level)}</span></div><h3>${esc(t.title)}</h3>${tipBody(t)}${canManage() ? tipAdminHTML(t) : ''}</article>`;
 const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -985,7 +985,7 @@ function tipUses(id) {   // all dates a tip was used: as Tip of the day, or mark
 function tipAdminHTML(t) {
   const uses = tipUses(t.id);
   const usedLine = uses.length ? `<div class="tip-used"><b>Used ${uses.length}×</b> · ${uses.slice(0, 3).map(u => `${fmtDay(u.day)} <span>(${u.how === 'Tip of the day' ? 'tip of the day' : 'marked'})</span>`).join(', ')}${uses.length > 3 ? '…' : ''}</div>` : '<div class="tip-used none">Not used yet</div>';
-  return `${usedLine}<div class="tip-admin">${t.custom ? '<span class="muted">Added by you</span>' : ''}${TIPLOG && TIPLOG[todayKey()] === t.id ? '<span class="tip-today">Today’s tip</span>' : `<button class="btn small primary" data-tiptoday="${esc(t.id)}">Use this today</button>`}<button class="btn small" data-tipused="${esc(t.id)}">Mark as used today</button><button class="btn small" data-tippic="${esc(t.id)}">${(TIPSTATE.img || {})[t.id] ? 'Replace screenshot' : 'Add screenshot'}</button>${(TIPSTATE.img || {})[t.id] ? `<button class="btn small" data-tippicrm="${esc(t.id)}">${t.path ? 'Back to drawing' : 'Remove screenshot'}</button>` : ''}<button class="btn small" data-tiphide="${esc(t.id)}">Hide</button></div>`;
+  return `${usedLine}<div class="tip-admin">${t.custom ? '<span class="muted">Added by you</span>' : ''}${TIPLOG && TIPLOG[todayKey()] === t.id ? '<span class="tip-today">Today’s tip</span>' : `<button class="btn small primary" data-tiptoday="${esc(t.id)}">Use this today</button>`}<button class="btn small" data-tipused="${esc(t.id)}">Mark as used today</button><button class="btn small" data-tippic="${esc(t.id)}">${(TIPSTATE.img || {})[t.id] ? 'Replace screenshot' : 'Add screenshot'}</button>${(TIPSTATE.img || {})[t.id] ? `<button class="btn small" data-tippicrm="${esc(t.id)}">${(window.NL_TIP_SHOTS || {})[t.title] ? 'Back to built-in screenshot' : (window.NL_SKILL_ART || {})[t.title] ? 'Back to drawing' : 'Remove screenshot'}</button>` : ''}<button class="btn small" data-tiphide="${esc(t.id)}">Hide</button></div>`;
 }
 function saveTipState(patch, msg) {
   if (!ADMIN || !DB) return toast('Sign in at Staff admin to change tips');
