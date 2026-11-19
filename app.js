@@ -311,30 +311,32 @@ function fmtDate(d) { if (!d) return ''; const x = new Date(d + 'T12:00:00'); re
 
 function carousel() {
   const g = $('#grid'), btns = document.querySelectorAll('.car-btn');
-  const real = [...g.children].filter(c => c.classList.contains('card') && !c.classList.contains('car-clone'));
-  const loop = document.body.classList.contains('clean') && real.length > 3;
+  // everything is read fresh from the DOM, because the library re-renders whenever the data updates
+  const reals = () => [...g.children].filter(c => c.classList.contains('card') && !c.classList.contains('car-clone'));
+  const real = reals(), loop = document.body.classList.contains('clean') && real.length > 3;
   g.classList.toggle('looping', loop);
   if (loop) {   // one copy of the set either side, so swiping or the arrows wrap round seamlessly
     const mk = c => { const k = c.cloneNode(true); k.classList.add('car-clone'); k.setAttribute('aria-hidden', 'true'); k.tabIndex = -1; return k; };
     real.slice().reverse().forEach(c => g.prepend(mk(c))); real.forEach(c => g.append(mk(c)));
   }
-  const setW = () => loop ? real[0].offsetLeft - g.children[0].offsetLeft : 0;
-  const startX = () => { const L = real[real.length - 1]; return loop ? L.offsetLeft - g.children[0].offsetLeft : Math.max(0, L.offsetLeft - g.children[0].offsetLeft); };   // open on the latest issue
-  const jump = dx => { g.style.scrollSnapType = 'none'; g.style.scrollBehavior = 'auto'; g.scrollLeft += dx; requestAnimationFrame(() => { g.style.scrollSnapType = ''; g.style.scrollBehavior = ''; }); };
-  const fix = () => { if (!g.classList.contains('looping')) return; const w = setW(); if (!w) return; if (g.scrollLeft < w * .5) jump(w); else if (g.scrollLeft > w * 1.5) jump(-w); };
-  const upd = () => {
-    if (g.classList.contains('looping')) { g.classList.remove('at-end'); btns.forEach(b => b.disabled = false); return; }
-    const end = g.scrollLeft + g.clientWidth >= g.scrollWidth - 4; g.classList.toggle('at-end', end); btns[0].disabled = g.scrollLeft < 4; btns[1].disabled = end;
-  };
   if (!g.dataset.car) {
     g.dataset.car = 1; let tm;
-    g.addEventListener('scroll', () => { upd(); clearTimeout(tm); tm = setTimeout(fix, 140); }, { passive: true });
-    addEventListener('resize', () => { upd(); fix(); });
-    btns.forEach(b => b.addEventListener('click', () => { fix(); g.scrollBy({ left: +b.dataset.car * Math.max(260, g.clientWidth * .8), behavior: 'smooth' }); }));
+    const setW = () => { const r = reals(); return g.classList.contains('looping') && r.length ? r[0].offsetLeft - g.children[0].offsetLeft : 0; };
+    const jump = dx => { g.style.scrollSnapType = 'none'; g.style.scrollBehavior = 'auto'; g.scrollLeft += dx; requestAnimationFrame(() => { g.style.scrollSnapType = ''; g.style.scrollBehavior = ''; }); };
+    g._fix = () => { const w = setW(); if (!w) return; if (g.scrollLeft < w * .5) jump(w); else if (g.scrollLeft > w * 1.5) jump(-w); };
+    g._upd = () => {
+      if (g.classList.contains('looping')) { g.classList.remove('at-end'); btns.forEach(b => b.disabled = false); return; }
+      const end = g.scrollLeft + g.clientWidth >= g.scrollWidth - 4; g.classList.toggle('at-end', end); btns[0].disabled = g.scrollLeft < 4; btns[1].disabled = end;
+    };
+    g._start = () => { const r = reals(); if (!r.length || !document.body.classList.contains('clean')) return 0; let x = r[r.length - 1].offsetLeft - g.children[0].offsetLeft; const w = setW(); if (w && x > w * 1.5) x -= w; return x; };   // open on the latest issue
+    g.addEventListener('scroll', () => { g._upd(); clearTimeout(tm); tm = setTimeout(g._fix, 120); }, { passive: true });
+    g.addEventListener('scrollend', () => g._fix());
+    ['pointerdown', 'wheel', 'touchstart'].forEach(ev => g.addEventListener(ev, () => { g._touched = 1; }, { passive: true }));
+    addEventListener('resize', () => { g._upd(); g._fix(); });
+    btns.forEach(b => b.addEventListener('click', () => { g._touched = 1; g._fix(); g.scrollBy({ left: +b.dataset.car * Math.max(260, g.clientWidth * .8), behavior: 'smooth' }); }));
   }
-  const clean = document.body.classList.contains('clean');
-  g.style.scrollBehavior = 'auto'; g.scrollLeft = clean ? startX() : 0; g.style.scrollBehavior = '';
-  requestAnimationFrame(() => { if (clean) g.scrollLeft = startX(); upd(); });
+  const go = () => { g.style.scrollBehavior = 'auto'; g.scrollLeft = g._start(); g.style.scrollBehavior = ''; g._upd(); };
+  if (g._touched) { g._fix(); g._upd(); } else { go(); requestAnimationFrame(go); }
 }
 function renderLibrary() {
   const all = allIssues(), live = all.filter(i => status(i) === 'live'), soon = all.filter(i => status(i) !== 'live' && status(i) !== 'removed');
