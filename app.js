@@ -362,7 +362,7 @@ function renderAdmin() {
       <p class="muted">Only the newsletter editor can release and add issues. Enter your school email and we’ll send you a sign-in link – open it on this device.</p>
       ${LINK_MSG === 'confirm' ? '<p class="note">Confirm your email address to finish signing in.</p>' : LINK_MSG === 'expired' ? '<p class="note">That link has expired or was already used. Send a new one.</p>' : LINK_MSG === 'failed' ? '<p class="note">Sign-in didn’t finish. Check the address and try again.</p>' : ''}
       ${signedOther ? `<p class="note">You’re signed in as ${esc(AUTHUSER.email || 'another account')}, which isn’t the editor account. <button class="btn small" id="so">Sign out</button></p>` : ''}
-      <div class="row"><div class="field"><label for="ae">School email</label><input id="ae" type="email" value="${esc(LS.get('ergsNL.linkEmail') || C.admins[0])}"></div>
+      <div class="row"><div class="field"><label for="ae">Your email</label><input id="ae" type="email" value="${esc(LS.get('ergsNL.linkEmail') || C.admins[0])}"></div>
       <button class="btn primary" id="sendLink">${LINK_MSG === 'confirm' ? 'Finish signing in' : 'Email me a sign-in link'}</button></div><p id="am" class="muted"></p></div>`;
     $('#so')?.addEventListener('click', () => signOut(AUTH));
     $('#sendLink').addEventListener('click', async () => {

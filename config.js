@@ -20,7 +20,7 @@ window.NL_CONFIG = {
     appId: '1:1104768412:web:f34a84195be98eb2a2ac59'
   },
   // The account that can release and add issues (C2k: either address works)
-  admins: ['jbutler803@c2ken.net', 'jbutler803@c2kni.net'],
+  admins: ['jbutler803@c2ken.net', 'jbutler803@c2kni.net', 'jbutler483@gmail.com'],
   // Staff password key derivation (do not change unless content is re-encrypted)
   salt: 'jsTC70mVZJH1oXP1liyuCA==',
   iterations: 200000

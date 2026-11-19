@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Content is encrypted with the staff password, so anyone may read; only the editor may write.
-    function nlEditor() { return request.auth != null && request.auth.token.email is string && request.auth.token.email_verified == true && request.auth.token.email.lower() in ['jbutler803@c2ken.net', 'jbutler803@c2kni.net']; }
+    function nlEditor() { return request.auth != null && request.auth.token.email is string && request.auth.token.email_verified == true && request.auth.token.email.lower() in ['jbutler803@c2ken.net', 'jbutler803@c2kni.net', 'jbutler483@gmail.com']; }
     match /newsletter/{doc} {
       allow read: if true;
       allow write: if nlEditor();
