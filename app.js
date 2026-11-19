@@ -1,12 +1,12 @@
 // AI in School: A Teacher's Guide — newsletter library
 // Content is encrypted with the staff password; release state lives in Firestore (ergs-ai project).
 // Firebase loads on demand, so the library still opens if Firebase is unreachable (releases then fall back to defaults).
-let initializeApp, getFirestore, doc, collection, onSnapshot, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut;
+let initializeApp, getFirestore, doc, collection, onSnapshot, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp, getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect;
 async function loadFirebase() {
   const V = 'https://www.gstatic.com/firebasejs/10.12.2/';
   const [a, f, u] = await Promise.all([import(V + 'firebase-app.js'), import(V + 'firebase-firestore.js'), import(V + 'firebase-auth.js')]);
   ({ initializeApp } = a); ({ getFirestore, doc, collection, onSnapshot, setDoc, getDoc, getDocs, deleteDoc, serverTimestamp } = f);
-  ({ getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } = u);
+  ({ getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect } = u);
 }
 
 const C = window.NL_CONFIG;
@@ -363,8 +363,14 @@ function renderAdmin() {
       ${LINK_MSG === 'confirm' ? '<p class="note">Confirm your email address to finish signing in.</p>' : LINK_MSG === 'expired' ? '<p class="note">That link has expired or was already used. Send a new one.</p>' : LINK_MSG === 'failed' ? '<p class="note">Sign-in didn’t finish. Check the address and try again.</p>' : ''}
       ${signedOther ? `<p class="note">You’re signed in as ${esc(AUTHUSER.email || 'another account')}, which isn’t the editor account. <button class="btn small" id="so">Sign out</button></p>` : ''}
       <div class="row"><div class="field"><label for="ae">Your email</label><input id="ae" type="email" value="${esc(LS.get('ergsNL.linkEmail') || C.admins[0])}"></div>
-      <button class="btn primary" id="sendLink">${LINK_MSG === 'confirm' ? 'Finish signing in' : 'Email me a sign-in link'}</button></div><p id="am" class="muted"></p></div>`;
+      <button class="btn primary" id="sendLink">${LINK_MSG === 'confirm' ? 'Finish signing in' : 'Email me a sign-in link'}</button></div><p id="am" class="muted"></p>
+      <div class="row" style="margin-top:6px"><span class="muted">Using your Gmail account?</span><button class="btn" id="gSign"><svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true" style="vertical-align:-3px;margin-right:6px"><path fill="#4285F4" d="M45 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.8-2.1 5.1-4.4 6.7v5.5h7.1c4.2-3.9 6.5-9.6 6.5-16.2z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.5-3.8-12.2-9H4.5v5.7C8.1 41.1 15.5 46 24 46z"/><path fill="#FBBC05" d="M11.8 28.3c-.4-1.3-.7-2.8-.7-4.3s.3-3 .7-4.3V14H4.5C3 17 2 20.4 2 24s1 7 2.5 10l7.3-5.7z"/><path fill="#EA4335" d="M24 10.7c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.5 2 8.1 6.9 4.5 14l7.3 5.7c1.7-5.2 6.5-9 12.2-9z"/></svg>Sign in with Google</button></div></div>`;
     $('#so')?.addEventListener('click', () => signOut(AUTH));
+    $('#gSign').addEventListener('click', async () => {
+      const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' });
+      try { await signInWithPopup(AUTH, p); }
+      catch (err) { if (/popup-blocked|operation-not-supported|popup-closed-by-browser/.test(err.code || '')) return signInWithRedirect(AUTH, p); $('#am').textContent = err.code === 'auth/popup-closed-by-user' ? '' : 'Couldn’t sign in: ' + (err.code || err.message); }
+    });
     $('#sendLink').addEventListener('click', async () => {
       const e = $('#ae').value.trim().toLowerCase();
       if (LINK_MSG === 'confirm') return completeLink(e);
