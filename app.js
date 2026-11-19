@@ -119,44 +119,49 @@ function mountIntro() {
 function appNet() {
   const cv = document.querySelector('.app-net'); if (!cv) return;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const ctx = cv.getContext('2d'); let W, H, d, pts = [], links = [], pulses = [], last = 0;
+  const G = 26, O = 13;   // must match the CSS dot grid: 26px tiles, dot in the middle of each tile
+  const ctx = cv.getContext('2d'); let W, H, d, cols, rows, pts = [], pulses = [], last = 0, want = 0;
+  const gp = () => ({ i: Math.random() * cols | 0, j: Math.random() * rows | 0, born: performance.now() - (reduce ? 1e6 : 0), life: 14000 + Math.random() * 16000, hub: Math.random() < .15 });
   const size = () => {
     d = Math.min(2, devicePixelRatio || 1); W = cv.width = innerWidth * d; H = cv.height = innerHeight * d;
-    const n = Math.round(Math.min(70, innerWidth * innerHeight / 22000));
-    // nodes snap to a loose grid so links read like circuit traces
-    pts = Array.from({ length: n }, () => ({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * .12 * d, vy: (Math.random() - .5) * .12 * d, hub: Math.random() < .18 }));
+    cols = Math.ceil(innerWidth / G); rows = Math.ceil(innerHeight / G);
+    want = Math.round(Math.min(60, innerWidth * innerHeight / 24000));
+    pts = Array.from({ length: want }, () => { const p = gp(); p.born -= Math.random() * p.life; return p; });
   };
   size(); addEventListener('resize', size);
-  const L = () => 170 * d;
+  const X = i => (O + i * G) * d, Y = j => (O + j * G) * d;
+  const alphaOf = (p, t) => { const age = t - p.born; if (reduce) return 1; if (age < 2500) return age / 2500; if (age > p.life - 2500) return Math.max(0, (p.life - age) / 2500); return 1; };
   const frame = t => {
     requestAnimationFrame(frame);
-    if (document.hidden || document.getElementById('app').hidden || t - last < 33) return; last = t;
+    if (document.hidden || document.getElementById('app').hidden || t - last < 40) return; last = t;
+    pts = pts.filter(p => t - p.born < p.life); while (pts.length < want) pts.push(gp());
     ctx.clearRect(0, 0, W, H);
-    for (const p of pts) { if (!reduce) { p.x += p.vx; p.y += p.vy; } if (p.x < 0 || p.x > W) p.vx *= -1; if (p.y < 0 || p.y > H) p.vy *= -1; }
-    links = [];
-    const lim = L();
-    for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
-      const a = pts[i], b = pts[j], dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy);
-      if (dist > lim) continue;
-      const al = (1 - dist / lim) * .32;
-      ctx.strokeStyle = `rgba(31,79,143,${al})`; ctx.lineWidth = d * .8;
-      // right-angled "trace": go horizontal then vertical
-      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-      links.push([a, b]);
+    const lim = 7, links = [];
+    ctx.lineWidth = d;
+    for (let a = 0; a < pts.length; a++) for (let b = a + 1; b < pts.length; b++) {
+      const p = pts[a], q = pts[b], di = Math.abs(p.i - q.i), dj = Math.abs(p.j - q.j);
+      if (di + dj > lim || (di === 0 && dj === 0)) continue;
+      const al = Math.min(alphaOf(p, t), alphaOf(q, t)) * (1 - (di + dj) / (lim + 1)) * .38;
+      if (al < .01) continue;
+      ctx.strokeStyle = `rgba(31,79,143,${al.toFixed(3)})`;
+      const x1 = X(p.i) + .5, y1 = Y(p.j) + .5, x2 = X(q.i) + .5, y2 = Y(q.j) + .5;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      links.push([p, q]);
     }
     for (const p of pts) {
-      ctx.fillStyle = p.hub ? 'rgba(184,134,43,.75)' : 'rgba(31,79,143,.45)';
-      const r = (p.hub ? 2.6 : 1.6) * d;
-      if (p.hub) { ctx.strokeStyle = 'rgba(184,134,43,.35)'; ctx.lineWidth = d; ctx.strokeRect(p.x - r * 2.2, p.y - r * 2.2, r * 4.4, r * 4.4); }
-      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 7); ctx.fill();
+      const al = alphaOf(p, t), x = X(p.i), y = Y(p.j), r = (p.hub ? 2.4 : 1.8) * d;
+      if (p.hub) { ctx.strokeStyle = `rgba(184,134,43,${(.3 * al).toFixed(3)})`; ctx.strokeRect(x - 5 * d, y - 5 * d, 10 * d, 10 * d); }
+      ctx.fillStyle = p.hub ? `rgba(184,134,43,${(.55 * al).toFixed(3)})` : `rgba(31,79,143,${(.5 * al).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
     }
-    if (!reduce && links.length && pulses.length < 7 && Math.random() < .06) { const [a, b] = links[Math.random() * links.length | 0]; pulses.push({ a, b, k: 0, s: .012 + Math.random() * .014 }); }
-    pulses = pulses.filter(q => (q.k += q.s) < 1);
-    for (const q of pulses) {
-      const { a, b } = q, seg1 = Math.abs(b.x - a.x), seg2 = Math.abs(b.y - a.y), tot = seg1 + seg2 || 1, s = q.k * tot;
-      const x = s < seg1 ? a.x + Math.sign(b.x - a.x) * s : b.x, y = s < seg1 ? a.y : a.y + Math.sign(b.y - a.y) * (s - seg1);
-      const g = ctx.createRadialGradient(x, y, 0, x, y, 9 * d); g.addColorStop(0, 'rgba(214,170,80,.95)'); g.addColorStop(1, 'rgba(214,170,80,0)');
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 9 * d, 0, 7); ctx.fill();
+    if (!reduce && links.length && pulses.length < 3 && Math.random() < .015) { const [p, q] = links[Math.random() * links.length | 0]; pulses.push({ p, q, k: 0 }); }
+    pulses = pulses.filter(u => (u.k += .006) < 1 && pts.includes(u.p) && pts.includes(u.q));
+    for (const u of pulses) {
+      const x1 = X(u.p.i), y1 = Y(u.p.j), x2 = X(u.q.i), y2 = Y(u.q.j), s1 = Math.abs(x2 - x1), tot = s1 + Math.abs(y2 - y1) || 1, s = u.k * tot;
+      const x = s < s1 ? x1 + Math.sign(x2 - x1) * s : x2, y = s < s1 ? y1 : y1 + Math.sign(y2 - y1) * (s - s1);
+      const fade = Math.sin(Math.PI * u.k) * .5;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, 6 * d); g.addColorStop(0, `rgba(200,160,80,${fade.toFixed(3)})`); g.addColorStop(1, 'rgba(200,160,80,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 6 * d, 0, 7); ctx.fill();
     }
   };
   requestAnimationFrame(frame);

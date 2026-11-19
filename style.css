@@ -778,7 +778,7 @@ body.clean .binder-promo .bp-cover b,.binder-promo .bp-cover b{font-size:9.5px;l
 .app-bg .b2{width:60vmax;height:60vmax;right:-22vmax;top:8vh;background:radial-gradient(circle,rgba(184,149,90,.28),rgba(184,149,90,0) 62%);animation:bgB 40s ease-in-out infinite alternate}
 .app-bg .b3{width:65vmax;height:65vmax;left:15vw;bottom:-38vmax;background:radial-gradient(circle,rgba(20,40,75,.17),rgba(20,40,75,0) 62%);animation:bgC 36s ease-in-out infinite alternate}
 .app-bg .grid{inset:0;border-radius:0;background-image:radial-gradient(rgba(20,40,75,.17) 1px,transparent 1.2px);background-size:26px 26px;
-  -webkit-mask-image:radial-gradient(120% 70% at 50% 0%,#000 0%,transparent 75%);mask-image:radial-gradient(120% 70% at 50% 0%,#000 0%,transparent 75%);animation:bgGrid 90s linear infinite}
+  -webkit-mask-image:radial-gradient(120% 70% at 50% 0%,#000 0%,transparent 75%);mask-image:radial-gradient(120% 70% at 50% 0%,#000 0%,transparent 75%)}
 @keyframes bgA{to{transform:translate(18vw,14vh) scale(1.15)}}
 @keyframes bgB{to{transform:translate(-22vw,26vh) scale(.9)}}
 @keyframes bgC{to{transform:translate(-12vw,-20vh) scale(1.1)}}
