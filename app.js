@@ -94,7 +94,7 @@ function hideSplash(minMs) {
 }
 function mountIntro() {
   document.querySelectorAll('.coin-edge').forEach(ed => { ed.innerHTML = Array.from({ length: 14 }, (_, i) => `<i style="transform:translateZ(${(-6.5 + i).toFixed(1)}px)"></i>`).join(''); });
-  document.querySelectorAll('.sp-title').forEach(t => { if (t.classList.contains('split')) return; const txt = t.textContent; t.setAttribute('aria-label', txt); t.innerHTML = [...txt].map((ch, i) => ch === ' ' ? ' ' : `<span class="ch" aria-hidden="true" style="--i:${i}">${esc(ch)}</span>`).join(''); t.classList.add('split'); });
+  document.querySelectorAll('.sp-title').forEach(t => { if (t.classList.contains('split')) return; const txt = t.textContent; t.setAttribute('aria-label', txt); let i = 0; t.innerHTML = txt.split(' ').map(w => `<span class="wd" aria-hidden="true">${[...w].map(ch => `<span class="ch" style="--i:${i++}">${esc(ch)}</span>`).join('')}</span>${w === 'Digital' ? '<br>' : ' '}`).join(''); t.classList.add('split'); });
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.querySelectorAll('.sp-net').forEach(cv => {
     const host = cv.closest('.splash,.gate'); host.insertBefore(cv, host.querySelector('.sp-bg').nextSibling);
