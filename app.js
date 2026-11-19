@@ -120,7 +120,7 @@ async function boot() {
   $('#gateCrest').src = $('#mastCrest').src = $('#splashCrest').src = window.ERGS_CREST || '';
   mountIntro();
   const raw = LS.get('ergsNL.k') || SS.get('ergsNL.k');
-  if (raw) { try { KEY = await importRaw(raw); if (await tryKey()) { start(); return hideSplash(2600); } } catch (e) {} }
+  if (raw) { try { KEY = await importRaw(raw); if (await tryKey()) { start(); return hideSplash(4300); } } catch (e) {} }
   $('#splash')?.remove(); $('#gate').hidden = false; setTimeout(() => $('#pw').focus(), 1500);   // first visit: the password screen plays the same intro
 }
 $('#gateForm').addEventListener('submit', async e => {
