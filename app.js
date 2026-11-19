@@ -38,7 +38,7 @@ function fileImg(path) {
 }
 
 /* ---------- state ---------- */
-let CONTENT = null, RELEASES = {}, SERIES = null, MIGRATED = true, CUSTOM = [], ADMIN = false, AUTHUSER = null, STAFFVIEW = localStorage.getItem('ergsNL.sv') === '1', DB = null, AUTH = null;
+let OLDRO = null, CONTENT = null, RELEASES = {}, SERIES = null, MIGRATED = true, CUSTOM = [], ADMIN = false, AUTHUSER = null, STAFFVIEW = localStorage.getItem('ergsNL.sv') === '1', DB = null, AUTH = null;
 let filt = { q: '', theme: '', tool: '' };
 
 function allIssues() {
@@ -118,7 +118,10 @@ async function startFirebase() {
     await loadFirebase();
     const app = initializeApp(C.firebase, 'ergs-ai'); DB = getFirestore(app); AUTH = getAuth(app);
   } catch (e) { console.warn(e); return; }
-  onSnapshot(doc(DB, 'newsletter', 'state'), s => { const d = (s.exists() && s.data()) || {}; RELEASES = d.releases || {}; SERIES = Array.isArray(d.series) ? d.series : null; MIGRATED = !!d.migratedFrom; TIPSTATE = { hidden: d.hiddenTips || {}, custom: d.customTips || {}, used: d.usedTips || {} }; SHEETHIDE = d.hiddenSheets || {}; render(); if (location.hash === '#tips') renderTips(); if (location.hash === '#help') renderSheets(); }, e => console.warn('state', e));
+  onSnapshot(doc(DB, 'newsletter', 'state'), async s => {
+    let d = (s.exists() && s.data()) || {};
+    // Until the editor copies the data across, keep using the old release settings (read-only) so nothing locked appears early
+    if (!s.exists() && C.oldFirebase) { try { const o = await getDoc(doc((OLDRO ||= getFirestore(initializeApp(C.oldFirebase, 'old-ro'))), 'newsletter', 'state')); if (o.exists()) d = o.data(); } catch (e) { console.warn('old state', e); } } RELEASES = d.releases || {}; SERIES = Array.isArray(d.series) ? d.series : null; MIGRATED = !!d.migratedFrom; TIPSTATE = { hidden: d.hiddenTips || {}, custom: d.customTips || {}, used: d.usedTips || {} }; SHEETHIDE = d.hiddenSheets || {}; render(); if (location.hash === '#tips') renderTips(); if (location.hash === '#help') renderSheets(); }, e => console.warn('state', e));
   onSnapshot(collection(DB, 'newsletterIssues'), async s => {
     const out = [];
     for (const d of s.docs) { try { const x = await decJSON(d.data().enc); out.push({ ...x, id: 'c' + d.id, docId: d.id }); } catch (e) {} }
