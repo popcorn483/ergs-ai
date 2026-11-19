@@ -116,9 +116,54 @@ function mountIntro() {
   addEventListener('pointermove', e => { if (document.querySelector('.splash,.gate:not([hidden])')) tilt(e.clientX / innerWidth - .5, e.clientY / innerHeight - .5); }, { passive: true });
   addEventListener('deviceorientation', e => { if (e.gamma != null && document.querySelector('.splash,.gate:not([hidden])')) tilt(Math.max(-1, Math.min(1, e.gamma / 40)) / 2, Math.max(-1, Math.min(1, (e.beta - 45) / 40)) / 2); }, { passive: true });
 }
+function appNet() {
+  const cv = document.querySelector('.app-net'); if (!cv) return;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ctx = cv.getContext('2d'); let W, H, d, pts = [], links = [], pulses = [], last = 0;
+  const size = () => {
+    d = Math.min(2, devicePixelRatio || 1); W = cv.width = innerWidth * d; H = cv.height = innerHeight * d;
+    const n = Math.round(Math.min(70, innerWidth * innerHeight / 22000));
+    // nodes snap to a loose grid so links read like circuit traces
+    pts = Array.from({ length: n }, () => ({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * .12 * d, vy: (Math.random() - .5) * .12 * d, hub: Math.random() < .18 }));
+  };
+  size(); addEventListener('resize', size);
+  const L = () => 170 * d;
+  const frame = t => {
+    requestAnimationFrame(frame);
+    if (document.hidden || document.getElementById('app').hidden || t - last < 33) return; last = t;
+    ctx.clearRect(0, 0, W, H);
+    for (const p of pts) { if (!reduce) { p.x += p.vx; p.y += p.vy; } if (p.x < 0 || p.x > W) p.vx *= -1; if (p.y < 0 || p.y > H) p.vy *= -1; }
+    links = [];
+    const lim = L();
+    for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+      const a = pts[i], b = pts[j], dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy);
+      if (dist > lim) continue;
+      const al = (1 - dist / lim) * .32;
+      ctx.strokeStyle = `rgba(31,79,143,${al})`; ctx.lineWidth = d * .8;
+      // right-angled "trace": go horizontal then vertical
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      links.push([a, b]);
+    }
+    for (const p of pts) {
+      ctx.fillStyle = p.hub ? 'rgba(184,134,43,.75)' : 'rgba(31,79,143,.45)';
+      const r = (p.hub ? 2.6 : 1.6) * d;
+      if (p.hub) { ctx.strokeStyle = 'rgba(184,134,43,.35)'; ctx.lineWidth = d; ctx.strokeRect(p.x - r * 2.2, p.y - r * 2.2, r * 4.4, r * 4.4); }
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 7); ctx.fill();
+    }
+    if (!reduce && links.length && pulses.length < 7 && Math.random() < .06) { const [a, b] = links[Math.random() * links.length | 0]; pulses.push({ a, b, k: 0, s: .012 + Math.random() * .014 }); }
+    pulses = pulses.filter(q => (q.k += q.s) < 1);
+    for (const q of pulses) {
+      const { a, b } = q, seg1 = Math.abs(b.x - a.x), seg2 = Math.abs(b.y - a.y), tot = seg1 + seg2 || 1, s = q.k * tot;
+      const x = s < seg1 ? a.x + Math.sign(b.x - a.x) * s : b.x, y = s < seg1 ? a.y : a.y + Math.sign(b.y - a.y) * (s - seg1);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, 9 * d); g.addColorStop(0, 'rgba(214,170,80,.95)'); g.addColorStop(1, 'rgba(214,170,80,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 9 * d, 0, 7); ctx.fill();
+    }
+  };
+  requestAnimationFrame(frame);
+}
 async function boot() {
   $('#gateCrest').src = $('#mastCrest').src = $('#splashCrest').src = window.ERGS_CREST || '';
-  mountIntro();
+  mountIntro(); appNet();
   const raw = LS.get('ergsNL.k') || SS.get('ergsNL.k');
   if (raw) { try { KEY = await importRaw(raw); if (await tryKey()) { start(); return hideSplash(4300); } } catch (e) {} }
   $('#splash')?.remove(); $('#gate').hidden = false; setTimeout(() => $('#pw').focus(), 1500);   // first visit: the password screen plays the same intro
