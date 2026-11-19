@@ -793,12 +793,12 @@ body:has(#app:not([hidden])){background:transparent}
 .car-head{display:none}
 body.clean #library{display:flex;flex-direction:column}
 body.clean #library>.hero{order:1}
-body.clean #library>.binder-promo{order:2}
+body.clean #library>.binder-promo{order:3}
 body.clean #library>.car-head{order:3}
 body.clean #library>.toolbar{order:4}
 body.clean #library>#grid{order:5}
 body.clean #library>#empty{order:6}
-body.clean #library>.tipday{order:7;margin-top:8px}
+body.clean #library>.tipday{order:2}
 body.clean #library>.help-link,body.clean #library>#adminBar{order:8}
 body.clean .binder-promo{grid-template-columns:300px 1fr!important;gap:48px!important;padding:44px 56px!important;margin-bottom:38px;border-radius:14px;
   background:radial-gradient(120% 140% at 0% 0%,#24457e 0%,#14284b 45%,#0b1830 100%);box-shadow:0 24px 50px -18px rgba(11,24,48,.55),0 2px 0 rgba(255,255,255,.06) inset}
