@@ -129,10 +129,11 @@ function hideSplash(minMs) {
   return new Promise(r => setTimeout(() => { sp.classList.add('out'); setTimeout(() => { sp.remove(); r(); }, 650); }, wait));
 }
 function mountIntro() {
-  document.querySelectorAll('.coin-edge').forEach(ed => { ed.innerHTML = Array.from({ length: 14 }, (_, i) => `<i style="transform:translateZ(${(-6.5 + i).toFixed(1)}px)"></i>`).join(''); });
+  document.querySelectorAll('.coin-edge').forEach(ed => { if (ed.children.length) return; ed.innerHTML = Array.from({ length: 14 }, (_, i) => `<i style="transform:translateZ(${(-6.5 + i).toFixed(1)}px)"></i>`).join(''); });
   document.querySelectorAll('.sp-title').forEach(t => { if (t.classList.contains('split')) return; const txt = t.textContent; t.setAttribute('aria-label', txt); let i = 0; t.innerHTML = txt.split(' ').map(w => `<span class="wd" aria-hidden="true">${[...w].map(ch => `<span class="ch" style="--i:${i++}">${esc(ch)}</span>`).join('')}</span>${w === 'Digital' ? '<br>' : ' '}`).join(''); t.classList.add('split'); });
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.querySelectorAll('.sp-net').forEach(cv => {
+    if (cv.dataset.on) return; cv.dataset.on = 1;
     const host = cv.closest('.splash,.gate'); host.insertBefore(cv, host.querySelector('.sp-bg').nextSibling);
     if (reduce) return;
     const ctx = cv.getContext('2d'); let W, H, pts = [], raf;
@@ -147,7 +148,7 @@ function mountIntro() {
     };
     draw();
   });
-  if (reduce) return;
+  if (reduce || mountIntro.tilt) return; mountIntro.tilt = 1;
   const tilt = (x, y) => document.querySelectorAll('.coin3d').forEach(c => { c.style.setProperty('--ty', (x * 22).toFixed(1) + 'deg'); c.style.setProperty('--tx', (-y * 18).toFixed(1) + 'deg'); });
   addEventListener('pointermove', e => { if (document.querySelector('.splash,.gate:not([hidden])')) tilt(e.clientX / innerWidth - .5, e.clientY / innerHeight - .5); }, { passive: true });
   addEventListener('deviceorientation', e => { if (e.gamma != null && document.querySelector('.splash,.gate:not([hidden])')) tilt(Math.max(-1, Math.min(1, e.gamma / 40)) / 2, Math.max(-1, Math.min(1, (e.beta - 45) / 40)) / 2); }, { passive: true });
@@ -202,9 +203,41 @@ function appNet() {
   };
   requestAnimationFrame(frame);
 }
+/* ---------- screensaver: the intro, after 5 minutes without any activity ---------- */
+const SAVER_MS = 5 * 60 * 1000;
+function startSaver() {
+  let t, el = null;
+  const html = () => `<div class="sp-bg"></div><div class="sp-center saver-drift">
+      <div class="sp-crestwrap small"><canvas class="sp-net" aria-hidden="true"></canvas>
+        <div class="sp-orbit o1"><i></i></div><div class="sp-orbit o2"><i></i></div><div class="sp-orbit o3"><i></i></div>
+        <div class="coin3d"><div class="coin-spin"><div class="coin-face front"><img class="sp-crest" alt="" src="${window.ERGS_CREST || ''}"></div><div class="coin-edge"></div><div class="coin-face back"><span>ERGS<b>AI</b></span></div></div><div class="coin-shine"></div></div>
+        <div class="coin-shadow"></div></div>
+      <p class="sp-school">Enniskillen Royal Grammar School</p>
+      <h1 class="sp-title">ERGS Digital Skills &amp; AI</h1>
+      <div class="sp-rule"></div>
+      <p class="saver-clock"></p>
+    </div><p class="sp-foot">Tap or press any key to continue</p>`;
+  const blocked = () => document.getElementById('splash') || !$('#gate').hidden || $('#app').hidden || document.querySelector('dialog[open], .modal:not([hidden])');
+  const show = () => {
+    if (el || blocked() || document.hidden) return arm();
+    el = document.createElement('div'); el.className = 'splash saver'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Screensaver – press any key to continue');
+    el.innerHTML = html(); document.body.appendChild(el); mountIntro();
+    const ck = el.querySelector('.saver-clock'), tick = () => { if (!el) return; ck.textContent = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); setTimeout(tick, 10000); }; tick();
+  };
+  const hide = () => { const x = el; el = null; x.classList.add('out'); setTimeout(() => x.remove(), 650); };
+  const arm = () => { clearTimeout(t); t = setTimeout(show, SAVER_MS); };
+  const wake = e => {
+    if (el) { if (e.type === 'pointerdown' || e.type === 'keydown') { e.preventDefault(); e.stopPropagation(); } if (e.type !== 'pointermove' && e.type !== 'scroll') hide(); }
+    arm();
+  };
+  ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'].forEach(ev => addEventListener(ev, wake, { capture: true, passive: ev !== 'pointerdown' && ev !== 'keydown' }));
+  let lastMove = 0; addEventListener('pointermove', e => { const now = Date.now(); if (now - lastMove > 1000) { lastMove = now; if (!el) arm(); } }, { passive: true });
+  addEventListener('click', e => { if (e.target.closest && e.target.closest('.saver')) { e.preventDefault(); e.stopPropagation(); } }, true);
+  arm();
+}
 async function boot() {
   $('#gateCrest').src = $('#mastCrest').src = $('#splashCrest').src = window.ERGS_CREST || '';
-  mountIntro(); appNet();
+  mountIntro(); appNet(); startSaver();
   const raw = LS.get('ergsNL.k') || SS.get('ergsNL.k');
   if (raw) { try { KEY = await importRaw(raw); if (await tryKey()) { start(); return hideSplash(4300); } } catch (e) {} }
   $('#splash')?.remove(); $('#gate').hidden = false; setTimeout(() => $('#pw').focus(), 1500);   // first visit: the password screen plays the same intro
