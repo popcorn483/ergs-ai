@@ -1212,20 +1212,31 @@ async function renderUsage() {
     const n7 = rows.filter(r => now - r.first < 7 * day).length, apps = rows.filter(r => r.app).length, phones = rows.filter(r => r.mob).length, visits = rows.reduce((t, r) => t + r.n, 0);
     const weeks = Array.from({ length: 8 }, (_, k) => rows.filter(r => r.first && now - r.first >= (7 - k) * 7 * day && now - r.first < (8 - k) * 7 * day).length);
     const mx = Math.max(1, ...weeks);
+    // one row per person: devices that gave the same name (ignoring case and spacing) are grouped
+    const key = s => s.trim().replace(/\s+/g, ' ').toLowerCase();
+    const groups = new Map();
+    rows.forEach((r, i) => { const k = r.name.trim() ? 'n:' + key(r.name) : 'd:' + i; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+    const people = [...groups.values()].map(devs => {
+      const vs = devs.map(d => d.name.trim().replace(/\s+/g, ' ')).filter(Boolean), cap = vs.find(v => /[A-Z]/.test(v)) || (vs[0] || '').replace(/\b\w/g, c => c.toUpperCase());
+      return { name: cap, devs, first: Math.min(...devs.map(d => d.first || Infinity)), last: Math.max(...devs.map(d => d.last)), n: devs.reduce((t, d) => t + d.n, 0), app: devs.filter(d => d.app).length }; })
+      .sort((x, y) => (!!y.name - !!x.name) || y.last - x.last);
+    const devMix = ds => { const m = ds.filter(d => d.mob).length, c = ds.length - m; return '(' + [c && c + (c > 1 ? ' computers' : ' computer'), m && m + (m > 1 ? ' phones/tablets' : ' phone/tablet')].filter(Boolean).join(', ') + ')'; };
+    const fmtD = t => t && isFinite(t) ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '–';
     el.innerHTML = `<h2>Staff usage</h2><p class="muted">Each device that has entered the staff password is counted once. Staff give their name the first time they log in.</p>
       <div class="usage-grid">
+        <div><b>${people.filter(p => p.name).length}</b><span>named staff</span></div>
         <div><b>${total}</b><span>devices unlocked</span></div>
         <div><b>${a7}</b><span>active in the last 7 days</span></div>
         <div><b>${a30}</b><span>active in the last 30 days</span></div>
-        <div><b>${n7}</b><span>new this week</span></div>
         <div><b>${apps}</b><span>using the installed app</span></div>
         <div><b>${visits}</b><span>visits in total</span></div>
       </div>
       <div class="usage-bars" aria-label="New devices per week, last 8 weeks">${weeks.map((w, k) => `<div title="${w} new"><i style="height:${Math.round(w / mx * 100)}%"></i><small>${k === 7 ? 'This wk' : (7 - k) + 'w'}</small><em>${w || ''}</em></div>`).join('')}</div>
       <p class="muted usage-note">New devices per week · ${phones} of ${total} are phones or tablets. One person may use more than one device.</p>
       <h3 style="margin:22px 0 0;font:600 18px var(--serif);color:var(--navy)">Who’s using ERGS AI</h3>
-      <div style="overflow-x:auto"><table class="who"><thead><tr><th>Name</th><th>First used</th><th>Last used</th><th>Visits</th><th>App installed</th><th>Device</th></tr></thead><tbody>
-      ${rows.slice().sort((x, y) => y.last - x.last).map(r => `<tr><td>${r.name ? esc(r.name) : '<span class="muted">Not given yet</span>'}</td><td>${r.first ? new Date(r.first).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '–'}</td><td>${r.last ? new Date(r.last).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '–'}</td><td>${r.n}</td><td>${r.app ? '<span class="yes">✓ Yes</span>' : 'No'}</td><td>${r.mob ? 'Phone / tablet' : 'Computer'}</td></tr>`).join('')}
+      <p class="muted" style="margin:4px 0 0">${people.filter(p => p.name).length} named ${people.filter(p => p.name).length === 1 ? 'person' : 'people'}. Devices logged in with the same name are grouped together.</p>
+      <div style="overflow-x:auto"><table class="who"><thead><tr><th>Name</th><th>Devices</th><th>First used</th><th>Last used</th><th>Visits</th><th>App installed</th></tr></thead><tbody>
+      ${people.map(p => `<tr><td>${p.name ? esc(p.name) : '<span class="muted">Not given yet</span>'}</td><td><b>${p.devs.length}</b> <span class="muted">${devMix(p.devs)}</span></td><td>${fmtD(p.first)}</td><td>${fmtD(p.last)}</td><td>${p.n}</td><td>${p.app ? `<span class="yes">✓ ${p.devs.length > 1 ? p.app + ' of ' + p.devs.length : 'Yes'}</span>` : 'No'}</td></tr>`).join('')}
       </tbody></table></div>`;
   } catch (e) {
     el.innerHTML = /permission/.test(String(e.code || e.message))
