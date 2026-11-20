@@ -885,3 +885,4 @@ body.clean .binder-promo .btn.primary{font-size:14px!important;font-weight:700}
 @keyframes saverDrift{0%{transform:translate(-3vw,-2vh)}25%{transform:translate(3vw,-3vh)}50%{transform:translate(2vw,3vh)}75%{transform:translate(-3vw,2vh)}100%{transform:translate(0,-1vh)}}
 @media (prefers-reduced-motion:reduce){.saver-drift{animation:none}}
 .splash.saver.out{animation:spOut .65s ease forwards}
+.saver-date{font:400 clamp(14px,2.2vw,22px)/1.3 var(--display);letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.78);margin:14px 0 0;text-align:center;opacity:0;animation:spFade 1s 1.9s forwards}

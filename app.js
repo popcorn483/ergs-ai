@@ -215,14 +215,14 @@ function startSaver() {
       <p class="sp-school">Enniskillen Royal Grammar School</p>
       <h1 class="sp-title">ERGS Digital Skills &amp; AI</h1>
       <div class="sp-rule"></div>
-      <p class="saver-clock"></p>
+      <p class="saver-clock"></p><p class="saver-date"></p>
     </div><p class="sp-foot">Tap or press any key to continue</p>`;
   const blocked = () => document.getElementById('splash') || !$('#gate').hidden || $('#app').hidden || document.querySelector('dialog[open], .modal:not([hidden])');
   const show = () => {
     if (el || blocked() || document.hidden) return arm();
     el = document.createElement('div'); el.className = 'splash saver'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Screensaver – press any key to continue');
     el.innerHTML = html(); document.body.appendChild(el); mountIntro();
-    const ck = el.querySelector('.saver-clock'), tick = () => { if (!el) return; ck.textContent = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); setTimeout(tick, 10000); }; tick();
+    const ck = el.querySelector('.saver-clock'), dt = el.querySelector('.saver-date'), tick = () => { if (!el) return; const d = new Date(); ck.textContent = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); dt.textContent = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); setTimeout(tick, 10000); }; tick();
   };
   const hide = () => { const x = el; el = null; x.classList.add('out'); setTimeout(() => x.remove(), 650); };
   const arm = () => { clearTimeout(t); t = setTimeout(show, SAVER_MS); };
