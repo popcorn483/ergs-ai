@@ -38,32 +38,64 @@ function fileImg(path) {
 }
 
 /* ---------- state ---------- */
-let OLDRO = null, CONTENT = null, RELEASES = {}, SERIES = null, MIGRATED = true, CUSTOM = [], ADMIN = false, AUTHUSER = null, STAFFVIEW = localStorage.getItem('ergsNL.sv') === '1', DB = null, AUTH = null;
+let OLDRO = null, CONTENT = null, RELEASES = {}, SERIES = null, ORDER = null, MIGRATED = true, CUSTOM = [], ADMIN = false, AUTHUSER = null, STAFFVIEW = localStorage.getItem('ergsNL.sv') === '1', DB = null, AUTH = null;
 let filt = { q: '', theme: '', tool: '' };
 
+function issueMap() {
+  const m = new Map();
+  CONTENT.orig.forEach(x => m.set('w' + x.n, { ...x, id: 'w' + x.n, kind: 'img', imgs: ['img/w' + String(x.n).padStart(2, '0') + '.bin'], thumb: 'img/w' + String(x.n).padStart(2, '0') + '-t.bin', def: 'live' }));
+  CONTENT.bank.forEach(x => { const b = bankItem(x); m.set(b.id, b); });
+  CUSTOM.filter(x => !x.overrides).forEach(x => m.set(x.id, { ...x, custom: true, fsPages: true, def: 'locked' }));
+  return m;
+}
+// The running order of every issue in the series. Numbers come from position (removed issues are skipped).
+function orderIds() {
+  const m = issueMap(), has = id => m.has(id);
+  let o;
+  if (ORDER) o = ORDER.filter(has);
+  else {   // first run: originals, then the existing series, then every other generated issue
+    const ser = seriesIds();
+    o = [...CONTENT.orig.map(x => 'w' + x.n), ...ser, ...CONTENT.bank.map(x => 'b' + x.n).filter(id => !ser.includes(id))];
+  }
+  const seen = new Set(o);
+  CONTENT.orig.forEach(x => { if (!seen.has('w' + x.n)) { o.splice(Math.min(o.length, x.n - 1), 0, 'w' + x.n); seen.add('w' + x.n); } });
+  CUSTOM.filter(x => !x.overrides && !seen.has(x.id)).sort((p, q) => (p.n || 0) - (q.n || 0)).forEach(x => { o.splice(Math.max(0, Math.min(o.length, (x.n || o.length + 1) - 1)), 0, x.id); seen.add(x.id); });
+  return o;
+}
 function allIssues() {
-  const o = CONTENT.orig.map(x => ({ ...x, id: 'w' + x.n, kind: 'img', imgs: ['img/w' + String(x.n).padStart(2, '0') + '.bin'], thumb: 'img/w' + String(x.n).padStart(2, '0') + '-t.bin', def: 'live' }));
-  // bank issues: only those placed in the series appear; their number comes from their position
-  const ser = seriesIds(), b = [];
-  ser.forEach((id, k) => { const x = bankById(id); if (x) b.push({ ...x, n: BANK_START + k }); });
+  const m = issueMap();
   // edits to built-in issues are stored as override documents (encrypted) and merged in here
   const ov = {}; CUSTOM.filter(x => x.overrides).forEach(x => { ov[x.overrides] = x; });
   const merge = base => {
     const x = ov[base.id]; if (!x) return base;
-    const m = { ...base, edited: true, ovDocId: x.docId };
-    for (const k of ['n', 'title', 'theme', 'summary', 'link']) if (x[k] !== undefined && x[k] !== '' && !(k === 'n' && !x[k])) m[k] = x[k];
-    if (x.tools && x.tools.length) m.tools = x.tools;
-    if (x.pageDocs && x.pageDocs.length) { m.imgs = undefined; m.pageDocs = x.pageDocs; m.fsPages = true; if (x.thumb) m.thumb = x.thumb; m.ovPages = x.pageDocs; }
-    return m;
+    const r = { ...base, edited: true, ovDocId: x.docId };
+    for (const k of ['title', 'theme', 'summary', 'link']) if (x[k] !== undefined && x[k] !== '') r[k] = x[k];
+    if (x.tools && x.tools.length) r.tools = x.tools;
+    if (x.pageDocs && x.pageDocs.length) { r.imgs = undefined; r.pageDocs = x.pageDocs; r.fsPages = true; if (x.thumb) r.thumb = x.thumb; r.ovPages = x.pageDocs; }
+    return r;
   };
-  const c = CUSTOM.filter(x => !x.overrides).map(x => ({ ...x, custom: true, fsPages: true, def: 'locked' }));
-  return [...o.map(merge), ...b.map(merge), ...c].sort((a, z) => a.n - z.n || String(a.id).localeCompare(z.id));
+  let k = 0;
+  return orderIds().map(id => merge(m.get(id))).map(i => status(i) === 'removed' ? { ...i, n: '–' } : { ...i, n: ++k });
+}
+function saveOrder(arr, msg) {
+  if (!ADMIN || !DB) return toast('Sign in at Staff admin to change the order');
+  ORDER = arr; render();
+  writing = writing.then(() => setDoc(doc(DB, 'newsletter', 'state'), { order: arr, updated: serverTimestamp() }, { merge: true }))
+    .then(() => msg && toast(msg)).catch(e => { console.warn(e); toast('Couldn’t save – check you’re signed in'); });
+}
+// move an issue so it becomes Issue n (counting only issues that aren't removed)
+function moveTo(id, n) {
+  const all = allIssues(), o = orderIds().filter(x => x !== id), vis = all.filter(i => i.id !== id && i.n !== '–');
+  n = Math.max(1, Math.min(vis.length + 1, n | 0));
+  const before = vis[n - 1];
+  o.splice(before ? o.indexOf(before.id) : o.length, 0, id);
+  return o;
 }
 const BANK_START = 28;
 function bankItem(x) { return { ...x, key: x.n, id: 'b' + x.n, kind: 'img', bank: true, imgs: Array.from({ length: x.pages || 2 }, (_, k) => `img/b${x.n}-${k + 1}.bin`), thumb: `img/b${x.n}-t.bin`, def: 'locked' }; }
 function bankById(id) { const x = CONTENT.bank.find(z => 'b' + z.n === id); return x ? bankItem(x) : null; }
 function seriesIds() { return (SERIES || CONTENT.bank.filter(x => x.n <= 52).map(x => 'b' + x.n)).filter(id => CONTENT.bank.some(z => 'b' + z.n === id)); }
-function poolIssues() { const s = new Set(seriesIds()); return CONTENT.bank.filter(x => !s.has('b' + x.n)).map(bankItem); }
+function poolIssues() { const s = new Set(orderIds()); return CONTENT.bank.filter(x => !s.has('b' + x.n)).map(bankItem); }
 function saveSeries(arr, msg) {
   if (!ADMIN || !DB) return toast('Sign in at Staff admin to change the series');
   SERIES = arr; render();
@@ -196,7 +228,7 @@ async function startFirebase() {
   onSnapshot(doc(DB, 'newsletter', 'state'), async s => {
     let d = (s.exists() && s.data()) || {};
     // Until the editor copies the data across, keep using the old release settings (read-only) so nothing locked appears early
-    if (!s.exists() && C.oldFirebase) { try { const o = await getDoc(doc((OLDRO ||= getFirestore(initializeApp(C.oldFirebase, 'old-ro'))), 'newsletter', 'state')); if (o.exists()) d = o.data(); } catch (e) { console.warn('old state', e); } } RELEASES = d.releases || {}; SERIES = Array.isArray(d.series) ? d.series : null; MIGRATED = !!d.migratedFrom; TIPSTATE = { hidden: d.hiddenTips || {}, custom: d.customTips || {}, used: d.usedTips || {}, img: d.tipImgs || {} }; SHEETHIDE = d.hiddenSheets || {}; render(); if (location.hash === '#tips') renderTips(); if (location.hash === '#help') renderSheets(); }, e => console.warn('state', e));
+    if (!s.exists() && C.oldFirebase) { try { const o = await getDoc(doc((OLDRO ||= getFirestore(initializeApp(C.oldFirebase, 'old-ro'))), 'newsletter', 'state')); if (o.exists()) d = o.data(); } catch (e) { console.warn('old state', e); } } RELEASES = d.releases || {}; SERIES = Array.isArray(d.series) ? d.series : null; ORDER = Array.isArray(d.order) ? d.order : null; MIGRATED = !!d.migratedFrom; TIPSTATE = { hidden: d.hiddenTips || {}, custom: d.customTips || {}, used: d.usedTips || {}, img: d.tipImgs || {} }; SHEETHIDE = d.hiddenSheets || {}; render(); if (location.hash === '#tips') renderTips(); if (location.hash === '#help') renderSheets(); }, e => console.warn('state', e));
   onSnapshot(collection(DB, 'newsletterIssues'), async s => {
     const out = [];
     for (const d of s.docs) { try { const x = await decJSON(d.data().enc); out.push({ ...x, id: 'c' + d.id, docId: d.id }); } catch (e) {} }
@@ -491,14 +523,14 @@ function renderAdmin() {
   const rows = all.filter(i => status(i) !== 'removed').map(i => {
     const r = RELEASES[i.id] || {}, st = status(i), sel = r.s || i.def;
     const src = i.custom ? 'uploaded by you' : i.id.startsWith('b') ? 'new issue' : 'original';
-    const ord = i.bank && st !== 'live' ? `<span class="ordbtns"><button class="btn small" data-up="${esc(i.id)}" title="Move earlier">↑</button><button class="btn small" data-down="${esc(i.id)}" title="Move later">↓</button><button class="btn small" data-next="${esc(i.id)}" title="Make this the next issue">Next</button><button class="btn small" data-pool="${esc(i.id)}" title="Take out of the series">To bank</button></span> ` : '';
+    const ord = `<span class="ordbtns"><button class="btn small" data-up="${esc(i.id)}" title="Move earlier" aria-label="Move earlier">↑</button><button class="btn small" data-down="${esc(i.id)}" title="Move later" aria-label="Move later">↓</button>${st !== 'live' ? `<button class="btn small" data-next="${esc(i.id)}" title="Make this the next issue to release">Next</button>` : ''}${i.bank && st !== 'live' ? `<button class="btn small" data-pool="${esc(i.id)}" title="Take out of the series and back to the issue bank">To bank</button>` : ''}</span> `;
     const acts = ord + `<button class="btn small" data-edit="${esc(i.id)}">Edit</button> ` + (i.custom ? `<button class="btn small danger" data-del="${esc(i.id)}">Delete</button>` : `<button class="btn small danger" data-rm="${esc(i.id)}">Remove</button>`) + (i.edited ? ` <button class="btn small" data-undo="${esc(i.id)}">Undo edits</button>` : '');
-    return `<tr class="${st}"><td><b>${i.n}</b></td><td><a href="#issue-${esc(i.id)}">${esc(i.title)}</a><br><small class="muted">${esc(i.theme || '')} · ${src}${i.edited ? ' · edited' : ''}</small></td>
+    return `<tr class="${st}" data-row="${esc(i.id)}"><td class="dragc"><span class="drag" title="Drag to reorder" aria-hidden="true">⠿</span><input class="numin" type="number" min="1" value="${i.n}" data-num="${esc(i.id)}" aria-label="Issue number"></td><td><a href="#issue-${esc(i.id)}">${esc(i.title)}</a><br><small class="muted">${esc(i.theme || '')} · ${src}${i.edited ? ' · edited' : ''}</small></td>
       <td><select data-s="${esc(i.id)}"><option value="live"${sel === 'live' ? ' selected' : ''}>Released</option><option value="locked"${sel === 'locked' ? ' selected' : ''}>Locked</option><option value="sched"${sel === 'sched' ? ' selected' : ''}>Scheduled</option></select></td>
       <td>${sel === 'sched' ? `<input type="date" data-d="${esc(i.id)}" value="${esc(r.d || '')}">` : ''}</td>
       <td class="acts">${acts}</td></tr>`;
   }).join('');
-  const nextN = Math.max(...all.map(i => i.n)) + 1;
+  const nextN = all.filter(i => i.n !== '–').length + 1;
   const e = editing || {};
   const val = (k, d = '') => esc(e[k] ?? d);
   const lines = k => esc((e[k] || []).join('\n'));
@@ -552,9 +584,9 @@ function renderAdmin() {
       <div class="row"><button class="btn primary" type="submit" id="saveBtn">Save issue</button><button class="btn" type="button" id="cancelBtn">Cancel</button><span id="saveMsg" class="muted"></span></div>
     </form>
   </div>
-  <div class="panel"><h2>All issues</h2><p class="muted">Edit any issue (title, number, theme or a replacement PDF), remove it, or upload a new one.</p><table class="rel"><thead><tr><th>#</th><th>Issue</th><th>Status</th><th>Release date</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+  <div class="panel"><h2>All issues</h2><p class="muted">This is the running order of the whole series. Drag ⠿ to reorder, use the arrows, or type a new number – every issue is renumbered straight away, including in the binder. Remove leaves an issue out and closes up the numbers; restore it any time.</p><table class="rel" id="relTable"><thead><tr><th>#</th><th>Issue</th><th>Status</th><th>Release date</th><th></th></tr></thead><tbody id="relBody">${rows}</tbody></table></div>
   ${bankPanel()}
-  ${removed.length ? `<div class="panel"><h2>Removed issues</h2><p class="muted">Hidden from everyone. Restore puts an issue back as locked.</p><table class="rel"><tbody>${removed.map(i => `<tr><td><b>${i.n}</b></td><td>${esc(i.title)}</td><td class="acts"><button class="btn small" data-restore="${esc(i.id)}">Restore</button></td></tr>`).join('')}</tbody></table></div>` : ''}`;
+  ${removed.length ? `<div class="panel"><h2>Removed issues</h2><p class="muted">Left out of the series and hidden from everyone. Restore puts an issue back in its old place, locked.</p><table class="rel"><tbody>${removed.map(i => `<tr><td><b>–</b></td><td>${esc(i.title)}</td><td class="acts"><button class="btn small" data-restore="${esc(i.id)}">Restore</button></td></tr>`).join('')}</tbody></table></div>` : ''}`;
   wireAdmin(all);
   renderUsage();
 }
@@ -565,37 +597,62 @@ function bankPanel() {
   const list = pool.filter(x => (!f.theme || x.theme === f.theme) && (!f.q || (x.title + ' ' + x.theme + ' ' + (x.summary || '') + ' ' + (x.tools || []).join(' ')).toLowerCase().includes(f.q)));
   const cards = list.slice(0, f.shown).map(x => `<div class="bk-card"><a class="bk-cov" href="#issue-${esc(x.id)}" title="Preview">${coverHTML(x)}</a><div class="bk-meta"><small>${esc(x.theme)}${x.level ? ' · ' + esc(x.level) : ''}</small><b>${esc(x.title)}</b><span class="muted">${esc((x.tools || []).join(' · '))}</span>
     <div class="bk-acts"><a class="btn small" href="#issue-${esc(x.id)}">Preview</a><button class="btn small primary" data-add="${esc(x.id)}">Add to series</button><button class="btn small" data-addnext="${esc(x.id)}" title="Add as the very next issue">Add as next</button></div></div></div>`).join('');
-  return `<div class="panel" id="bankPanel"><div class="row"><h2 style="margin:0">Issue bank</h2><span class="spacer"></span><span class="muted">${pool.length} ready-made issues not yet in the series</span></div>
-    <p class="muted">Choose the issues you want and they join the series as locked, numbered in order. Reorder anything not yet released with the arrows in the table above.</p>
+  return `<div class="panel" id="bankPanel"><div class="row"><h2 style="margin:0">Issue bank</h2><span class="spacer"></span><span class="muted">${pool.length} issues not in the series</span></div>
+    <p class="muted">Issues taken out of the series with “To bank”. Add them back and they join as locked, numbered by position.</p>
     <div class="row"><input type="search" id="bankQ" placeholder="Search the bank" value="${esc(f.q)}"><select id="bankTheme"><option value="">All topics</option>${THEMES.map(t => `<option${f.theme === t ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>
     <div class="bk-grid">${cards || '<p class="muted">No issues match.</p>'}</div>
     ${list.length > f.shown ? `<div class="row" style="justify-content:center"><button class="btn" id="bankMore">Show more (${list.length - f.shown})</button></div>` : ''}</div>`;
 }
 function wireSeries(all) {
-  const ser = () => seriesIds().slice();
+  const once = (sel, ev, fn) => document.querySelectorAll(sel).forEach(el => { if (el.dataset.w) return; el.dataset.w = 1; el.addEventListener(ev, () => fn(el)); });
+  const ord = () => orderIds().slice();
+  const vis = () => allIssues().filter(i => i.n !== '–').map(i => i.id);
   const isLive = id => { const i = all.find(x => x.id === id); return i && ['live', 'sched'].includes(status(i)); };
-  const firstOpen = s => { let k = s.length; while (k > 0 && !isLive(s[k - 1]) ) k--; return k; };   // first slot after the last released/scheduled issue
-  const num = id => BANK_START + ser().indexOf(id);
-  const movable = (s, k) => k >= 0 && k < s.length && !isLive(s[k]);
-  document.querySelectorAll('[data-up],[data-down]').forEach(b => b.addEventListener('click', () => {
-    const id = b.dataset.up || b.dataset.down, s = ser(), k = s.indexOf(id), d = b.dataset.up ? -1 : 1;
-    let j = k + d; while (j >= 0 && j < s.length && isLive(s[j])) j += d;
-    if (!movable(s, j)) return toast(d < 0 ? 'Already the earliest unreleased issue' : 'Already the last issue');
-    [s[k], s[j]] = [s[j], s[k]]; saveSeries(s, 'Order updated');
-  }));
-  document.querySelectorAll('[data-next]').forEach(b => b.addEventListener('click', () => {
-    const s = ser().filter(x => x !== b.dataset.next); s.splice(firstOpen(s), 0, b.dataset.next); saveSeries(s, `Now the next issue (Issue ${BANK_START + s.indexOf(b.dataset.next)})`);
-  }));
-  document.querySelectorAll('[data-pool]').forEach(b => b.addEventListener('click', () => {
-    const s = ser(), k = s.indexOf(b.dataset.pool);
-    if (s.slice(k + 1).some(isLive)) return toast('A later issue is already released – taking this out would renumber it');
-    s.splice(k, 1); saveSeries(s, 'Moved back to the issue bank');
-  }));
-  document.querySelectorAll('[data-add],[data-addnext]').forEach(b => b.addEventListener('click', () => {
-    const id = b.dataset.add || b.dataset.addnext, s = ser();
-    if (b.dataset.addnext) s.splice(firstOpen(s), 0, id); else s.push(id);
-    saveSeries(s, `Added as Issue ${BANK_START + s.indexOf(id)} (locked)`);
-  }));
+  const numOf = (o, id) => { let k = 0; for (const x of o) { const i = all.find(y => y.id === x); if (i && status(i) !== 'removed') k++; if (x === id) return k; } return k; };
+  once('[data-up],[data-down]', 'click', b => {
+    const id = b.dataset.up || b.dataset.down, v = vis(), k = v.indexOf(id), j = k + (b.dataset.up ? -1 : 1);
+    if (j < 0 || j >= v.length) return toast(b.dataset.up ? 'Already Issue 1' : 'Already the last issue');
+    const o = moveTo(id, j + 1); saveOrder(o, `Now Issue ${j + 1}`);
+  });
+  once('[data-next]', 'click', b => {
+    const v = vis().filter(x => x !== b.dataset.next); let k = v.length; while (k > 0 && !isLive(v[k - 1])) k--;
+    saveOrder(moveTo(b.dataset.next, k + 1), `Now the next issue (Issue ${k + 1})`);
+  });
+  document.querySelectorAll('[data-num]').forEach(inp => { if (inp.dataset.w) return; inp.dataset.w = 1;
+    const go = () => { const id = inp.dataset.num, n = +inp.value; if (!n || n === numOf(ord(), id)) return; saveOrder(moveTo(id, n), `Moved to Issue ${Math.max(1, Math.min(vis().length, n))}`); };
+    inp.addEventListener('change', go); inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+  });
+  once('[data-pool]', 'click', b => saveOrder(ord().filter(x => x !== b.dataset.pool), 'Moved back to the issue bank – later issues renumbered'));
+  once('[data-add],[data-addnext]', 'click', b => {
+    const id = b.dataset.add || b.dataset.addnext, o = ord().filter(x => x !== id);
+    if (b.dataset.addnext) { const v = vis(); let k = v.length; while (k > 0 && !isLive(v[k - 1])) k--; o.push(id); ORDER = o; saveOrder(moveTo(id, k + 1), `Added as Issue ${k + 1} (locked)`); }
+    else { o.push(id); saveOrder(o, `Added as Issue ${vis().length + 1} (locked)`); }
+  });
+  // drag to reorder (mouse and touch)
+  const body = $('#relBody');
+  if (body && !body.dataset.drag) {
+    body.dataset.drag = 1;
+    body.addEventListener('pointerdown', e => {
+      const h = e.target.closest('.drag'); if (!h) return;
+      const row = h.closest('tr'); e.preventDefault();
+      row.classList.add('dragging');
+      const move = ev => {
+        const y = ev.clientY;
+        const over = [...body.children].find(r => r !== row && (() => { const b = r.getBoundingClientRect(); return y > b.top && y < b.bottom; })());
+        if (over) { const b = over.getBoundingClientRect(); body.insertBefore(row, y < b.top + b.height / 2 ? over : over.nextSibling); }
+        const vh = innerHeight; if (y < 70) scrollBy(0, -12); else if (y > vh - 70) scrollBy(0, 12);
+      };
+      const up = () => {
+        removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+        row.classList.remove('dragging');
+        const newVis = [...body.children].map(r => r.dataset.row), o = ord(), oldVis = vis();
+        if (newVis.join() === oldVis.join()) return;
+        const set = new Set(newVis); let k = 0; const merged = o.map(x => set.has(x) ? newVis[k++] : x);
+        saveOrder(merged, `Moved to Issue ${newVis.indexOf(row.dataset.row) + 1} – numbers updated`);
+      };
+      addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    });
+  }
   const q = $('#bankQ'); if (q) q.addEventListener('input', () => { bankFilt.q = q.value.toLowerCase(); bankFilt.shown = 24; refreshBank(all); });
   $('#bankTheme')?.addEventListener('change', e => { bankFilt.theme = e.target.value; bankFilt.shown = 24; refreshBank(all); });
   $('#bankMore')?.addEventListener('click', () => { bankFilt.shown += 24; refreshBank(all); });
@@ -737,6 +794,7 @@ async function saveIssue(ev) {
     const relId = editing?.baseId || ('c' + docId);
     if (!editing?.docId && !editing?.baseId) setRelease(relId, { s: g('initial') === 'live' ? 'live' : 'locked' });
     else if (g('initial') === 'live') setRelease(relId, { s: 'live' });
+    { const cur = allIssues().find(i => i.id === relId); if (data.n && (!cur || cur.n !== data.n)) saveOrder(moveTo(relId, data.n)); }
     toast(`Issue ${data.n} saved`); editing = null; pendingPages = pendingThumb = null; formKind = 'tpl'; renderAdmin();
   } catch (e) { console.warn(e); msg.textContent = 'Couldn’t save: ' + (e.code || e.message); btn.disabled = false; }
 }

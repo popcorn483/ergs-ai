@@ -864,3 +864,12 @@ body.clean .car-head h2{font:700 20px/1.1 var(--display);letter-spacing:.08em;te
 .btn.primary{font-family:var(--display);font-weight:400;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;padding-top:10px;padding-bottom:9px}
 body.clean .binder-promo .btn.primary{font-size:14px!important;font-weight:700}
 .cvf-top span,.cvf-eyebrow,.cvf-foot small,.cvb-eyebrow,.cv-back dt,.bp-cover small,.bk-cv .bk-sch{font-family:var(--display)!important;font-weight:400!important}
+/* running-order table */
+#relTable td.dragc{white-space:nowrap;width:1%}
+#relTable .drag{display:inline-block;cursor:grab;touch-action:none;user-select:none;color:#8a94a6;font-size:18px;padding:4px 6px;vertical-align:middle;border-radius:4px}
+#relTable .drag:hover{background:#eef1f6;color:var(--navy)}
+#relTable .numin{width:58px;font:700 15px var(--body);padding:5px 6px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--navy);text-align:center;-moz-appearance:textfield}
+#relTable .numin:hover,#relTable .numin:focus{border-color:#c9d1dd;background:#fff}
+#relTable .numin::-webkit-inner-spin-button{opacity:.6}
+#relTable tr.dragging{background:#fff7e6;box-shadow:0 6px 18px -6px rgba(20,40,75,.35);position:relative;z-index:2}
+#relTable tr.dragging .drag{cursor:grabbing;color:var(--navy)}
