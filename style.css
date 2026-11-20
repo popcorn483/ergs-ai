@@ -873,3 +873,5 @@ body.clean .binder-promo .btn.primary{font-size:14px!important;font-weight:700}
 #relTable .numin::-webkit-inner-spin-button{opacity:.6}
 #relTable tr.dragging{background:#fff7e6;box-shadow:0 6px 18px -6px rgba(20,40,75,.35);position:relative;z-index:2}
 #relTable tr.dragging .drag{cursor:grabbing;color:var(--navy)}
+#relTable .lockn{display:inline-block;width:25px;text-align:center;font-size:12px;opacity:.55}
+#relTable .numfix{display:inline-block;width:58px;text-align:center;font-size:15px;color:var(--navy)}

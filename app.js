@@ -77,8 +77,12 @@ function allIssues() {
   let k = 0;
   return orderIds().map(id => merge(m.get(id))).map(i => status(i) === 'removed' ? { ...i, n: '–' } : { ...i, n: ++k });
 }
+// numbers of released issues are confirmed: any change that would alter one is refused
+function liveNums(o) { const m = issueMap(); let k = 0; const r = {}; o.forEach(id => { const i = m.get(id); if (!i || status(i) === 'removed') return; k++; if (status(i) === 'live') r[id] = k; }); return r; }
+function keepsLive(o) { const a = liveNums(orderIds()), b = liveNums(o); return Object.keys(a).every(id => a[id] === b[id]); }
 function saveOrder(arr, msg) {
   if (!ADMIN || !DB) return toast('Sign in at Staff admin to change the order');
+  if (!keepsLive(arr)) { render(); return toast('Released issues keep their numbers – place this after the last released issue'); }
   ORDER = arr; render();
   writing = writing.then(() => setDoc(doc(DB, 'newsletter', 'state'), { order: arr, updated: serverTimestamp() }, { merge: true }))
     .then(() => msg && toast(msg)).catch(e => { console.warn(e); toast('Couldn’t save – check you’re signed in'); });
@@ -523,9 +527,10 @@ function renderAdmin() {
   const rows = all.filter(i => status(i) !== 'removed').map(i => {
     const r = RELEASES[i.id] || {}, st = status(i), sel = r.s || i.def;
     const src = i.custom ? 'uploaded by you' : i.id.startsWith('b') ? 'new issue' : 'original';
-    const ord = `<span class="ordbtns"><button class="btn small" data-up="${esc(i.id)}" title="Move earlier" aria-label="Move earlier">↑</button><button class="btn small" data-down="${esc(i.id)}" title="Move later" aria-label="Move later">↓</button>${st !== 'live' ? `<button class="btn small" data-next="${esc(i.id)}" title="Make this the next issue to release">Next</button>` : ''}${i.bank && st !== 'live' ? `<button class="btn small" data-pool="${esc(i.id)}" title="Take out of the series and back to the issue bank">To bank</button>` : ''}</span> `;
-    const acts = ord + `<button class="btn small" data-edit="${esc(i.id)}">Edit</button> ` + (i.custom ? `<button class="btn small danger" data-del="${esc(i.id)}">Delete</button>` : `<button class="btn small danger" data-rm="${esc(i.id)}">Remove</button>`) + (i.edited ? ` <button class="btn small" data-undo="${esc(i.id)}">Undo edits</button>` : '');
-    return `<tr class="${st}" data-row="${esc(i.id)}"><td class="dragc"><span class="drag" title="Drag to reorder" aria-hidden="true">⠿</span><input class="numin" type="number" min="1" value="${i.n}" data-num="${esc(i.id)}" aria-label="Issue number"></td><td><a href="#issue-${esc(i.id)}">${esc(i.title)}</a><br><small class="muted">${esc(i.theme || '')} · ${src}${i.edited ? ' · edited' : ''}</small></td>
+    const fixed = st === 'live';
+    const ord = fixed ? '' : `<span class="ordbtns"><button class="btn small" data-up="${esc(i.id)}" title="Move earlier" aria-label="Move earlier">↑</button><button class="btn small" data-down="${esc(i.id)}" title="Move later" aria-label="Move later">↓</button>${st !== 'live' ? `<button class="btn small" data-next="${esc(i.id)}" title="Make this the next issue to release">Next</button>` : ''}${i.bank && st !== 'live' ? `<button class="btn small" data-pool="${esc(i.id)}" title="Take out of the series and back to the issue bank">To bank</button>` : ''}</span> `;
+    const acts = ord + `<button class="btn small" data-edit="${esc(i.id)}">Edit</button> ` + (fixed ? '' : i.custom ? `<button class="btn small danger" data-del="${esc(i.id)}">Delete</button>` : `<button class="btn small danger" data-rm="${esc(i.id)}">Remove</button>`) + (i.edited ? ` <button class="btn small" data-undo="${esc(i.id)}">Undo edits</button>` : '');
+    return `<tr class="${st}" data-row="${esc(i.id)}"><td class="dragc">${fixed ? `<span class="lockn" title="Released – number confirmed">🔒</span><b class="numfix">${i.n}</b>` : `<span class="drag" title="Drag to reorder" aria-hidden="true">⠿</span><input class="numin" type="number" min="1" value="${i.n}" data-num="${esc(i.id)}" aria-label="Issue number">`}</td><td><a href="#issue-${esc(i.id)}">${esc(i.title)}</a><br><small class="muted">${esc(i.theme || '')} · ${src}${i.edited ? ' · edited' : ''}</small></td>
       <td><select data-s="${esc(i.id)}"><option value="live"${sel === 'live' ? ' selected' : ''}>Released</option><option value="locked"${sel === 'locked' ? ' selected' : ''}>Locked</option><option value="sched"${sel === 'sched' ? ' selected' : ''}>Scheduled</option></select></td>
       <td>${sel === 'sched' ? `<input type="date" data-d="${esc(i.id)}" value="${esc(r.d || '')}">` : ''}</td>
       <td class="acts">${acts}</td></tr>`;
@@ -584,7 +589,7 @@ function renderAdmin() {
       <div class="row"><button class="btn primary" type="submit" id="saveBtn">Save issue</button><button class="btn" type="button" id="cancelBtn">Cancel</button><span id="saveMsg" class="muted"></span></div>
     </form>
   </div>
-  <div class="panel"><h2>All issues</h2><p class="muted">This is the running order of the whole series. Drag ⠿ to reorder, use the arrows, or type a new number – every issue is renumbered straight away, including in the binder. Remove leaves an issue out and closes up the numbers; restore it any time.</p><table class="rel" id="relTable"><thead><tr><th>#</th><th>Issue</th><th>Status</th><th>Release date</th><th></th></tr></thead><tbody id="relBody">${rows}</tbody></table></div>
+  <div class="panel"><h2>All issues</h2><p class="muted">This is the running order of the whole series. Released issues 🔒 are confirmed and keep their numbers. Reorder anything not yet released: drag ⠿, use the arrows, or type a new number – the rest renumber straight away, including in the binder. Remove leaves an unreleased issue out and closes up the numbers; restore it any time.</p><table class="rel" id="relTable"><thead><tr><th>#</th><th>Issue</th><th>Status</th><th>Release date</th><th></th></tr></thead><tbody id="relBody">${rows}</tbody></table></div>
   ${bankPanel()}
   ${removed.length ? `<div class="panel"><h2>Removed issues</h2><p class="muted">Left out of the series and hidden from everyone. Restore puts an issue back in its old place, locked.</p><table class="rel"><tbody>${removed.map(i => `<tr><td><b>–</b></td><td>${esc(i.title)}</td><td class="acts"><button class="btn small" data-restore="${esc(i.id)}">Restore</button></td></tr>`).join('')}</tbody></table></div>` : ''}`;
   wireAdmin(all);
