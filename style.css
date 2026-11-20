@@ -854,3 +854,13 @@ body.clean #grid>.card:hover{transform:translateY(-4px);box-shadow:0 14px 28px -
 .mast-nav a{font:400 12.5px var(--display);letter-spacing:.14em;text-transform:uppercase;padding:6px 0 5px}
 @media screen and (max-width:620px){.mast-nav a{font-size:11.5px;letter-spacing:.1em}}
 .sp-title .wd{display:inline-block;white-space:nowrap}
+
+/* Lemon Milk for labels, small headings and main buttons (app chrome only — issue pages keep their own type) */
+.eyebrow,.latest .tag,.card .num,.badge,.mini .mh small,.td-label span,.td-label b,.tip-app,.shnum,.bk-meta small,.who th,table.rel th,.pill{font-family:var(--display)!important;font-weight:400!important;letter-spacing:.12em!important}
+.eyebrow,.latest .tag,.td-label span{font-size:11px!important}
+.card .num,.badge,.mini .mh small,.td-label b,.tip-app,.shnum,.bk-meta small,.who th,table.rel th,.pill{font-size:10px!important}
+body.clean .car-head h2{font:700 20px/1.1 var(--display);letter-spacing:.08em;text-transform:uppercase}
+@media (max-width:720px){body.clean .car-head h2{font-size:17px}}
+.btn.primary{font-family:var(--display);font-weight:400;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;padding-top:10px;padding-bottom:9px}
+body.clean .binder-promo .btn.primary{font-size:14px!important;font-weight:700}
+.cvf-top span,.cvf-eyebrow,.cvf-foot small,.cvb-eyebrow,.cv-back dt,.bp-cover small,.bk-cv .bk-sch{font-family:var(--display)!important;font-weight:400!important}
