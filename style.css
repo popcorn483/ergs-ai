@@ -1024,3 +1024,10 @@ a.fl-step:hover{transform:translateY(-3px);box-shadow:0 10px 20px -12px rgba(20,
 .fl-row>li::before{content:counter(fl);position:absolute;top:-8px;left:-8px;z-index:1;width:24px;height:24px;border-radius:50%;background:var(--lc);color:#fff;font:700 12px/24px var(--body);text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .fl-row>li:not(:last-child)::after{content:"";position:absolute;right:-17px;top:50%;border:6px solid transparent;border-left:8px solid var(--lc);opacity:.55}
 @media (max-width:720px){.fl-row{grid-template-columns:1fr}.fl-row>li:not(:last-child)::after{right:auto;left:50%;top:auto;bottom:-15px;border:6px solid transparent;border-top:8px solid var(--lc)}}
+.sp-main,.sp-mainbtn{position:absolute;top:10px;left:10px;font:400 9.5px var(--display);letter-spacing:.1em;text-transform:uppercase;border-radius:12px;padding:4px 7px 3px;display:none}
+.sp-main{background:#f4dfa6;color:#5a3d0a}
+.sp-tile.main .sp-main{display:block}
+.sp-tile.on:not(.main) .sp-mainbtn{display:block;background:rgba(0,0,0,.35);color:#fff;cursor:pointer}
+.sp-tile.on:not(.main) .sp-mainbtn:hover{background:rgba(0,0,0,.55)}
+.sp-tile.on .sp-ic{visibility:visible}
+.sp-tile.on:not(.main) .sp-ic,.sp-tile.main .sp-ic{margin-top:18px}

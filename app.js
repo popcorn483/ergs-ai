@@ -318,10 +318,12 @@ function askSubjects(force) {
   const box = $('#subjPicker'), grid = $('#spGrid'), done = $('#spDone');
   const sel = new Set(mySubjects() || []);
   const upd = () => { done.disabled = !sel.size; done.textContent = sel.size ? `Continue with ${sel.size} subject${sel.size === 1 ? '' : 's'}` : 'Pick at least one'; };
-  grid.innerHTML = SUBJECTS.map(([n, ic, col], k) => `<button type="button" class="sp-tile${sel.has(n) ? ' on' : ''}" data-subj="${esc(n)}" aria-pressed="${sel.has(n)}" style="--c:${col};--d:${k * 18}ms"><span class="sp-ic" aria-hidden="true">${ic}</span><span class="sp-name">${esc(n)}</span><i class="sp-tick" aria-hidden="true">✓</i></button>`).join('');
-  grid.onclick = e => { const t = e.target.closest('[data-subj]'); if (!t) return; const n = t.dataset.subj; sel.has(n) ? sel.delete(n) : sel.add(n); t.classList.toggle('on', sel.has(n)); t.setAttribute('aria-pressed', sel.has(n)); upd(); };
+  grid.innerHTML = SUBJECTS.map(([n, ic, col], k) => `<button type="button" class="sp-tile${sel.has(n) ? ' on' : ''}" data-subj="${esc(n)}" aria-pressed="${sel.has(n)}" style="--c:${col};--d:${k * 18}ms"><span class="sp-ic" aria-hidden="true">${ic}</span><span class="sp-name">${esc(n)}</span><i class="sp-tick" aria-hidden="true">✓</i><span class="sp-main">Main</span><span class="sp-mainbtn" role="button" title="Make this my main subject">☆ Make main</span></button>`).join('');
+  const mark = () => { const first = [...sel][0]; grid.querySelectorAll('.sp-tile').forEach(t => t.classList.toggle('main', t.dataset.subj === first)); };
+  grid.onclick = e => { const t = e.target.closest('[data-subj]'); if (!t) return; const n = t.dataset.subj; if (e.target.closest('.sp-mainbtn')) { sel.delete(n); const rest = [...sel]; sel.clear(); [n, ...rest].forEach(x => sel.add(x)); t.classList.add('on'); mark(); upd(); return; } sel.has(n) ? sel.delete(n) : sel.add(n); t.classList.toggle('on', sel.has(n)); t.setAttribute('aria-pressed', sel.has(n)); mark(); upd(); };
+  mark();
   $('#spSearch').value = ''; $('#spSearch').oninput = e => { const q = e.target.value.toLowerCase(); grid.querySelectorAll('.sp-tile').forEach(t => { t.hidden = q && !t.dataset.subj.toLowerCase().includes(q); }); };
-  const close = v => { LS.set('ergsNL.subjects', JSON.stringify(v)); box.hidden = true; document.body.classList.remove('sp-open'); plFilt.subj = ''; if ($('#plSubj')) { $('#plCats').dataset.ready = ''; } render(); toast(v.length ? 'Prompts tailored to your subjects' : 'Showing prompts for every subject'); };
+  const close = v => { LS.set('ergsNL.subjects', JSON.stringify(v)); box.hidden = true; document.body.classList.remove('sp-open'); plFilt.subj = v[0] || ''; plFilt.subjSet = true; if ($('#plSubj')) { $('#plCats').dataset.ready = ''; } render(); toast(v.length ? 'Prompts tailored to your subjects' : 'Showing prompts for every subject'); };
   done.onclick = () => close([...sel]); $('#spSkip').onclick = () => close([]);
   upd(); box.hidden = false; document.body.classList.add('sp-open'); setTimeout(() => grid.querySelector('.sp-tile')?.focus(), 300);
 }
@@ -612,6 +614,7 @@ async function plCopy(b) {
 }
 function renderPrompts() {
   const all = allPrompts();
+  if (!plFilt.subjSet) { plFilt.subjSet = true; const m = !canManage() && (mySubjects() || [])[0]; if (m) plFilt.subj = m; }
   if (!$('#plCats').dataset.ready) {
     $('#plCats').dataset.ready = 1;
     const subs = [...new Set(all.flatMap(p => p.subj).filter(s => s !== 'All subjects'))].sort();
@@ -619,6 +622,7 @@ function renderPrompts() {
     $('#plSubj').innerHTML = `<option value="">${mineS ? 'All my subjects' : 'All subjects'}</option><option value="__gen">General (any subject)</option>` + (mineS ? subs.filter(s => mineS.includes(s)) : subs).map(s => `<option>${esc(s)}</option>`).join('');
     $('#plStage').innerHTML = '<option value="">Any stage</option>' + ['KS3', 'GCSE', 'A Level'].map(s => `<option>${s}</option>`).join('');
     $('#plTool').innerHTML = '<option value="">Any tool</option>' + ['Gemini', 'Copilot', 'NotebookLM'].map(s => `<option>${s}</option>`).join('');
+    $('#plSubj').value = plFilt.subj;
     const set = (k, v) => { plFilt[k] = v; plFilt.shown = 40; renderPrompts(); };
     if (!$('#plQ').dataset.w) { $('#plQ').dataset.w = 1;
     $('#plQ').addEventListener('input', e => set('q', e.target.value.toLowerCase().trim()));
@@ -627,7 +631,7 @@ function renderPrompts() {
     $('#plTool').addEventListener('change', e => set('tool', e.target.value));
     $('#plGen').addEventListener('change', e => set('withGen', e.target.checked));
     $('#plCats').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) set('cat', b.dataset.cat); });
-    $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: '', subj: '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plSubj', '#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); renderPrompts(); });
+    $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: '', subj: (!canManage() && (mySubjects() || [])[0]) || '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); $('#plSubj').value = plFilt.subj; renderPrompts(); });
     if (!$('#plMore').dataset.w) { $('#plMore').dataset.w = 1; $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); }); $('#plMySubj').addEventListener('click', () => askSubjects(true)); }
     $('#plList').addEventListener('click', e => { const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); const s = e.target.closest('[data-send]'); if (s) plSend(s); });
     }
@@ -653,7 +657,7 @@ function renderPrompts() {
   list.sort((x, y) => (own(x) - own(y)) || (rank(x) - rank(y)) || (rank(x) === 0 ? y.issue.n - x.issue.n : 0));
   $('#plGenWrap').hidden = !plFilt.subj || plFilt.subj === '__gen';
   $('#plCount').textContent = `${list.length} prompt${list.length === 1 ? '' : 's'}`;
-  $('#plReset').hidden = !(plFilt.q || plFilt.cat || plFilt.subj || plFilt.stage || plFilt.tool);
+  $('#plReset').hidden = !(plFilt.q || plFilt.cat || (plFilt.subj && plFilt.subj !== ((!canManage() && (mySubjects() || [])[0]) || '')) || plFilt.stage || plFilt.tool);
   $('#plList').innerHTML = list.slice(0, plFilt.shown).map(promptCard).join('') || '<p class="empty">No prompts match – try clearing a filter.</p>';
   $('#plMore').hidden = list.length <= plFilt.shown;
 }
