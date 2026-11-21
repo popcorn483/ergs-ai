@@ -746,7 +746,21 @@ function fieldKind(tok) {
   if (/topic|unit/.test(t)) return 'topic';
   return 'text';
 }
-function openFill(card, action, edit) {
+// Added to every prompt sent or copied (teachers can untick it): asks the AI for a clean, ready-to-use answer
+const TIDY = `
+
+---
+How to lay out your answer (I'm a busy teacher):
+- Go straight into the finished resource. No introduction, no recap of my request, no sign-off.
+- Use clear headings, short bullet points and tables where they help, so it's quick to scan.
+- Make it ready to use as it is: easy to print, or to paste into Word, Google Docs or PowerPoint.
+- Follow any format I've asked for above. Put answers, mark schemes or teacher notes in a separate section at the end.
+- Use UK English. Where it's for pupils, pitch the wording at their age and level.
+- If something is unclear, make a sensible assumption and note it in one line at the end rather than asking me first.`;
+const tidyOn = () => LS.get('ergsNL.tidy') !== '0';
+const withTidy = (t, on = tidyOn()) => (on && !t.includes("I'm a busy teacher") ? t.trim() + TIDY : t);
+function openFill(card, action0, edit) {
+  const action = (t, go) => action0(withTidy(t), go);
   const txt = card.querySelector('.pl-text').textContent;
   const toks = [...new Set(txt.match(/\[[^\]\n]{1,80}\]/g) || [])];
   if (!toks.length && !edit) return action(txt);
@@ -767,6 +781,8 @@ function openFill(card, action, edit) {
     <datalist id="fillSubj">${(mySubjects() && mySubjects().length ? mySubjects() : SUBJECTS.map(s => s[0])).map(s => `<option value="${esc(s)}">`).join('')}</datalist><datalist id="fillTopics"></datalist>
     <p class="fill-hint" id="fillHint"></p>
     <label class="fill-edlab" for="fillPrev">Your prompt <small>edit anything before you send it</small></label><textarea id="fillPrev" class="fill-ed" rows="${edit ? 10 : 6}" spellcheck="true"></textarea>
+    <label class="fill-tidy"><input type="checkbox" id="fillTidy" ${tidyOn() ? 'checked' : ''}><span><b>Ask for a tidy, ready-to-use answer</b><small>Tells the AI to skip the waffle: headings, short bullets, answers at the end, UK English. <a href="#" id="fillTidyPeek">See what's added</a></small></span></label>
+    <pre class="fill-tidypeek" id="fillTidyText" hidden></pre>
     <footer>${tools.map((x, i) => i && myTool() === tools[0] ? `<button type="submit" class="linkbtn fill-alt" data-go="${x}">Use ${x} instead</button>` : `<button type="submit" class="btn ${i ? '' : 'primary'}" data-go="${x}"><img src="${TOOL_ICON[x]}" alt=""> Send to ${x}</button>`).join('')}<button type="submit" class="btn" data-go="copy">Copy</button></footer>
     <p class="fill-skip"><button type="button" class="linkbtn" data-go-raw>Use it with the [brackets] as they are</button></p></form>`;
   document.body.appendChild(sheet); document.body.classList.add('sp-open');
@@ -785,6 +801,8 @@ function openFill(card, action, edit) {
   sheet.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
   let go = null; f.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go = b.dataset.go; });
   f.querySelector('[data-go-raw]').addEventListener('click', () => { close(); action(txt); });
+  $('#fillTidy').addEventListener('change', e => LS.set('ergsNL.tidy', e.target.checked ? '1' : '0'));
+  $('#fillTidyPeek').addEventListener('click', e => { e.preventDefault(); const p = $('#fillTidyText'); p.textContent = TIDY.replace(/^\s*---\s*/, ''); p.hidden = !p.hidden; e.target.textContent = p.hidden ? "See what's added" : 'Hide'; });
   f.addEventListener('submit', e => {
     e.preventDefault(); const out = $('#fillPrev').value.trim() || build();
     const y = f.querySelector('select[data-tok]'), tp = f.querySelector('[data-topic]');
