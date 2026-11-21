@@ -624,8 +624,17 @@ const CCEA_TOPICS = {
   'Home Economics': ['Where food comes from', 'Macronutrients and micronutrients', 'Nutritional guidelines', 'Food safety', 'Dietary needs of different groups', 'Practical food preparation', 'Being an effective consumer'],
   'Learning for Life and Work': ['Local and global citizenship', 'Personal development', 'Employability', 'Controlled assessment task'],
   'Moving Image Arts': ['Critical understanding of moving image production', 'Acquisition of skills in moving image production', 'Planning and making a moving image product'],
-  'Music': ['Performing and appraising', 'Composing', 'Listening and appraising']
+  'Music': ['Performing and appraising', 'Composing', 'Listening and appraising'],
+  'French': ['Identity, lifestyle and culture', 'Local, national, international and global areas of interest', 'School life, studies and the world of work', 'Listening', 'Speaking', 'Reading', 'Writing'],
+  'German': ['Identity, lifestyle and culture', 'Local, national, international and global areas of interest', 'School life, studies and the world of work', 'Listening', 'Speaking', 'Reading', 'Writing'],
+  'Spanish': ['Identity, lifestyle and culture', 'Local, national, international and global areas of interest', 'School life, studies and the world of work', 'Listening', 'Speaking', 'Reading', 'Writing'],
+  'Drama': ['Devised performance', 'Scripted performance', 'Knowledge and understanding of drama'],
+  'Physical Education': ['Factors underpinning health and performance', 'Health', 'Physical fitness', 'The active leisure industry', 'Developing performance', 'Individual performances in physical activities'],
+  'Technology and Design': ['Technology and Design core content', 'Electronic and microelectronic control systems', 'Mechanical and pneumatic control systems', 'Product design', 'Design and manufacturing project'],
+  'Art and Design': ['Exploratory portfolio', 'Understanding the creative and cultural industries', 'Externally set assignment'],
+  'Mathematics': ['Number', 'Algebra', 'Geometry and measures', 'Handling data', 'Probability']
 };
+// The ERGS prospectus says Key Stage 4 courses follow CCEA unless otherwise stated, and none are stated otherwise.
 const YEARS = ['Year 8', 'Year 9', 'Year 10', 'Year 11', 'Year 12', 'Year 13', 'Year 14'];
 const fillMem = () => { try { return JSON.parse(LS.get('ergsNL.fill') || '{}'); } catch (e) { return {}; } };
 function fieldKind(tok) {
