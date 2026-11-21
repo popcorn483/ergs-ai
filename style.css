@@ -980,3 +980,22 @@ body.sp-open{overflow:hidden}
 .pl-mysubj{font-size:13px;color:var(--navy)}
 .plh-mine{font-size:14px;margin:-4px 0 12px!important;color:#7a5410!important}
 #spSkip{color:#5b6679;font-size:14px}
+/* prompt areas as tiles */
+.pl-cats{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;overflow:visible!important;padding:6px 0 10px!important}
+.pl-area{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;border:0;border-radius:12px;padding:11px 12px 10px;cursor:pointer;color:#fff;
+  background:radial-gradient(120% 90% at 90% 0%,rgba(255,255,255,.22),transparent 55%),linear-gradient(150deg,var(--c),color-mix(in srgb,var(--c) 65%,#000));box-shadow:0 6px 14px -8px rgba(0,0,0,.45);transition:transform .15s,box-shadow .15s,opacity .15s}
+.pl-area:hover{transform:translateY(-2px)}
+.pl-area .pa-ic{font-size:22px;line-height:1}
+.pl-area .pa-name{font:400 11.5px/1.25 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.pl-area small{font:600 12px var(--body);opacity:.8}
+.pl-area.on{box-shadow:0 0 0 3px #fff,0 0 0 6px var(--c)}
+.pl-cats.picked .pl-area:not(.on){opacity:.55}
+.pl-area:disabled{opacity:.3;cursor:default}
+@media (max-width:620px){.pl-cats{display:flex!important;overflow-x:auto!important;flex-wrap:nowrap!important}.pl-area{flex:0 0 132px}}
+/* send to */
+.pl-sendrow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.pl-send{display:inline-flex;align-items:center;gap:6px;font:600 13px var(--body);color:var(--navy);background:#fff;border:1px solid #cdd4de;border-radius:20px;padding:6px 12px 6px 8px;cursor:pointer;transition:background .15s,border-color .15s}
+.pl-send img{width:16px;height:16px}
+.pl-send:hover{border-color:var(--navy);background:#f3f6fb}
+.pl-sels select{min-width:0;max-width:100%}
+@media (max-width:620px){.pl-sels select{width:100%;max-width:none;flex:1 1 0}}

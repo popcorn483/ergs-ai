@@ -534,6 +534,7 @@ function renderReader(id) {
 }
 
 /* ---------- prompt library ---------- */
+const PL_AREA = { '': ['🗂️', '#14284b'], 'Planning': ['🗓️', '#1f4f8f'], 'Resources': ['📄', '#2f7d6b'], 'Assessment & Feedback': ['✅', '#7b2d42'], 'Inclusion & SEN': ['🤝', '#b5476a'], 'Revision & Exams': ['📚', '#6b5b95'], 'Engagement': ['✨', '#c05621'], 'Pastoral & Wellbeing': ['💚', '#2f855a'], 'Admin & Communication': ['✉️', '#4a5578'], 'Leadership & Data': ['📊', '#2c5282'], 'Pupil AI Literacy': ['🤖', '#0f7a74'] };
 const PL_CATS = ['Planning', 'Resources', 'Assessment & Feedback', 'Inclusion & SEN', 'Revision & Exams', 'Engagement', 'Pastoral & Wellbeing', 'Admin & Communication', 'Leadership & Data', 'Pupil AI Literacy'];
 const THEME_CAT = { 'Getting Started': 'Planning', 'Planning': 'Planning', 'Assessment & Feedback': 'Assessment & Feedback', 'Inclusion': 'Inclusion & SEN', 'Admin & Communication': 'Admin & Communication', 'Leadership & Data': 'Leadership & Data', 'Tools & Platforms': 'Resources', 'Pupil AI Literacy': 'Pupil AI Literacy' };
 const plFilt = { q: '', cat: '', subj: '', stage: '', tool: '', shown: 40, withGen: true };
@@ -552,7 +553,25 @@ function promptCard(p) {
   const ph = t => esc(t).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`);
   const live = p.issue && status(p.issue) === 'live';
   const from = p.issue ? (live || canManage() ? `<a href="#issue-${esc(p.issue.id)}">From Issue ${p.issue.n} · ${esc(p.issue.title)}</a>` : '<span>From an upcoming issue</span>') : `<span>${esc(p.subj[0] === 'All subjects' ? p.cat : p.subj.join(', ') + ' · ' + p.cat)}${p.stage && p.stage !== 'Any' ? ' · ' + esc(p.stage) : ''}</span>`;
-  return `<article class="pl-card"><header><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b><h3>${esc(p.title)}</h3></header><pre class="pl-text">${ph(p.text)}</pre><footer>${from}<button class="btn small primary" data-plcopy>Copy</button></footer></article>`;
+  const tools = ['Gemini', 'Copilot', 'NotebookLM'].filter(x => p.tool.includes(x)); if (!tools.length) tools.push('Gemini', 'Copilot');
+  const send = tools.map(x => `<button class="pl-send" data-send="${x}" title="Copy this prompt and open ${x}"><img src="${TOOL_ICON[x]}" alt="">Send to ${x}</button>`).join('');
+  return `<article class="pl-card"><header><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b><h3>${esc(p.title)}</h3></header><pre class="pl-text">${ph(p.text)}</pre><div class="pl-sendrow">${send}</div><footer>${from}<button class="btn small" data-plcopy>Copy</button></footer></article>`;
+}
+// "Send to…": copies the prompt and opens the tool in a new tab (none of these tools accept a prompt in the link, so staff paste with Ctrl+V)
+const TOOL_URL = { Gemini: 'https://gemini.google.com/app', Copilot: 'https://m365.cloud.microsoft/chat', NotebookLM: 'https://notebooklm.google.com/' };
+const svgIcon = s => 'data:image/svg+xml,' + encodeURIComponent(s);
+const TOOL_ICON = {
+  Gemini: svgIcon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f8df7"/><stop offset="1" stop-color="#a66cf2"/></linearGradient></defs><path fill="url(#g)" d="M12 1c.6 5.8 5.2 10.4 11 11-5.8.6-10.4 5.2-11 11-.6-5.8-5.2-10.4-11-11C6.8 11.4 11.4 6.8 12 1z"/></svg>'),
+  Copilot: svgIcon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><defs><linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2aa8f2"/><stop offset=".5" stop-color="#7b5cf0"/><stop offset="1" stop-color="#f2668b"/></linearGradient></defs><path fill="url(#c)" d="M7 3h7a4 4 0 0 1 3.8 2.8L21 16a3.5 3.5 0 0 1-3.4 5H10a4 4 0 0 1-3.8-2.8L3 8a3.5 3.5 0 0 1 3.4-5z"/></svg>'),
+  NotebookLM: svgIcon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#111"/><path d="M6 15a6 6 0 0 1 12 0M8.5 15a3.5 3.5 0 0 1 7 0" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>')
+};
+function plSend(b) {
+  const txt = b.closest('.pl-card').querySelector('.pl-text').textContent, x = b.dataset.send;
+  let ok = true; try { navigator.clipboard.writeText(txt).catch(() => { ok = false; }); } catch (e) { ok = false; }
+  const w = window.open(TOOL_URL[x], '_blank', 'noopener');
+  toast(`Prompt copied – in ${x}, click the message box and paste (Ctrl+V)${/Android|iPhone|iPad/i.test(navigator.userAgent) ? ' or press and hold, then Paste' : ''}`);
+  if (!w) setTimeout(() => toast(`Prompt copied – now open ${x} and paste it in`), 2700);
+  if (!ok) setTimeout(() => toast('Couldn’t copy automatically – select the prompt text and copy it'), 200);
 }
 async function plCopy(b) {
   const txt = b.closest('.pl-card').querySelector('.pl-text').textContent;
@@ -578,7 +597,7 @@ function renderPrompts() {
     $('#plCats').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) set('cat', b.dataset.cat); });
     $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: '', subj: '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plSubj', '#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); renderPrompts(); });
     if (!$('#plMore').dataset.w) { $('#plMore').dataset.w = 1; $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); }); $('#plMySubj').addEventListener('click', () => askSubjects(true)); }
-    $('#plList').addEventListener('click', e => { const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); });
+    $('#plList').addEventListener('click', e => { const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); const s = e.target.closest('[data-send]'); if (s) plSend(s); });
     }
   }
   const mine = canManage() ? null : (mySubjects() || []).length ? mySubjects() : null;
@@ -592,7 +611,8 @@ function renderPrompts() {
     return words.every(w => hay.includes(w));
   });
   const counts = {}; base.forEach(p => { counts[p.cat] = (counts[p.cat] || 0) + 1; });
-  $('#plCats').innerHTML = [['', 'All', base.length], ...PL_CATS.map(c => [c, c, counts[c] || 0])].map(([v, l, n]) => `<button class="pl-chip${plFilt.cat === v ? ' on' : ''}" data-cat="${esc(v)}" role="tab" aria-selected="${plFilt.cat === v}"${n || !v ? '' : ' disabled'}>${esc(l)} <small>${n}</small></button>`).join('');
+  $('#plCats').classList.toggle('picked', !!plFilt.cat);
+  $('#plCats').innerHTML = [['', 'All areas', base.length], ...PL_CATS.map(c => [c, c, counts[c] || 0])].map(([v, l, n]) => { const [ic, col] = PL_AREA[v] || ['🗂️', '#14284b']; return `<button class="pl-area${plFilt.cat === v ? ' on' : ''}" style="--c:${col}" data-cat="${esc(v)}" role="tab" aria-selected="${plFilt.cat === v}"${n || !v ? '' : ' disabled'}><span class="pa-ic" aria-hidden="true">${ic}</span><span class="pa-name">${esc(l)}</span><small>${n} prompt${n === 1 ? '' : 's'}</small></button>`; }).join('');
   { const on = $('#plCats .pl-chip.on'), row = $('#plCats'); if (!plFilt.cat) row.scrollLeft = 0; else if (on) row.scrollLeft = Math.max(0, on.offsetLeft - row.offsetLeft - 16); }
   const list = base.filter(p => !plFilt.cat || p.cat === plFilt.cat);
   // released issue prompts first (newest first), then the library, then upcoming issue prompts
@@ -616,6 +636,7 @@ function renderPromptHome() {
   el.innerHTML = `<div class="plh-text"><span class="eyebrow">Prompt library</span><h2>${total} ready-made prompts</h2>${mine ? `<p class="plh-mine">For ${esc(mine.length > 3 ? mine.slice(0, 3).join(', ') + ' and ' + (mine.length - 3) + ' more' : mine.join(', '))} · <button class="linkbtn" data-mysubj>change</button></p>` : ''}<p>For every subject we teach, from KS3 to A Level – planning, resources, feedback, SEN, revision, admin and more. Filter by subject, stage or AI tool, then copy and go.</p><a class="btn primary" href="#prompts">Browse all prompts</a></div>
     <div class="plh-pick"><span class="plh-label">${mine ? 'Your prompt of the day' : 'Prompt of the day'}</span>${promptCard(p)}</div>`;
   el.querySelector('[data-plcopy]').addEventListener('click', e => plCopy(e.currentTarget));
+  el.querySelectorAll('[data-send]').forEach(s => s.addEventListener('click', () => plSend(s)));
   el.querySelector('[data-mysubj]')?.addEventListener('click', () => askSubjects(true));
 }
 
