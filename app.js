@@ -298,12 +298,37 @@ const cleanName = s => s.trim().replace(/\s+/g, ' ').slice(0, 60);
 function askName() {
   if (LS.get('ergsNL.name')) return;
   const p = $('#namePrompt'); p.hidden = false; setTimeout(() => $('#npName').focus(), 200);
-  $('#nameForm').addEventListener('submit', e => { e.preventDefault(); const n = cleanName($('#npName').value); if (n.split(' ').length < 2) { $('#npName').setCustomValidity('Please add your first and last name'); $('#npName').reportValidity(); return; } LS.set('ergsNL.name', n); p.hidden = true; LS.set('ergsNL.devT', '0'); trackVisit(); });
+  $('#nameForm').addEventListener('submit', e => { e.preventDefault(); const n = cleanName($('#npName').value); if (n.split(' ').length < 2) { $('#npName').setCustomValidity('Please add your first and last name'); $('#npName').reportValidity(); return; } LS.set('ergsNL.name', n); p.hidden = true; LS.set('ergsNL.devT', '0'); trackVisit(); askSubjects(); });
   $('#npName').addEventListener('input', () => $('#npName').setCustomValidity(''));
 }
+/* ---------- "What do you teach?" subject picker (shown once after first sign-in; changeable any time) ---------- */
+const SUBJECTS = [
+  ['English', '📖', '#7b2d42'], ['English Literature', '🖋️', '#8e3b5a'], ['Mathematics', '➗', '#1f4f8f'], ['Further Mathematics', '∑', '#27407a'],
+  ['Science', '🔬', '#2e7d4f'], ['Biology', '🧬', '#3b8a3e'], ['Chemistry', '⚗️', '#0f7a74'], ['Physics', '⚛️', '#2f5d9c'],
+  ['Life and Health Sciences', '🩺', '#2b7f8f'], ['Geography', '🌍', '#2f7d6b'], ['History', '🏰', '#8a5a2b'], ['Religious Studies', '🕊️', '#6b5b95'],
+  ['French', '🥐', '#3556a8'], ['German', '🥨', '#8b2f2f'], ['Spanish', '💃', '#c0502b'], ['Digital Technology & IT', '💻', '#14284b'],
+  ['Technology and Design', '🛠️', '#5b6170'], ['Engineering', '⚙️', '#4a5568'], ['Construction and the Built Environment', '🏗️', '#b7791f'], ['Art and Design', '🎨', '#c2417a'],
+  ['Moving Image Arts', '🎬', '#2d2d3a'], ['Music', '🎵', '#7c3aed'], ['Drama', '🎭', '#9b2c2c'], ['Performing Arts', '🎤', '#b83280'],
+  ['Physical Education', '🏉', '#2f855a'], ['Sports Science and the Active Leisure Industry', '🏃', '#276749'], ['Home Economics', '🍳', '#c05621'], ['Nutrition and Food Science', '🥗', '#5a8f29'],
+  ['Business Studies', '📈', '#2c5282'], ['Economics', '💷', '#2a4365'], ['Government and Politics', '🏛️', '#4a5578'], ['Health and Social Care', '🤝', '#b5476a'],
+  ['Agriculture', '🚜', '#6b8e23'], ['Learning for Life and Work', '🧭', '#2b6cb0'], ['Personal Development', '🌱', '#38a169'], ['Careers', '🎓', '#975a16']];
+const mySubjects = () => { try { const v = JSON.parse(LS.get('ergsNL.subjects') || 'null'); return Array.isArray(v) ? v : null; } catch (e) { return null; } };   // null = not chosen yet, [] = show everything
+function askSubjects(force) {
+  if (!force && (mySubjects() || canManage())) return;
+  const box = $('#subjPicker'), grid = $('#spGrid'), done = $('#spDone');
+  const sel = new Set(mySubjects() || []);
+  const upd = () => { done.disabled = !sel.size; done.textContent = sel.size ? `Continue with ${sel.size} subject${sel.size === 1 ? '' : 's'}` : 'Pick at least one'; };
+  grid.innerHTML = SUBJECTS.map(([n, ic, col], k) => `<button type="button" class="sp-tile${sel.has(n) ? ' on' : ''}" data-subj="${esc(n)}" aria-pressed="${sel.has(n)}" style="--c:${col};--d:${k * 18}ms"><span class="sp-ic" aria-hidden="true">${ic}</span><span class="sp-name">${esc(n)}</span><i class="sp-tick" aria-hidden="true">✓</i></button>`).join('');
+  grid.onclick = e => { const t = e.target.closest('[data-subj]'); if (!t) return; const n = t.dataset.subj; sel.has(n) ? sel.delete(n) : sel.add(n); t.classList.toggle('on', sel.has(n)); t.setAttribute('aria-pressed', sel.has(n)); upd(); };
+  $('#spSearch').value = ''; $('#spSearch').oninput = e => { const q = e.target.value.toLowerCase(); grid.querySelectorAll('.sp-tile').forEach(t => { t.hidden = q && !t.dataset.subj.toLowerCase().includes(q); }); };
+  const close = v => { LS.set('ergsNL.subjects', JSON.stringify(v)); box.hidden = true; document.body.classList.remove('sp-open'); plFilt.subj = ''; if ($('#plSubj')) { $('#plCats').dataset.ready = ''; } render(); toast(v.length ? 'Prompts tailored to your subjects' : 'Showing prompts for every subject'); };
+  done.onclick = () => close([...sel]); $('#spSkip').onclick = () => close([]);
+  upd(); box.hidden = false; document.body.classList.add('sp-open'); setTimeout(() => grid.querySelector('.sp-tile')?.focus(), 300);
+}
+
 function start() {
   $('#app').hidden = false;
-  askName();
+  askName(); if (LS.get('ergsNL.name')) askSubjects();
   buildChips();
   startFirebase();
   window.addEventListener('hashchange', route);
@@ -539,10 +564,12 @@ function renderPrompts() {
   if (!$('#plCats').dataset.ready) {
     $('#plCats').dataset.ready = 1;
     const subs = [...new Set(all.flatMap(p => p.subj).filter(s => s !== 'All subjects'))].sort();
-    $('#plSubj').innerHTML = '<option value="">All subjects</option><option value="__gen">General (any subject)</option>' + subs.map(s => `<option>${esc(s)}</option>`).join('');
+    const mineS = canManage() ? null : (mySubjects() || []).length ? mySubjects() : null;
+    $('#plSubj').innerHTML = `<option value="">${mineS ? 'All my subjects' : 'All subjects'}</option><option value="__gen">General (any subject)</option>` + (mineS ? subs.filter(s => mineS.includes(s)) : subs).map(s => `<option>${esc(s)}</option>`).join('');
     $('#plStage').innerHTML = '<option value="">Any stage</option>' + ['KS3', 'GCSE', 'A Level'].map(s => `<option>${s}</option>`).join('');
     $('#plTool').innerHTML = '<option value="">Any tool</option>' + ['Gemini', 'Copilot', 'NotebookLM'].map(s => `<option>${s}</option>`).join('');
     const set = (k, v) => { plFilt[k] = v; plFilt.shown = 40; renderPrompts(); };
+    if (!$('#plQ').dataset.w) { $('#plQ').dataset.w = 1;
     $('#plQ').addEventListener('input', e => set('q', e.target.value.toLowerCase().trim()));
     $('#plSubj').addEventListener('change', e => set('subj', e.target.value));
     $('#plStage').addEventListener('change', e => set('stage', e.target.value));
@@ -550,11 +577,14 @@ function renderPrompts() {
     $('#plGen').addEventListener('change', e => set('withGen', e.target.checked));
     $('#plCats').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) set('cat', b.dataset.cat); });
     $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: '', subj: '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plSubj', '#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); renderPrompts(); });
-    $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); });
+    if (!$('#plMore').dataset.w) { $('#plMore').dataset.w = 1; $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); }); $('#plMySubj').addEventListener('click', () => askSubjects(true)); }
     $('#plList').addEventListener('click', e => { const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); });
+    }
   }
+  const mine = canManage() ? null : (mySubjects() || []).length ? mySubjects() : null;
   const words = plFilt.q.split(/\s+/).filter(Boolean);
   const base = all.filter(p => {
+    if (mine && p.subj[0] !== 'All subjects' && !p.subj.some(s => mine.includes(s))) return false;
     if (plFilt.subj === '__gen' ? p.subj[0] !== 'All subjects' : plFilt.subj && !p.subj.includes(plFilt.subj) && !(plFilt.withGen && p.subj[0] === 'All subjects')) return false;
     if (plFilt.stage && !(p.stage === plFilt.stage || p.stage === 'Any')) return false;
     if (plFilt.tool && !p.tool.includes(plFilt.tool)) return false;
@@ -578,12 +608,15 @@ function renderPrompts() {
 // homepage: a "prompt of the day" card at the very bottom of the library
 function renderPromptHome() {
   const el = $('#plHome'); if (!el) return;
-  const lib = allPrompts().filter(p => !p.issue || status(p.issue) === 'live'); if (!lib.length) { el.hidden = true; return; }
-  const p = lib[Math.floor(Date.now() / 864e5) % lib.length], total = allPrompts().length;
+  const mine = canManage() ? null : (mySubjects() || []).length ? mySubjects() : null;
+  const lib = allPrompts().filter(p => (!p.issue || status(p.issue) === 'live') && (!mine || p.subj[0] === 'All subjects' || p.subj.some(s => mine.includes(s))));
+  const own = mine ? lib.filter(p => p.subj.some(s => mine.includes(s))) : []; const pool = own.length ? own : lib; if (!pool.length) { el.hidden = true; return; }
+  const p = pool[Math.floor(Date.now() / 864e5) % pool.length], total = lib.length;
   el.hidden = false;
-  el.innerHTML = `<div class="plh-text"><span class="eyebrow">Prompt library</span><h2>${total} ready-made prompts</h2><p>For every subject we teach, from KS3 to A Level – planning, resources, feedback, SEN, revision, admin and more. Filter by subject, stage or AI tool, then copy and go.</p><a class="btn primary" href="#prompts">Browse all prompts</a></div>
-    <div class="plh-pick"><span class="plh-label">Prompt of the day</span>${promptCard(p)}</div>`;
+  el.innerHTML = `<div class="plh-text"><span class="eyebrow">Prompt library</span><h2>${total} ready-made prompts</h2>${mine ? `<p class="plh-mine">For ${esc(mine.length > 3 ? mine.slice(0, 3).join(', ') + ' and ' + (mine.length - 3) + ' more' : mine.join(', '))} · <button class="linkbtn" data-mysubj>change</button></p>` : ''}<p>For every subject we teach, from KS3 to A Level – planning, resources, feedback, SEN, revision, admin and more. Filter by subject, stage or AI tool, then copy and go.</p><a class="btn primary" href="#prompts">Browse all prompts</a></div>
+    <div class="plh-pick"><span class="plh-label">${mine ? 'Your prompt of the day' : 'Prompt of the day'}</span>${promptCard(p)}</div>`;
   el.querySelector('[data-plcopy]').addEventListener('click', e => plCopy(e.currentTarget));
+  el.querySelector('[data-mysubj]')?.addEventListener('click', () => askSubjects(true));
 }
 
 /* ---------- "How I used it" one-liners under each issue (encrypted with the staff key) ---------- */
