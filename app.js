@@ -313,6 +313,9 @@ const SUBJECTS = [
   ['Business Studies', '📈', '#2c5282'], ['Economics', '💷', '#2a4365'], ['Government and Politics', '🏛️', '#4a5578'], ['Health and Social Care', '🤝', '#b5476a'],
   ['Agriculture', '🚜', '#6b8e23'], ['Learning for Life and Work', '🧭', '#2b6cb0'], ['Personal Development', '🌱', '#38a169'], ['Careers', '🎓', '#975a16']];
 const mySubjects = () => { try { const v = JSON.parse(LS.get('ergsNL.subjects') || 'null'); return Array.isArray(v) ? v : null; } catch (e) { return null; } };   // null = not chosen yet, [] = show everything
+const myTool = () => { const t = LS.get('ergsNL.tool'); return t === 'Gemini' || t === 'Copilot' ? t : ''; };
+function setMyTool(t) { LS.set('ergsNL.tool', t || ''); }
+const toolPick = (cur, attr) => ['Gemini', 'Copilot', ''].map(t => `<button type="button" class="tp-opt${cur === t ? ' on' : ''}" ${attr}="${t}" aria-pressed="${cur === t}">${t ? `<img src="${TOOL_ICON[t]}" alt="">${t}` : 'Not sure yet'}</button>`).join('');
 function askSubjects(force) {
   if (!force && (mySubjects() || canManage())) return;
   const box = $('#subjPicker'), grid = $('#spGrid'), done = $('#spDone');
@@ -323,7 +326,9 @@ function askSubjects(force) {
   grid.onclick = e => { const t = e.target.closest('[data-subj]'); if (!t) return; const n = t.dataset.subj; if (e.target.closest('.sp-mainbtn')) { sel.delete(n); const rest = [...sel]; sel.clear(); [n, ...rest].forEach(x => sel.add(x)); t.classList.add('on'); mark(); upd(); return; } sel.has(n) ? sel.delete(n) : sel.add(n); t.classList.toggle('on', sel.has(n)); t.setAttribute('aria-pressed', sel.has(n)); mark(); upd(); };
   mark();
   $('#spSearch').value = ''; $('#spSearch').oninput = e => { const q = e.target.value.toLowerCase(); grid.querySelectorAll('.sp-tile').forEach(t => { t.hidden = q && !t.dataset.subj.toLowerCase().includes(q); }); };
-  const close = v => { LS.set('ergsNL.subjects', JSON.stringify(v)); box.hidden = true; document.body.classList.remove('sp-open'); plFilt.subj = v[0] || ''; plFilt.subjSet = true; if ($('#plSubj')) { $('#plCats').dataset.ready = ''; } render(); toast(v.length ? 'Prompts tailored to your subjects' : 'Showing prompts for every subject'); };
+  let tp = myTool(); const tpBox = $('#spTool'); tpBox.innerHTML = toolPick(tp, 'data-tp');
+  tpBox.onclick = e => { const b = e.target.closest('[data-tp]'); if (!b) return; tp = b.dataset.tp; tpBox.innerHTML = toolPick(tp, 'data-tp'); };
+  const close = v => { setMyTool(tp); LS.set('ergsNL.subjects', JSON.stringify(v)); box.hidden = true; document.body.classList.remove('sp-open'); plFilt.subj = v[0] || ''; plFilt.subjSet = true; if ($('#plSubj')) { $('#plCats').dataset.ready = ''; } render(); toast(v.length ? 'Prompts tailored to your subjects' : 'Showing prompts for every subject'); };
   done.onclick = () => close([...sel]); $('#spSkip').onclick = () => close([]);
   upd(); box.hidden = false; document.body.classList.add('sp-open'); setTimeout(() => grid.querySelector('.sp-tile')?.focus(), 300);
 }
@@ -642,8 +647,14 @@ function promptCard(p) {
   const ph = t => esc(t).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`);
   const live = p.issue && status(p.issue) === 'live';
   const from = p.issue ? (live || canManage() ? `<a href="#issue-${esc(p.issue.id)}">From Issue ${p.issue.n} · ${esc(p.issue.title)}</a>` : '<span>From an upcoming issue</span>') : `<span>${esc(p.subj[0] === 'All subjects' ? p.cat : p.subj.join(', ') + ' · ' + p.cat)}${p.stage && p.stage !== 'Any' ? ' · ' + esc(p.stage) : ''}</span>`;
-  const tools = ['Gemini', 'Copilot', 'NotebookLM'].filter(x => p.tool.includes(x)); if (!tools.length) tools.push('Gemini', 'Copilot');
-  const send = tools.map(x => `<button class="pl-send" data-send="${x}" title="Copy this prompt and open ${x}"><img src="${TOOL_ICON[x]}" alt="">Send to ${x}</button>`).join('');
+  let tools = ['Gemini', 'Copilot', 'NotebookLM'].filter(x => p.tool.includes(x)); if (!tools.length) tools = ['Gemini', 'Copilot'];
+  const mt = myTool();
+  // plain Gemini/Copilot prompts work in either, so lead with the teacher's own tool and offer the other as "Use … instead"
+  if (mt && /^(Gemini|Copilot)( or (Gemini|Copilot))?$/.test(p.tool.trim())) tools = [mt, mt === 'Gemini' ? 'Copilot' : 'Gemini'];
+  else if (mt && tools.includes(mt)) tools = [mt, ...tools.filter(x => x !== mt)];
+  const send = mt && tools[0] === mt
+    ? `<button class="pl-send main" data-send="${mt}" title="Copy this prompt and open ${mt}"><img src="${TOOL_ICON[mt]}" alt="">Send to ${mt}</button>` + tools.slice(1).map(x => `<button class="pl-alt" data-send="${x}" title="Copy this prompt and open ${x}">Use ${x} instead</button>`).join('')
+    : tools.map(x => `<button class="pl-send" data-send="${x}" title="Copy this prompt and open ${x}"><img src="${TOOL_ICON[x]}" alt="">Send to ${x}</button>`).join('');
   return `<article class="pl-card" data-subj="${esc((p.subj || []).join('|'))}"><header><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b><h3>${esc(p.title)}</h3></header><pre class="pl-text">${ph(p.text)}</pre><div class="pl-sendrow">${send}</div><footer>${from}<button class="btn small" data-plcopy>Copy</button></footer></article>`;
 }
 // "Send to…": copies the prompt and opens the tool in a new tab (none of these tools accept a prompt in the link, so staff paste with Ctrl+V)
@@ -721,7 +732,7 @@ function openFill(card, action) {
     <datalist id="fillSubj">${(mySubjects() && mySubjects().length ? mySubjects() : SUBJECTS.map(s => s[0])).map(s => `<option value="${esc(s)}">`).join('')}</datalist><datalist id="fillTopics"></datalist>
     <p class="fill-hint" id="fillHint"></p>
     <details class="fill-prev"><summary>Preview your prompt</summary><pre id="fillPrev"></pre></details>
-    <footer>${tools.map((x, i) => `<button type="submit" class="btn ${i ? '' : 'primary'}" data-go="${x}"><img src="${TOOL_ICON[x]}" alt=""> Send to ${x}</button>`).join('')}<button type="submit" class="btn" data-go="copy">Copy</button></footer>
+    <footer>${tools.map((x, i) => i && myTool() === tools[0] ? `<button type="submit" class="linkbtn fill-alt" data-go="${x}">Use ${x} instead</button>` : `<button type="submit" class="btn ${i ? '' : 'primary'}" data-go="${x}"><img src="${TOOL_ICON[x]}" alt=""> Send to ${x}</button>`).join('')}<button type="submit" class="btn" data-go="copy">Copy</button></footer>
     <p class="fill-skip"><button type="button" class="linkbtn" data-go-raw>Use it with the [brackets] as they are</button></p></form>`;
   document.body.appendChild(sheet); document.body.classList.add('sp-open');
   const f = sheet.querySelector('form'), fields = [...f.querySelectorAll('[data-tok]')];
@@ -773,6 +784,7 @@ function renderPrompts() {
     $('#plGen').addEventListener('change', e => set('withGen', e.target.checked));
     $('#plCats').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) set('cat', b.dataset.cat); });
     $('#plPick').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) { set('cat', b.dataset.cat); scrollTo({ top: 0, behavior: 'smooth' }); } });
+    $('#plMyTool').addEventListener('click', e => { const b = e.target.closest('[data-mt]'); if (!b) return; setMyTool(b.dataset.mt); toast(b.dataset.mt ? `Prompts will open in ${b.dataset.mt} – you can still pick the other one` : 'No default AI tool – both are shown'); renderPrompts(); });
     $('#plCrumb').addEventListener('click', e => { if (e.target.closest('[data-back]')) { plFilt.q = ''; $('#plQ').value = ''; set('cat', null); scrollTo({ top: 0, behavior: 'smooth' }); } });
     $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: plFilt.cat ?? '', subj: (!canManage() && (mySubjects() || [])[0]) || '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); $('#plSubj').value = plFilt.subj; renderPrompts(); });
     if (!$('#plMore').dataset.w) { $('#plMore').dataset.w = 1; $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); }); $('#plMySubj').addEventListener('click', () => askSubjects(true)); }
@@ -790,6 +802,7 @@ function renderPrompts() {
     return words.every(w => hay.includes(w));
   });
   const counts = {}; base.forEach(p => { counts[p.cat] = (counts[p.cat] || 0) + 1; });
+  $('#plMyTool').innerHTML = `<span class="tp-lab">My AI tool</span>${toolPick(myTool(), 'data-mt')}`;
   // step 1: "What do you want a prompt for?" – a grid of big cards; step 2: the prompts for that choice
   const choosing = plFilt.cat === null && !plFilt.q;
   $('#plPick').hidden = !choosing; ['#plSels', '#plCount', '#plList'].forEach(s => { $(s).hidden = choosing; }); $('#plIntro').hidden = !choosing;
