@@ -1139,3 +1139,23 @@ body.show-grid .home3{padding-bottom:10px}
   .h3-greet p{font-size:15px;margin-bottom:16px}
 }
 body.is-admin .home3{padding-bottom:90px}
+
+/* Prompt Bank step 1: "What do you want a prompt for?" card grid */
+.pl-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin:18px 0 30px}
+.pl-pick[hidden]{display:none}
+.pp-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;border:0;border-radius:16px;padding:18px 18px 16px;min-height:150px;cursor:pointer;color:#fff;
+  background:linear-gradient(150deg,var(--c),color-mix(in srgb,var(--c) 70%,#000));box-shadow:0 6px 18px -8px color-mix(in srgb,var(--c) 70%,transparent);transition:transform .15s,box-shadow .15s}
+.pp-card:hover,.pp-card:focus-visible{transform:translateY(-3px);box-shadow:0 12px 26px -10px color-mix(in srgb,var(--c) 80%,transparent)}
+.pp-card .pp-ic{font-size:30px;line-height:1;margin-bottom:4px}
+.pp-card b{font:400 14px/1.25 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.pp-card .pp-desc{font:14px/1.4 var(--body);opacity:.9}
+.pp-card small{margin-top:auto;font:600 12px var(--body);opacity:.75}
+.pp-card.pp-all{--c:#14284b;background:#fff;color:var(--navy);border:2px dashed #b9c3d3;box-shadow:none}
+.pl-crumb{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:4px 0 4px}
+.pl-crumb[hidden]{display:none}
+.pc-back{border:1px solid #cdd4de;background:#fff;border-radius:999px;padding:8px 14px;font:600 14px var(--body);color:var(--navy);cursor:pointer}
+.pc-back:hover{border-color:var(--navy)}
+.pc-tag{font:14px var(--body);color:#4a5568}
+@media (max-width:620px){.pl-pick{grid-template-columns:1fr 1fr;gap:10px}.pp-card{min-height:132px;padding:14px 13px 12px}.pp-card .pp-ic{font-size:26px}.pp-card b{font-size:12px}.pp-card .pp-desc{font-size:12.5px}}
+#plList[hidden],#plSels[hidden],#plCount[hidden],#plIntro[hidden]{display:none!important}
+#plCats[hidden]{display:none!important}

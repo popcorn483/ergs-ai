@@ -361,7 +361,7 @@ function render() {
   document.body.classList.toggle('binder-on', h === 'binder');
   if (h === 'admin') { $('#admin').hidden = false; renderAdmin(); }
   else if (h === 'binder') { $('#binder').hidden = false; Binder.open(); }
-  else if (h === 'prompts') { $('#prompts').hidden = false; renderPrompts(); document.title = 'Prompt library · ERGS Digital Skills & AI'; }
+  else if (h === 'prompts') { $('#prompts').hidden = false; if (plFilt.keepCat) plFilt.keepCat = false; else { plFilt.cat = null; plFilt.q = ''; if ($('#plQ')) $('#plQ').value = ''; } renderPrompts(); scrollTo(0, 0); document.title = 'Prompt library · ERGS Digital Skills & AI'; }
   else if (h === 'flow') { if (!canManage()) { location.replace('#'); return; } $('#flow').hidden = false; renderFlow(); document.title = 'Workflow · ERGS Digital Skills & AI'; }
   else if (h === 'tips') { if (!canManage()) { location.replace('#help'); return; } $('#tips').hidden = false; renderTips(); document.title = 'Quick tips · ERGS Digital Skills & AI'; }
   else if (h === 'help') { $('#help').hidden = false; renderSheets(); document.title = 'Help sheets · ERGS Digital Skills & AI'; }
@@ -468,7 +468,7 @@ function renderHome3() {
   el.querySelector('[data-binder]')?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); location.hash = 'binder'; });
   el.querySelectorAll('[data-tried]').forEach(b => b.addEventListener('click', () => { setTried(b.dataset.tried, !triedMap()[b.dataset.tried]); renderHome3(); }));
   $('#h3TipOpen')?.addEventListener('click', () => showTipSheet(t));
-  el.querySelectorAll('[data-area]').forEach(b => b.addEventListener('click', () => { plFilt.cat = b.dataset.area; plFilt.shown = 40; location.hash = 'prompts'; }));
+  el.querySelectorAll('[data-area]').forEach(b => b.addEventListener('click', () => { plFilt.cat = b.dataset.area; plFilt.keepCat = true; plFilt.shown = 40; location.hash = 'prompts'; }));
   $('#h3TryPrompt')?.addEventListener('click', () => { const tmp = document.createElement('div'); tmp.innerHTML = promptCard(pd); const card = tmp.firstElementChild; card.hidden = true; document.body.appendChild(card); openFill(card, (txt, go) => { card.remove(); go && go !== 'copy' ? sendText(txt, go) : copyText(txt, null); }); if (!document.querySelector('.fill-sheet')) card.remove(); });
 }
 function edCard() {
@@ -623,9 +623,10 @@ function renderFlow() {
 
 /* ---------- prompt library ---------- */
 const PL_AREA = { '': ['🗂️', '#14284b'], 'Planning': ['🗓️', '#1f4f8f'], 'Resources': ['📄', '#2f7d6b'], 'Assessment & Feedback': ['✅', '#7b2d42'], 'Inclusion & SEN': ['🤝', '#b5476a'], 'Revision & Exams': ['📚', '#6b5b95'], 'Engagement': ['✨', '#c05621'], 'Pastoral & Wellbeing': ['💚', '#2f855a'], 'Admin & Communication': ['✉️', '#4a5578'], 'Leadership & Data': ['📊', '#2c5282'], 'Pupil AI Literacy': ['🤖', '#0f7a74'] };
+const PL_DESC = { 'Planning': 'Lesson plans, schemes of work, starters and plenaries', 'Resources': 'Worksheets, slides, reading texts and model answers', 'Assessment & Feedback': 'Quizzes, mark schemes and feedback comments', 'Inclusion & SEN': 'Scaffolds, simplified texts and support for every learner', 'Revision & Exams': 'Revision guides, exam-style questions and practice', 'Engagement': 'Hooks, games, debates and real-world links', 'Pastoral & Wellbeing': 'Form time, PD and wellbeing activities', 'Admin & Communication': 'Emails, letters, reports and minutes', 'Leadership & Data': 'Department planning, data and policy', 'Pupil AI Literacy': 'Teaching pupils to use AI safely and well' };
 const PL_CATS = ['Planning', 'Resources', 'Assessment & Feedback', 'Inclusion & SEN', 'Revision & Exams', 'Engagement', 'Pastoral & Wellbeing', 'Admin & Communication', 'Leadership & Data', 'Pupil AI Literacy'];
 const THEME_CAT = { 'Getting Started': 'Planning', 'Planning': 'Planning', 'Assessment & Feedback': 'Assessment & Feedback', 'Inclusion': 'Inclusion & SEN', 'Admin & Communication': 'Admin & Communication', 'Leadership & Data': 'Leadership & Data', 'Tools & Platforms': 'Resources', 'Pupil AI Literacy': 'Pupil AI Literacy' };
-const plFilt = { q: '', cat: '', subj: '', stage: '', tool: '', shown: 40, withGen: true };
+const plFilt = { q: '', cat: null, subj: '', stage: '', tool: '', shown: 40, withGen: true };
 function allPrompts() {
   const P = (CONTENT && CONTENT.prompts) || {};
   const fromIssues = allIssues().filter(i => status(i) !== 'removed').flatMap(i => {
@@ -771,7 +772,9 @@ function renderPrompts() {
     $('#plTool').addEventListener('change', e => set('tool', e.target.value));
     $('#plGen').addEventListener('change', e => set('withGen', e.target.checked));
     $('#plCats').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) set('cat', b.dataset.cat); });
-    $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: '', subj: (!canManage() && (mySubjects() || [])[0]) || '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); $('#plSubj').value = plFilt.subj; renderPrompts(); });
+    $('#plPick').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) { set('cat', b.dataset.cat); scrollTo({ top: 0, behavior: 'smooth' }); } });
+    $('#plCrumb').addEventListener('click', e => { if (e.target.closest('[data-back]')) { plFilt.q = ''; $('#plQ').value = ''; set('cat', null); scrollTo({ top: 0, behavior: 'smooth' }); } });
+    $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: plFilt.cat ?? '', subj: (!canManage() && (mySubjects() || [])[0]) || '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); $('#plSubj').value = plFilt.subj; renderPrompts(); });
     if (!$('#plMore').dataset.w) { $('#plMore').dataset.w = 1; $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); }); $('#plMySubj').addEventListener('click', () => askSubjects(true)); }
     $('#plList').addEventListener('click', e => { const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); const s = e.target.closest('[data-send]'); if (s) plSend(s); });
     }
@@ -787,6 +790,19 @@ function renderPrompts() {
     return words.every(w => hay.includes(w));
   });
   const counts = {}; base.forEach(p => { counts[p.cat] = (counts[p.cat] || 0) + 1; });
+  // step 1: "What do you want a prompt for?" – a grid of big cards; step 2: the prompts for that choice
+  const choosing = plFilt.cat === null && !plFilt.q;
+  $('#plPick').hidden = !choosing; ['#plSels', '#plCount', '#plList'].forEach(s => { $(s).hidden = choosing; }); $('#plIntro').hidden = !choosing;
+  $('#plCrumb').hidden = choosing;
+  if (choosing) {
+    $('#plTitle').textContent = 'What do you want a prompt for?'; $('#plMore').hidden = true;
+    $('#plPick').innerHTML = PL_CATS.filter(c => counts[c]).map(c => { const [ic, col] = PL_AREA[c]; return `<button class="pp-card" style="--c:${col}" data-cat="${esc(c)}"><span class="pp-ic" aria-hidden="true">${ic}</span><b>${esc(c)}</b><span class="pp-desc">${esc(PL_DESC[c] || '')}</span><small>${counts[c]} prompt${counts[c] === 1 ? '' : 's'}</small></button>`; }).join('')
+      + `<button class="pp-card pp-all" data-cat=""><span class="pp-ic" aria-hidden="true">🗂️</span><b>Show me everything</b><span class="pp-desc">Browse every prompt with filters</span><small>${base.length} prompts</small></button>`;
+    return;
+  }
+  { const c = plFilt.cat || '', [ic, col] = PL_AREA[c] || ['🔎', '#14284b'];
+    $('#plTitle').textContent = plFilt.cat ? plFilt.cat : plFilt.q && plFilt.cat === null ? 'Search results' : 'All prompts';
+    $('#plCrumb').innerHTML = `<button class="pc-back" data-back>← Choose something else</button>${plFilt.cat ? `<span class="pc-tag" style="--c:${col}">${ic} ${esc(PL_DESC[c] || '')}</span>` : ''}`; }
   $('#plCats').classList.toggle('picked', !!plFilt.cat);
   $('#plCats').innerHTML = [['', 'All areas', base.length], ...PL_CATS.map(c => [c, c, counts[c] || 0])].map(([v, l, n]) => { const [ic, col] = PL_AREA[v] || ['🗂️', '#14284b']; return `<button class="pl-area${plFilt.cat === v ? ' on' : ''}" style="--c:${col}" data-cat="${esc(v)}" role="tab" aria-selected="${plFilt.cat === v}"${n || !v ? '' : ' disabled'}><span class="pa-ic" aria-hidden="true">${ic}</span><span class="pa-name">${esc(l)}</span><small>${n} prompt${n === 1 ? '' : 's'}</small></button>`; }).join('');
   { const on = $('#plCats .pl-chip.on'), row = $('#plCats'); if (!plFilt.cat) row.scrollLeft = 0; else if (on) row.scrollLeft = Math.max(0, on.offsetLeft - row.offsetLeft - 16); }
@@ -797,7 +813,7 @@ function renderPrompts() {
   list.sort((x, y) => (own(x) - own(y)) || (rank(x) - rank(y)) || (rank(x) === 0 ? y.issue.n - x.issue.n : 0));
   $('#plGenWrap').hidden = !plFilt.subj || plFilt.subj === '__gen';
   $('#plCount').textContent = `${list.length} prompt${list.length === 1 ? '' : 's'}`;
-  $('#plReset').hidden = !(plFilt.q || plFilt.cat || (plFilt.subj && plFilt.subj !== ((!canManage() && (mySubjects() || [])[0]) || '')) || plFilt.stage || plFilt.tool);
+  $('#plReset').hidden = !(plFilt.q || (plFilt.subj && plFilt.subj !== ((!canManage() && (mySubjects() || [])[0]) || '')) || plFilt.stage || plFilt.tool);
   $('#plList').innerHTML = list.slice(0, plFilt.shown).map(promptCard).join('') || '<p class="empty">No prompts match – try clearing a filter.</p>';
   $('#plMore').hidden = list.length <= plFilt.shown;
 }
