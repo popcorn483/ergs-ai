@@ -505,7 +505,7 @@ function renderHome3() {
       <div class="h3-actions"><span class="btn h3-btn primary">${L ? 'Open at the latest' : 'Open the binder'}</span><span class="h3-link" data-binder>Start from the cover →</span></div></a>
     <article class="h3-card h3-prompts">${canManage() ? `<span class="h3-label">Prompt bank</span>
       <h2>${pr.length} prompts${mine ? ` for ${esc(mine[0])}${mine.length > 1 ? ' and more' : ''}` : ''}</h2>` : `<h2>Prompt Bank</h2>`}
-      ${pd ? `<div class="h3-today"><span class="h3-tlabel">Today’s prompt <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></span><h3>${esc(pd.title)}</h3><pre class="${pd.text.length > 650 ? 'xl' : pd.text.length > 420 ? 'l' : ''}">${esc(pd.text).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`)}</pre><button class="btn h3-btn h3-use" id="h3TryPrompt">Use this prompt</button></div>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
+      ${pd ? `<div class="h3-today"><span class="h3-tlabel">Today’s prompt <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></span><h3>${esc(pd.title)}</h3><pre class="${pd.text.length > 950 ? 'xxl' : pd.text.length > 650 ? 'xl' : pd.text.length > 420 ? 'l' : ''}">${esc(pd.text).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`)}</pre><button class="btn h3-btn h3-use" id="h3TryPrompt">Use this prompt</button></div>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
       <div class="h3-actions"><a class="h3-link" href="#prompts">Browse all prompts →</a></div></article>
     ${ed ? edCard() : ''}
   </div>
@@ -671,9 +671,9 @@ function renderFlow() {
 }
 
 /* ---------- prompt library ---------- */
-const PL_AREA = { '': ['🗂️', '#14284b'], 'Planning': ['🗓️', '#1f4f8f'], 'Resources': ['📄', '#2f7d6b'], 'Assessment & Feedback': ['✅', '#7b2d42'], 'Inclusion & SEN': ['🤝', '#b5476a'], 'Revision & Exams': ['📚', '#6b5b95'], 'Engagement': ['✨', '#c05621'], 'Pastoral & Wellbeing': ['💚', '#2f855a'], 'Admin & Communication': ['✉️', '#4a5578'], 'Leadership & Data': ['📊', '#2c5282'], 'Pupil AI Literacy': ['🤖', '#0f7a74'] };
-const PL_DESC = { 'Planning': 'Lesson plans, schemes of work, starters and plenaries', 'Resources': 'Worksheets, slides, reading texts and model answers', 'Assessment & Feedback': 'Quizzes, mark schemes and feedback comments', 'Inclusion & SEN': 'Scaffolds, simplified texts and support for every learner', 'Revision & Exams': 'Revision guides, exam-style questions and practice', 'Engagement': 'Hooks, games, debates and real-world links', 'Pastoral & Wellbeing': 'Form time, PD and wellbeing activities', 'Admin & Communication': 'Emails, letters, reports and minutes', 'Leadership & Data': 'Department planning, data and policy', 'Pupil AI Literacy': 'Teaching pupils to use AI safely and well' };
-const PL_CATS = ['Planning', 'Resources', 'Assessment & Feedback', 'Inclusion & SEN', 'Revision & Exams', 'Engagement', 'Pastoral & Wellbeing', 'Admin & Communication', 'Leadership & Data', 'Pupil AI Literacy'];
+const PL_AREA = { '': ['🗂️', '#14284b'], 'Planning': ['🗓️', '#1f4f8f'], 'Resources': ['📄', '#2f7d6b'], 'Assessment & Feedback': ['✅', '#7b2d42'], 'Inclusion & SEN': ['🤝', '#b5476a'], 'Revision & Exams': ['📚', '#6b5b95'], 'Engagement': ['✨', '#c05621'], 'Pastoral & Wellbeing': ['💚', '#2f855a'], 'Admin & Communication': ['✉️', '#4a5578'], 'Leadership & Data': ['📊', '#2c5282'], 'Pupil AI Literacy': ['🤖', '#0f7a74'], 'Metacognition & Cowriting': ['🧠', '#8a5a14'] };
+const PL_DESC = { 'Planning': 'Lesson plans, schemes of work, starters and plenaries', 'Resources': 'Worksheets, slides, reading texts and model answers', 'Assessment & Feedback': 'Quizzes, mark schemes and feedback comments', 'Inclusion & SEN': 'Scaffolds, simplified texts and support for every learner', 'Revision & Exams': 'Revision guides, exam-style questions and practice', 'Engagement': 'Hooks, games, debates and real-world links', 'Pastoral & Wellbeing': 'Form time, PD and wellbeing activities', 'Admin & Communication': 'Emails, letters, reports and minutes', 'Leadership & Data': 'Department planning, data and policy', 'Pupil AI Literacy': 'Teaching pupils to use AI safely and well', 'Metacognition & Cowriting': 'Live modelling, co-writing and plan, monitor, evaluate routines' };
+const PL_CATS = ['Planning', 'Resources', 'Assessment & Feedback', 'Metacognition & Cowriting', 'Inclusion & SEN', 'Revision & Exams', 'Engagement', 'Pastoral & Wellbeing', 'Admin & Communication', 'Leadership & Data', 'Pupil AI Literacy'];
 const THEME_CAT = { 'Getting Started': 'Planning', 'Planning': 'Planning', 'Assessment & Feedback': 'Assessment & Feedback', 'Inclusion': 'Inclusion & SEN', 'Admin & Communication': 'Admin & Communication', 'Leadership & Data': 'Leadership & Data', 'Tools & Platforms': 'Resources', 'Pupil AI Literacy': 'Pupil AI Literacy' };
 const plFilt = { q: '', cat: null, subj: '', stage: '', tool: '', shown: 40, withGen: true };
 function allPrompts() {
@@ -682,9 +682,9 @@ function allPrompts() {
     const list = (P[i.id] || []).slice();
     if (i.kind === 'tpl' && i.prompt) list.push({ tool: (i.tools || [])[0] || 'Gemini or Copilot', title: i.title, text: i.prompt });
     const cat = THEME_CAT[i.theme] || (/revis|exam/i.test(i.theme + i.title) ? 'Revision & Exams' : /feedback|assess|mark|misconcep/i.test(i.theme + i.title) ? 'Assessment & Feedback' : 'Resources');
-    return list.map((p, k) => ({ ...p, cat, subj: ['All subjects'], stage: 'Any', key: i.id + ':' + k, issue: i }));
+    return list.map((p, k) => ({ ...p, text: noDash(p.text || ''), cat, subj: ['All subjects'], stage: 'Any', key: i.id + ':' + k, issue: i }));
   });
-  const lib = ((CONTENT && CONTENT.plib) || []).map((p, k) => ({ ...p, subj: Array.isArray(p.subj) ? p.subj : [p.subj], key: 'L' + k, issue: null }));
+  const lib = ((CONTENT && CONTENT.plib) || []).map((p, k) => ({ ...p, text: noDash(p.text || ''), subj: Array.isArray(p.subj) ? p.subj : [p.subj], key: 'L' + k, issue: null }));
   return [...fromIssues, ...lib];
 }
 function promptCard(p) {
@@ -766,9 +766,11 @@ How to lay out your answer (I'm a busy teacher):
 - Make it ready to use as it is: easy to print, or to paste into Word, Google Docs or PowerPoint.
 - Follow any format I've asked for above. Put answers, mark schemes or teacher notes in a separate section at the end.
 - Use UK English. Where it's for pupils, pitch the wording at their age and level.
-- If something is unclear, make a sensible assumption and note it in one line at the end rather than asking me first.`;
-const tidyOn = () => LS.get('ergsNL.tidy') !== '0';
-const withTidy = (t, on = tidyOn()) => (on && !t.includes("I'm a busy teacher") ? t.trim() + TIDY : t);
+- If something is unclear, make a sensible assumption and note it in one line at the end rather than asking me first.
+- Never use em dashes. Use commas, colons, brackets or full stops instead.`;
+const tidyOn = () => true;   // always on: every prompt asks for a clean, ready-to-use answer
+const noDash = t => t.replace(/\s*[\u2014]\s*/g, ', ').replace(/\u2013/g, '-');
+const withTidy = (t, on = tidyOn()) => { t = noDash(t); return on && !t.includes("I'm a busy teacher") ? t.trim() + TIDY : t; };
 function openFill(card, action0, edit) {
   const action = (t, go) => action0(withTidy(t), go);
   const txt = card.querySelector('.pl-text').textContent;
@@ -791,10 +793,10 @@ function openFill(card, action0, edit) {
     <datalist id="fillSubj">${(mySubjects() && mySubjects().length ? mySubjects() : SUBJECTS.map(s => s[0])).map(s => `<option value="${esc(s)}">`).join('')}</datalist><datalist id="fillTopics"></datalist>
     <p class="fill-hint" id="fillHint"></p>
     <label class="fill-edlab" for="fillPrev">Your prompt <small>edit anything before you send it</small></label><textarea id="fillPrev" class="fill-ed" rows="${edit ? 10 : 6}" spellcheck="true"></textarea>
-    <label class="fill-tidy"><input type="checkbox" id="fillTidy" ${tidyOn() ? 'checked' : ''}><span><b>Ask for a tidy, ready-to-use answer</b><small>Tells the AI to skip the waffle: headings, short bullets, answers at the end, UK English. <a href="#" id="fillTidyPeek">See what's added</a></small></span></label>
+    <div class="fill-tidy"><span class="ft-ic" aria-hidden="true">✓</span><span><b>Ready-to-use answer is switched on</b><small>Every prompt asks the AI to skip the waffle: headings, short bullets, answers at the end, UK English, no em dashes. <a href="#" id="fillTidyPeek">See what's added</a></small></span></div>
     <pre class="fill-tidypeek" id="fillTidyText" hidden></pre>
     <footer>${tools.map((x, i) => i && myTool() === tools[0] ? `<button type="submit" class="linkbtn fill-alt" data-go="${x}">Use ${x} instead</button>` : `<button type="submit" class="btn ${i ? '' : 'primary'}" data-go="${x}"><img src="${TOOL_ICON[x]}" alt=""> Send to ${x}</button>`).join('')}<button type="submit" class="btn" data-go="copy">Copy</button></footer>
-    <p class="fill-skip"><button type="button" class="linkbtn" data-go-raw>Use it with the [brackets] as they are</button></p></form>`;
+    ${toks.length ? '<p class="fill-skip"><button type="button" class="linkbtn" data-go-raw>Use it with the [brackets] as they are</button></p>' : ''}</form>`;
   document.body.appendChild(sheet); document.body.classList.add('sp-open');
   const f = sheet.querySelector('form'), fields = [...f.querySelectorAll('[data-tok]')];
   const curSubj = () => { const s = f.querySelector('[list="fillSubj"]'); return (s && s.value.trim()) || subjOfCard || main; };
@@ -810,8 +812,7 @@ function openFill(card, action0, edit) {
   sheet.addEventListener('click', e => { if (e.target === sheet || e.target.closest('.fill-x')) close(); });
   sheet.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
   let go = null; f.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go = b.dataset.go; });
-  f.querySelector('[data-go-raw]').addEventListener('click', () => { close(); action(txt); });
-  $('#fillTidy').addEventListener('change', e => LS.set('ergsNL.tidy', e.target.checked ? '1' : '0'));
+  f.querySelector('[data-go-raw]')?.addEventListener('click', () => { close(); action(txt); });
   $('#fillTidyPeek').addEventListener('click', e => { e.preventDefault(); const p = $('#fillTidyText'); p.textContent = TIDY.replace(/^\s*---\s*/, ''); p.hidden = !p.hidden; e.target.textContent = p.hidden ? "See what's added" : 'Hide'; });
   f.addEventListener('submit', e => {
     e.preventDefault(); const out = $('#fillPrev').value.trim() || build();

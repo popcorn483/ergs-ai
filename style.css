@@ -1288,3 +1288,7 @@ body.is-admin .foot-saver,body.is-admin .foot-dot{display:none}
 #themeBtn .ic-sun{display:none}
 html.dark #themeBtn .ic-sun{display:block}
 html.dark #themeBtn .ic-moon{display:none}
+
+.h3-today pre.xxl{font-size:11.5px;line-height:1.4}
+.fill-tidy .ft-ic{flex:none;width:20px;height:20px;border-radius:50%;background:#2f6b3a;color:#fff;font:700 12px/20px var(--body);text-align:center;margin-top:1px}
+.fill-fields:empty{display:none}
