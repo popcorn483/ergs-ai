@@ -1426,18 +1426,30 @@ const Binder = (() => {
     const s = st(); s.style.setProperty('--pw', pw + 'px'); s.style.setProperty('--ph', ph + 'px');
     s.classList.toggle('single', single);
   }
-  function draw() {
-    const s = st(); s.innerHTML = '';
+  // smooth = after a page turn: build the new pages off-screen and swap them in only once their images have loaded,
+  // so the end of the animation never flashes a blank or half-drawn page
+  function draw(smooth) {
+    const s = st(); let nodes;
     if (single) {
-      const slot = document.createElement('div'); slot.className = 'bk-slot r'; slot.appendChild(pageEl(spread)); s.appendChild(slot);
+      const slot = document.createElement('div'); slot.className = 'bk-slot r'; slot.appendChild(pageEl(spread)); nodes = [slot];
       preload(spread);
     } else {
       const L = document.createElement('div'); L.className = 'bk-slot l'; L.appendChild(pageEl(leftIdx(spread)));
       const R = document.createElement('div'); R.className = 'bk-slot r'; R.appendChild(pageEl(rightIdx(spread)));
-      s.append(L, R); s.classList.toggle('closed', spread === 0); s.classList.toggle('end', rightIdx(spread) >= pages.length);
-      preload(rightIdx(spread));
+      nodes = [L, R]; preload(rightIdx(spread));
     }
-    updateBar();
+    const put = () => {
+      s.replaceChildren(...nodes);
+      if (!single) { s.classList.toggle('closed', spread === 0); s.classList.toggle('end', rightIdx(spread) >= pages.length); }
+      updateBar();
+    };
+    if (!smooth) { put(); return Promise.resolve(); }
+    const imgs = nodes.flatMap(n => [...n.querySelectorAll('img')]), t0 = Date.now();
+    return new Promise(res => (function wait() {
+      const ready = imgs.every(im => im.getAttribute('src') && im.complete && im.naturalWidth);
+      if (ready || Date.now() - t0 > 700) { Promise.all(imgs.map(im => im.decode ? im.decode().catch(() => {}) : 0)).then(() => { put(); res(); }); }
+      else setTimeout(wait, 30);
+    })());
   }
   function curIssue() { const i = single ? spread : Math.max(leftIdx(spread), 0); const p = pages[i] || pages[i + 1]; return p && p.issue; }
   function updateBar() {
@@ -1488,7 +1500,7 @@ const Binder = (() => {
       // shadow thrown onto the page being uncovered, strongest mid-turn and hugging the spine
       const proj = Math.max(0, Math.cos(th * Math.PI / 180)), reach = (proj * 100 + 14 * lift).toFixed(1);
       cast.style.cssText = `left:${R ? (single ? 0 : W) : (th < 90 ? 0 : W)}px;width:${W}px;height:${H}px;background:linear-gradient(${R === th < 90 ? 'to right' : 'to left'},rgba(0,0,0,${(.42 * lift).toFixed(3)}) 0%,rgba(0,0,0,${(.18 * lift).toFixed(3)}) ${(+reach * .55).toFixed(1)}%,transparent ${reach}%)`;
-      if (t < 1) requestAnimationFrame(frame); else { root.remove(); cast.remove(); done(); }
+      if (t < 1) requestAnimationFrame(frame); else { cast.remove(); done(); }   // the leaf stays put until the new pages are ready (see draw)
     };
     requestAnimationFrame(frame);
   }
@@ -1510,8 +1522,9 @@ const Binder = (() => {
       flap.style.cssText = `left:${f.toFixed(1)}px;width:${(W - f + 1).toFixed(1)}px;height:${H}px;transform:rotateY(${-ang}deg)`;
       inner.style.left = `${(-f).toFixed(1)}px`;
       veil.style.background = `linear-gradient(to right,rgba(0,0,0,${(.28 * lift + .06).toFixed(3)}),rgba(255,255,255,0) 35%,rgba(0,0,0,${(.12 * lift).toFixed(3)}))`;
-      shade.style.cssText = `left:${f.toFixed(1)}px;width:${Math.min(W - f, 90 + 60 * lift).toFixed(1)}px;height:${H}px;background:linear-gradient(to right,rgba(0,0,0,${(.38 * Math.min(1, e * 6) * (1 - e * .7)).toFixed(3)}),transparent)`;
-      if (t < 1) requestAnimationFrame(frame); else { box.remove(); done(); }
+      shade.style.cssText = `left:${f.toFixed(1)}px;width:${Math.min(W - f, 90 + 60 * lift).toFixed(1)}px;height:${H}px;background:linear-gradient(to right,rgba(0,0,0,${(.38 * lift).toFixed(3)}),transparent)`;
+      flap.style.boxShadow = `-6px 0 18px rgba(0,0,0,${(.28 * lift).toFixed(3)})`;
+      if (t < 1) requestAnimationFrame(frame); else { shade.remove(); flap.style.visibility = 'hidden'; done(); }
     };
     requestAnimationFrame(frame);
   }
@@ -1519,7 +1532,7 @@ const Binder = (() => {
     if (busy) return;
     const target = spread + dir; if (target < 0 || target > maxSpread()) return;
     busy = true;
-    const s = st(), fin = () => { spread = target; busy = false; draw(); };
+    const s = st(), fin = () => { spread = target; draw(true).then(() => { busy = false; }); };
     if (reduced()) return fin();
     if (single) {
       const slot = s.querySelector('.bk-slot');
