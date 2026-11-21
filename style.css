@@ -1177,3 +1177,20 @@ body.is-admin .home3{padding-bottom:90px}
 .fill-alt{font-size:14px;align-self:center}
 .pl-send.main:hover{background:#1d3a66;border-color:#1d3a66;color:#fff}.sp-toolrow{text-align:center}.sp-toolrow .tp-seg{justify-content:center}
 .fill-card footer .fill-alt{color:#4a5578!important;align-self:center;text-align:center;margin:-2px auto 2px}
+
+/* tidy filter row: pill dropdowns that scroll sideways on phones */
+.pl-sels{display:flex!important;flex-wrap:wrap;gap:8px!important;align-items:center;margin:10px 0 4px!important}
+.pill-sel{position:relative;display:inline-flex!important;flex:0 0 auto!important}
+.pill-sel select{appearance:none;-webkit-appearance:none;width:auto!important;max-width:none!important;min-width:0;flex:none!important;border:1px solid #cdd4de!important;border-radius:999px!important;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2314284b' stroke-width='1.6' fill='none'/%3E%3C/svg%3E") no-repeat right 12px center!important;padding:8px 32px 8px 14px!important;font:600 14px var(--body)!important;color:var(--navy)!important;cursor:pointer}
+.pill-sel.set select{background-color:var(--navy)!important;color:#fff!important;border-color:var(--navy)!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23fff' stroke-width='1.6' fill='none'/%3E%3C/svg%3E")!important}
+.pill-sel.set select option{color:#1c2333;background:#fff}
+.pill-clear{border:0;background:none;font:600 13px var(--body);color:#7b2d42;cursor:pointer;padding:8px 6px}
+.pl-count{font:13px var(--body);color:#5b6679;margin:6px 0 0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#plMyTool[hidden]{display:none}
+@media (max-width:620px){
+  .pl-sels{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-16px!important;margin-right:-16px!important;padding:2px 16px 4px}
+  .pl-sels::-webkit-scrollbar{display:none}
+  .pl-crumb{gap:6px}.pc-back{padding:6px 12px;font-size:13px}.pc-tag{flex:1 1 100%;font-size:13px}
+  .pl-head h1{margin-bottom:8px}
+}

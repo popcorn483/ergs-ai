@@ -771,14 +771,14 @@ function renderPrompts() {
     $('#plCats').dataset.ready = 1;
     const subs = [...new Set(all.flatMap(p => p.subj).filter(s => s !== 'All subjects'))].sort();
     const mineS = canManage() ? null : (mySubjects() || []).length ? mySubjects() : null;
-    $('#plSubj').innerHTML = `<option value="">${mineS ? 'All my subjects' : 'All subjects'}</option><option value="__gen">General (any subject)</option>` + (mineS ? subs.filter(s => mineS.includes(s)) : subs).map(s => `<option>${esc(s)}</option>`).join('');
+    $('#plSubj').innerHTML = `<option value="">${mineS ? 'All my subjects' : 'All subjects'}</option><option value="__gen">General (any subject)</option>` + (mineS ? subs.filter(s => mineS.includes(s)) : subs).map(s => `<option>${esc(s)}</option>`).join('') + (canManage() ? '' : '<option value="__edit">✎ Change my subjects…</option>');
     $('#plStage').innerHTML = '<option value="">Any stage</option>' + ['KS3', 'GCSE', 'A Level'].map(s => `<option>${s}</option>`).join('');
-    $('#plTool').innerHTML = '<option value="">Any tool</option>' + ['Gemini', 'Copilot', 'NotebookLM'].map(s => `<option>${s}</option>`).join('');
+    $('#plTool').innerHTML = '<option value="">Any AI tool</option>' + ['Gemini', 'Copilot', 'NotebookLM'].map(s => `<option>${s}</option>`).join('');
     $('#plSubj').value = plFilt.subj;
     const set = (k, v) => { plFilt[k] = v; plFilt.shown = 40; renderPrompts(); };
     if (!$('#plQ').dataset.w) { $('#plQ').dataset.w = 1;
     $('#plQ').addEventListener('input', e => set('q', e.target.value.toLowerCase().trim()));
-    $('#plSubj').addEventListener('change', e => set('subj', e.target.value));
+    $('#plSubj').addEventListener('change', e => { if (e.target.value === '__edit') { e.target.value = plFilt.subj; askSubjects(true); return; } set('subj', e.target.value); });
     $('#plStage').addEventListener('change', e => set('stage', e.target.value));
     $('#plTool').addEventListener('change', e => set('tool', e.target.value));
     $('#plGen').addEventListener('change', e => set('withGen', e.target.checked));
@@ -806,7 +806,7 @@ function renderPrompts() {
   // step 1: "What do you want a prompt for?" – a grid of big cards; step 2: the prompts for that choice
   const choosing = plFilt.cat === null && !plFilt.q;
   $('#plPick').hidden = !choosing; ['#plSels', '#plCount', '#plList'].forEach(s => { $(s).hidden = choosing; }); $('#plIntro').hidden = !choosing;
-  $('#plCrumb').hidden = choosing;
+  $('#plCrumb').hidden = choosing; $('#plMyTool').hidden = !choosing;
   if (choosing) {
     $('#plTitle').textContent = 'What do you want a prompt for?'; $('#plMore').hidden = true;
     $('#plPick').innerHTML = PL_CATS.filter(c => counts[c]).map(c => { const [ic, col] = PL_AREA[c]; return `<button class="pp-card" style="--c:${col}" data-cat="${esc(c)}"><span class="pp-ic" aria-hidden="true">${ic}</span><b>${esc(c)}</b><span class="pp-desc">${esc(PL_DESC[c] || '')}</span></button>`; }).join('')
@@ -824,7 +824,8 @@ function renderPrompts() {
   const rank = p => p.issue ? (status(p.issue) === 'live' ? 0 : 2) : 1;
   const own = p => plFilt.subj && plFilt.subj !== '__gen' && p.subj.includes(plFilt.subj) ? 0 : 1;   // the chosen subject's own prompts first
   list.sort((x, y) => (own(x) - own(y)) || (rank(x) - rank(y)) || (rank(x) === 0 ? y.issue.n - x.issue.n : 0));
-  $('#plGenWrap').hidden = !plFilt.subj || plFilt.subj === '__gen';
+  $('#plGenWrap').hidden = true;
+  [['#plSubj', plFilt.subj], ['#plStage', plFilt.stage], ['#plTool', plFilt.tool]].forEach(([k, v]) => $(k).parentElement.classList.toggle('set', !!v));
   $('#plCount').textContent = `${list.length} prompt${list.length === 1 ? '' : 's'}`;
   $('#plReset').hidden = !(plFilt.q || (plFilt.subj && plFilt.subj !== ((!canManage() && (mySubjects() || [])[0]) || '')) || plFilt.stage || plFilt.tool);
   $('#plList').innerHTML = list.slice(0, plFilt.shown).map(promptCard).join('') || '<p class="empty">No prompts match – try clearing a filter.</p>';
