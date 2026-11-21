@@ -488,11 +488,11 @@ function renderHome3() {
     <article class="h3-card h3-tip">${t ? `<span class="h3-label">Tip of the day <b>${esc(t.app)}</b></span><h2>${esc(t.title)}</h2><p>${esc(t.why)}</p>
       <div class="h3-tipbody">${tipArt(t)}${t.steps.length ? `<ol class="h3-steps">${t.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}</div>
       <div class="h3-actions"><button class="tried-btn${tried ? ' on' : ''}" data-tried="${esc(t.id)}">${tried ? '✓ Tried it' : 'I tried this'}</button></div>` : '<span class="h3-label">Tip of the day</span><h2>Loading…</h2>'}</article>
-    <a class="h3-card h3-binder" href="${L ? '#issue-' + esc(L.id) : '#binder'}" id="h3Binder">
+    <a class="h3-card h3-binder" href="#binder" id="h3Binder">
       <span class="h3-label">The binder</span>
       <div class="h3-book" aria-hidden="true"><img alt="" src="${window.ERGS_CREST || ''}"><b>ERGS Digital Skills &amp; AI</b><i>${live.length} issues</i></div>
       <h2>${L ? `Issue ${L.n}: ${esc(L.title)}` : 'Every issue in one place'}</h2><p>${L ? esc(L.summary || 'The latest issue') : 'Turn the pages like a printed book.'}</p>
-      <div class="h3-actions"><span class="btn h3-btn primary">Read the latest</span><span class="h3-link" data-binder>Open the binder →</span></div></a>
+      <div class="h3-actions"><span class="btn h3-btn primary">${L ? 'Open at the latest' : 'Open the binder'}</span><span class="h3-link" data-binder>Start from the cover →</span></div></a>
     <article class="h3-card h3-prompts">${canManage() ? `<span class="h3-label">Prompt bank</span>
       <h2>${pr.length} prompts${mine ? ` for ${esc(mine[0])}${mine.length > 1 ? ' and more' : ''}` : ''}</h2>` : `<h2>Prompt Bank</h2>`}
       ${pd ? `<div class="h3-today"><span class="h3-tlabel">Today’s prompt <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></span><h3>${esc(pd.title)}</h3><pre>${esc(pd.text).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`)}</pre><button class="btn h3-btn h3-use" id="h3TryPrompt">Use this prompt</button></div>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
@@ -502,7 +502,8 @@ function renderHome3() {
   ${ed ? `<div class="h3-more"><button class="btn" id="h3Grid">${document.body.classList.contains('show-grid') ? 'Hide all issues' : 'Show all issues'}</button></div>` : ''}`;
   $('#h3Grid')?.addEventListener('click', () => { document.body.classList.toggle('show-grid'); renderHome3(); });
   $('#h3Release')?.addEventListener('click', e => { const b = e.currentTarget; if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Tap again to release'; setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = 'Release now'; } }, 4000); return; } setRelease(b.dataset.id, { s: 'live' }, 'Released – staff can see it now'); });
-  el.querySelector('[data-binder]')?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); location.hash = 'binder'; });
+  el.querySelector('[data-binder]')?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); Binder.target = 'cover'; location.hash = 'binder'; });
+  $('#h3Binder')?.addEventListener('click', e => { if (e.target.closest('[data-binder]')) return; e.preventDefault(); Binder.target = L ? L.id : null; if (location.hash === '#binder') Binder.open(); else location.hash = 'binder'; });
   el.querySelectorAll('[data-tried]').forEach(b => b.addEventListener('click', () => { setTried(b.dataset.tried, !triedMap()[b.dataset.tried]); renderHome3(); }));
   $('#h3TipOpen')?.addEventListener('click', () => showTipSheet(t));
   el.querySelectorAll('[data-area]').forEach(b => b.addEventListener('click', () => { plFilt.cat = b.dataset.area; plFilt.keepCat = true; plFilt.shown = 40; location.hash = 'prompts'; }));
@@ -1526,7 +1527,16 @@ const Binder = (() => {
   }
   return {
     active: false, print,
-    open() { this.active = true; wire(); const s2 = JSON.stringify(issuesInBinder().map(i => i.id + status(i))); if (!built || s2 !== sig) { buildPages(); built = true; sig = s2; spread = 0; } layout(); draw(); document.title = 'Binder · ERGS Digital Skills & AI'; },
+    target: null,
+    open() { this.active = true; wire(); const s2 = JSON.stringify(issuesInBinder().map(i => i.id + status(i))); if (!built || s2 !== sig) { buildPages(); built = true; sig = s2; spread = 0; } layout();
+      const t = this.target; this.target = null;
+      const idx = t === 'cover' ? 0 : t ? pages.findIndex(p => p.issue && p.issue.id === t) : -1;
+      if (t === 'cover') { spread = 0; draw(); }
+      else if (idx > 0) {   // open the book, then turn the last page to the issue
+        const to = single ? idx : Math.ceil(idx / 2); spread = Math.max(0, to - 1); draw();
+        setTimeout(() => { if (this.active && spread === to - 1) flip(1); }, 450);
+      } else draw();
+      document.title = 'Binder · ERGS Digital Skills & AI'; },
     refresh() { const s2 = JSON.stringify(issuesInBinder().map(i => i.id + status(i))); if (s2 !== sig) { sig = s2; buildPages(); spread = Math.min(spread, maxSpread()); layout(); draw(); } }
   };
 })();
