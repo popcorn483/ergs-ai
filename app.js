@@ -242,10 +242,9 @@ function startSaver() {
       const mon = d.getDay() === 1 && d.getHours() >= 6 && d.getHours() < 9;
       el.classList.toggle('monday', mon);
       if (mon) {
-        const left = 9 * 60 - (d.getHours() * 60 + d.getMinutes()), h = Math.floor(left / 60), mm = left % 60;
         const lines = ['A fresh week, a fresh start.', 'Small steps make big weeks.', 'One good lesson at a time.', 'Coffee first. Then greatness.', 'You’ve got this week.', 'Be the calm in the corridor.'];
         const wkNo = Math.floor((d - new Date(d.getFullYear(), 0, 1)) / 6048e5);
-        pp.innerHTML = `<b>☕ Good morning</b><em class="mon-line">${lines[wkNo % lines.length]}</em><span>Period 1 starts at 9:00 · ${h ? `${h} hr ${mm} min` : `${mm} min`} to go</span>`;
+        pp.innerHTML = `<b>☕ Good morning</b><em class="mon-line">${lines[wkNo % lines.length]}</em>`;
         pp.hidden = false; setTimeout(tick, 10000); return;
       }
       if (wk) {
