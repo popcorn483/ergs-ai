@@ -474,7 +474,7 @@ function renderHome3() {
   el.querySelectorAll('[data-tried]').forEach(b => b.addEventListener('click', () => { setTried(b.dataset.tried, !triedMap()[b.dataset.tried]); renderHome3(); }));
   $('#h3TipOpen')?.addEventListener('click', () => showTipSheet(t));
   el.querySelectorAll('[data-area]').forEach(b => b.addEventListener('click', () => { plFilt.cat = b.dataset.area; plFilt.keepCat = true; plFilt.shown = 40; location.hash = 'prompts'; }));
-  $('#h3TryPrompt')?.addEventListener('click', () => { const tmp = document.createElement('div'); tmp.innerHTML = promptCard(pd); const card = tmp.firstElementChild; card.hidden = true; document.body.appendChild(card); openFill(card, (txt, go) => { card.remove(); go && go !== 'copy' ? sendText(txt, go) : copyText(txt, null); }); if (!document.querySelector('.fill-sheet')) card.remove(); });
+  $('#h3TryPrompt')?.addEventListener('click', () => { const tmp = document.createElement('div'); tmp.innerHTML = promptCard(pd); const card = tmp.firstElementChild; card.hidden = true; document.body.appendChild(card); openFill(card, (txt, go) => { card.remove(); go && go !== 'copy' ? sendText(txt, go) : copyText(txt, null); }, true); if (!document.querySelector('.fill-sheet')) card.remove(); });
 }
 function edCard() {
   const all = allIssues(), st = s => all.filter(i => status(i) === s).length;
@@ -655,7 +655,7 @@ function promptCard(p) {
   const send = mt && tools[0] === mt
     ? `<button class="pl-send main" data-send="${mt}" title="Copy this prompt and open ${mt}"><img src="${TOOL_ICON[mt]}" alt="">Send to ${mt}</button>` + tools.slice(1).map(x => `<button class="pl-alt" data-send="${x}" title="Copy this prompt and open ${x}">Use ${x} instead</button>`).join('')
     : tools.map(x => `<button class="pl-send" data-send="${x}" title="Copy this prompt and open ${x}"><img src="${TOOL_ICON[x]}" alt="">Send to ${x}</button>`).join('');
-  return `<article class="pl-card" data-subj="${esc((p.subj || []).join('|'))}"><header><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b><h3>${esc(p.title)}</h3></header><pre class="pl-text">${ph(p.text)}</pre><div class="pl-sendrow">${send}</div><footer>${from}<button class="btn small" data-plcopy>Copy</button></footer></article>`;
+  return `<article class="pl-card" data-subj="${esc((p.subj || []).join('|'))}"><header><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b><h3>${esc(p.title)}</h3></header><pre class="pl-text">${ph(p.text)}</pre><div class="pl-sendrow">${send}</div><footer>${from}<span class="pl-fbtns"><button class="btn small" data-pledit>✎ Edit</button><button class="btn small" data-plcopy>Copy</button></span></footer></article>`;
 }
 // "Send to…": copies the prompt and opens the tool in a new tab (none of these tools accept a prompt in the link, so staff paste with Ctrl+V)
 const TOOL_URL = { Gemini: 'https://gemini.google.com/app', Copilot: 'https://m365.cloud.microsoft/chat', NotebookLM: 'https://notebooklm.google.com/' };
@@ -666,6 +666,7 @@ const TOOL_ICON = {
   NotebookLM: svgIcon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#111"/><path d="M6 15a6 6 0 0 1 12 0M8.5 15a3.5 3.5 0 0 1 7 0" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>')
 };
 function plSend(b) { openFill(b.closest('.pl-card'), (txt, go) => (go === 'copy' ? copyText(txt, b) : sendText(txt, go && go !== 'copy' ? go : b.dataset.send))); }
+function plEdit(b) { const c = b.closest('.pl-card'); openFill(c, (txt, go) => (go && go !== 'copy' ? sendText(txt, go) : copyText(txt, c.querySelector('[data-plcopy]'))), true); }
 function sendText(txt, x) {
   let ok = true; try { navigator.clipboard.writeText(txt).catch(() => { ok = false; }); } catch (e) { ok = false; }
   const w = window.open(TOOL_URL[x], '_blank', 'noopener');
@@ -711,16 +712,16 @@ function fieldKind(tok) {
   if (/topic|unit/.test(t)) return 'topic';
   return 'text';
 }
-function openFill(card, action) {
+function openFill(card, action, edit) {
   const txt = card.querySelector('.pl-text').textContent;
   const toks = [...new Set(txt.match(/\[[^\]\n]{1,80}\]/g) || [])];
-  if (!toks.length) return action(txt);
+  if (!toks.length && !edit) return action(txt);
   const mem = fillMem(), main = (mySubjects() || [])[0] || '';
   const subjOfCard = (card.dataset.subj || '').split('|').find(s => CCEA_TOPICS[s]) || '';
   const label = t => { const k = fieldKind(t), s = t.slice(1, -1); return k === 'year' ? 'Year group' : k === 'paste' ? s.charAt(0).toUpperCase() + s.slice(1) : s.charAt(0).toUpperCase() + s.slice(1); };
   const sheet = document.createElement('div'); sheet.className = 'fill-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-label', 'Fill in this prompt');
   const tools = [...card.querySelectorAll('[data-send]')].map(b => b.dataset.send);
-  sheet.innerHTML = `<form class="fill-card"><header><span class="eyebrow">Make it yours</span><h3>${esc(card.querySelector('h3').textContent)}</h3><button type="button" class="fill-x" aria-label="Close">×</button></header>
+  sheet.innerHTML = `<form class="fill-card"><header><span class="eyebrow">${toks.length ? 'Make it yours' : 'Edit this prompt'}</span><h3>${esc(card.querySelector('h3').textContent)}</h3><button type="button" class="fill-x" aria-label="Close">×</button></header>
     <div class="fill-fields">${toks.map((t, k) => {
       const kind = fieldKind(t), id = 'ff' + k;
       if (kind === 'year') return `<label for="${id}">Year group</label><select id="${id}" data-tok="${esc(t)}"><option value="">Choose…</option>${YEARS.map(y => `<option ${mem.year === y ? 'selected' : ''}>${y}</option>`).join('')}</select>`;
@@ -731,7 +732,7 @@ function openFill(card, action) {
     }).join('')}</div>
     <datalist id="fillSubj">${(mySubjects() && mySubjects().length ? mySubjects() : SUBJECTS.map(s => s[0])).map(s => `<option value="${esc(s)}">`).join('')}</datalist><datalist id="fillTopics"></datalist>
     <p class="fill-hint" id="fillHint"></p>
-    <details class="fill-prev"><summary>Preview your prompt</summary><pre id="fillPrev"></pre></details>
+    <label class="fill-edlab" for="fillPrev">Your prompt <small>edit anything before you send it</small></label><textarea id="fillPrev" class="fill-ed" rows="${edit ? 10 : 6}" spellcheck="true"></textarea>
     <footer>${tools.map((x, i) => i && myTool() === tools[0] ? `<button type="submit" class="linkbtn fill-alt" data-go="${x}">Use ${x} instead</button>` : `<button type="submit" class="btn ${i ? '' : 'primary'}" data-go="${x}"><img src="${TOOL_ICON[x]}" alt=""> Send to ${x}</button>`).join('')}<button type="submit" class="btn" data-go="copy">Copy</button></footer>
     <p class="fill-skip"><button type="button" class="linkbtn" data-go-raw>Use it with the [brackets] as they are</button></p></form>`;
   document.body.appendChild(sheet); document.body.classList.add('sp-open');
@@ -742,21 +743,21 @@ function openFill(card, action) {
     const s = curSubj(), list = CCEA_TOPICS[s] || [];
     $('#fillTopics').innerHTML = list.map(t => `<option value="${esc(t)}">`).join('');
     $('#fillHint').textContent = f.querySelector('[data-topic]') ? (list.length ? `Topic suggestions are from the CCEA GCSE ${s} specification – or type your own.` : 'Type your topic – suggestions appear for subjects with a CCEA GCSE specification.') : '';
-    $('#fillPrev').textContent = build();
+    const ta = $('#fillPrev'); if (!ta.dataset.dirty) ta.value = build(); else fields.forEach(el => { const v = el.value.trim(); if (v && ta.value.includes(el.dataset.tok)) ta.value = ta.value.split(el.dataset.tok).join(v); });
   };
-  f.addEventListener('input', refresh); refresh();
+  f.addEventListener('input', e => { if (e.target.id === 'fillPrev') { e.target.dataset.dirty = 1; return; } refresh(); }); refresh();
   const close = () => { sheet.remove(); document.body.classList.remove('sp-open'); };
   sheet.addEventListener('click', e => { if (e.target === sheet || e.target.closest('.fill-x')) close(); });
   sheet.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
   let go = null; f.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go = b.dataset.go; });
   f.querySelector('[data-go-raw]').addEventListener('click', () => { close(); action(txt); });
   f.addEventListener('submit', e => {
-    e.preventDefault(); const out = build();
+    e.preventDefault(); const out = $('#fillPrev').value.trim() || build();
     const y = f.querySelector('select[data-tok]'), tp = f.querySelector('[data-topic]');
     LS.set('ergsNL.fill', JSON.stringify({ ...fillMem(), ...(y && y.value ? { year: y.value } : {}), ...(tp && tp.value ? { topic: tp.value, topicSubj: curSubj() } : {}) }));
     close(); action(out, go);
   });
-  setTimeout(() => (fields.find(el => !el.value) || fields[0]).focus(), 60);
+  setTimeout(() => { const el = edit ? $('#fillPrev') : (fields.find(el => !el.value) || fields[0]); el?.focus(); }, 60);
 }
 function plCopy(b) { openFill(b.closest('.pl-card'), (txt, go) => (go && go !== 'copy' ? sendText(txt, go) : copyText(txt, b))); }
 async function copyText(txt, b) {
@@ -788,7 +789,7 @@ function renderPrompts() {
     $('#plCrumb').addEventListener('click', e => { if (e.target.closest('[data-back]')) { plFilt.q = ''; $('#plQ').value = ''; set('cat', null); scrollTo({ top: 0, behavior: 'smooth' }); } });
     $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: plFilt.cat ?? '', subj: (!canManage() && (mySubjects() || [])[0]) || '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); $('#plSubj').value = plFilt.subj; renderPrompts(); });
     if (!$('#plMore').dataset.w) { $('#plMore').dataset.w = 1; $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); }); $('#plMySubj').addEventListener('click', () => askSubjects(true)); }
-    $('#plList').addEventListener('click', e => { const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); const s = e.target.closest('[data-send]'); if (s) plSend(s); });
+    $('#plList').addEventListener('click', e => { const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); const s = e.target.closest('[data-send]'); if (s) plSend(s); const ed = e.target.closest('[data-pledit]'); if (ed) plEdit(ed); });
     }
   }
   const mine = canManage() ? null : (mySubjects() || []).length ? mySubjects() : null;
@@ -843,6 +844,7 @@ function renderPromptHome() {
     <div class="plh-pick"><span class="plh-label">${mine ? 'Your prompt of the day' : 'Prompt of the day'}</span>${promptCard(p)}</div>`;
   el.querySelector('[data-plcopy]').addEventListener('click', e => plCopy(e.currentTarget));
   el.querySelectorAll('[data-send]').forEach(s => s.addEventListener('click', () => plSend(s)));
+  el.querySelector('[data-pledit]')?.addEventListener('click', e => plEdit(e.currentTarget));
   el.querySelector('[data-mysubj]')?.addEventListener('click', () => askSubjects(true));
 }
 

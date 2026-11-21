@@ -1194,3 +1194,9 @@ body.is-admin .home3{padding-bottom:90px}
   .pl-crumb{gap:6px}.pc-back{padding:6px 12px;font-size:13px}.pc-tag{flex:1 1 100%;font-size:13px}
   .pl-head h1{margin-bottom:8px}
 }
+
+.fill-edlab{display:block;margin:14px 0 6px;font:400 11px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--navy)}
+.fill-edlab small{font:12px var(--body);letter-spacing:0;text-transform:none;color:#5b6679;margin-left:6px}
+.fill-ed{width:100%;box-sizing:border-box;font:15px/1.5 var(--body);color:#1c2333;background:#f6f8fb;border:1px solid #cdd4de;border-left:3px solid #b8955a;border-radius:8px;padding:10px 12px;resize:vertical;min-height:120px}
+.fill-ed:focus{outline:2px solid var(--navy);outline-offset:1px;background:#fff}
+.pl-fbtns{display:inline-flex;gap:6px;flex:none}
