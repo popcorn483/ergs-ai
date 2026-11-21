@@ -456,8 +456,8 @@ function renderHome3() {
       <div class="h3-book" aria-hidden="true"><img alt="" src="${window.ERGS_CREST || ''}"><b>ERGS Digital Skills &amp; AI</b><i>${live.length} issues</i></div>
       <h2>${L ? `Issue ${L.n}: ${esc(L.title)}` : 'Every issue in one place'}</h2><p>${L ? esc(L.summary || 'The latest issue') : 'Turn the pages like a printed book.'}</p>
       <div class="h3-actions"><span class="btn h3-btn primary">Read the latest</span><span class="h3-link" data-binder>Open the binder →</span></div></a>
-    <article class="h3-card h3-prompts"><span class="h3-label">Prompt bank</span>
-      <h2>${pr.length} prompts${mine ? ` for ${esc(mine[0])}${mine.length > 1 ? ' and more' : ''}` : ''}</h2>
+    <article class="h3-card h3-prompts">${canManage() ? `<span class="h3-label">Prompt bank</span>
+      <h2>${pr.length} prompts${mine ? ` for ${esc(mine[0])}${mine.length > 1 ? ' and more' : ''}` : ''}</h2>` : `<h2>Prompt Bank</h2>`}
       ${pd ? `<div class="h3-today"><span class="h3-tlabel">Today’s prompt <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></span><h3>${esc(pd.title)}</h3><pre>${esc(pd.text).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`)}</pre><button class="btn h3-btn h3-use" id="h3TryPrompt">Use this prompt</button></div>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
       <div class="h3-actions"><a class="h3-link" href="#prompts">Browse all prompts →</a></div></article>
     ${ed ? edCard() : ''}
