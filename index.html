@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="preload" href="fonts/lemonmilk-bold.woff" as="font" type="font/woff" crossorigin>
-<link rel="stylesheet" href="style.css?v=46">
+<link rel="stylesheet" href="style.css?v=47">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0b1830">
 <link rel="icon" type="image/png" href="icons/favicon.png?v=2">
@@ -148,6 +148,7 @@
         <label>Subject <select id="plSubj"></select></label>
         <label>Stage <select id="plStage"></select></label>
         <label>AI tool <select id="plTool"></select></label>
+        <label class="pl-gen" id="plGenWrap" hidden><input type="checkbox" id="plGen" checked> include general prompts</label>
         <button class="linkbtn pl-reset" id="plReset" hidden>Clear filters</button>
       </div>
       <p class="muted pl-count" id="plCount"></p>
@@ -228,16 +229,16 @@
 <div id="viewSwitch" class="viewswitch" role="group" aria-label="Switch view" hidden><button data-v="staff">Staff view</button><button data-v="editor">Editor view</button></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script src="config.js?v=46"></script>
-<script src="crest.js?v=46"></script>
-<script src="share.js?v=46"></script>
-<script src="tips.js?v=46"></script>
-<script src="skills.js?v=46"></script>
-<script src="skills-art.js?v=46"></script>
-<script src="tips-art.js?v=46"></script>
-<script src="skillart-draw.js?v=46"></script>
-<script src="tipshots.js?v=46"></script>
-<script src="sheets.js?v=46"></script>
-<script type="module" src="app.js?v=46"></script>
+<script src="config.js?v=47"></script>
+<script src="crest.js?v=47"></script>
+<script src="share.js?v=47"></script>
+<script src="tips.js?v=47"></script>
+<script src="skills.js?v=47"></script>
+<script src="skills-art.js?v=47"></script>
+<script src="tips-art.js?v=47"></script>
+<script src="skillart-draw.js?v=47"></script>
+<script src="tipshots.js?v=47"></script>
+<script src="sheets.js?v=47"></script>
+<script type="module" src="app.js?v=47"></script>
 </body>
 </html>

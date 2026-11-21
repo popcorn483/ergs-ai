@@ -511,22 +511,22 @@ function renderReader(id) {
 /* ---------- prompt library ---------- */
 const PL_CATS = ['Planning', 'Resources', 'Assessment & Feedback', 'Inclusion & SEN', 'Revision & Exams', 'Engagement', 'Pastoral & Wellbeing', 'Admin & Communication', 'Leadership & Data', 'Pupil AI Literacy'];
 const THEME_CAT = { 'Getting Started': 'Planning', 'Planning': 'Planning', 'Assessment & Feedback': 'Assessment & Feedback', 'Inclusion': 'Inclusion & SEN', 'Admin & Communication': 'Admin & Communication', 'Leadership & Data': 'Leadership & Data', 'Tools & Platforms': 'Resources', 'Pupil AI Literacy': 'Pupil AI Literacy' };
-const plFilt = { q: '', cat: '', subj: '', stage: '', tool: '', shown: 40 };
+const plFilt = { q: '', cat: '', subj: '', stage: '', tool: '', shown: 40, withGen: true };
 function allPrompts() {
   const P = (CONTENT && CONTENT.prompts) || {};
   const fromIssues = allIssues().filter(i => status(i) !== 'removed').flatMap(i => {
     const list = (P[i.id] || []).slice();
     if (i.kind === 'tpl' && i.prompt) list.push({ tool: (i.tools || [])[0] || 'Gemini or Copilot', title: i.title, text: i.prompt });
     const cat = THEME_CAT[i.theme] || (/revis|exam/i.test(i.theme + i.title) ? 'Revision & Exams' : /feedback|assess|mark|misconcep/i.test(i.theme + i.title) ? 'Assessment & Feedback' : 'Resources');
-    return list.map((p, k) => ({ ...p, cat, subj: 'All subjects', stage: 'Any', key: i.id + ':' + k, issue: i }));
+    return list.map((p, k) => ({ ...p, cat, subj: ['All subjects'], stage: 'Any', key: i.id + ':' + k, issue: i }));
   });
-  const lib = ((CONTENT && CONTENT.plib) || []).map((p, k) => ({ ...p, key: 'L' + k, issue: null }));
+  const lib = ((CONTENT && CONTENT.plib) || []).map((p, k) => ({ ...p, subj: Array.isArray(p.subj) ? p.subj : [p.subj], key: 'L' + k, issue: null }));
   return [...fromIssues, ...lib];
 }
 function promptCard(p) {
   const ph = t => esc(t).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`);
   const live = p.issue && status(p.issue) === 'live';
-  const from = p.issue ? (live || canManage() ? `<a href="#issue-${esc(p.issue.id)}">From Issue ${p.issue.n} · ${esc(p.issue.title)}</a>` : '<span>From an upcoming issue</span>') : `<span>${esc(p.subj === 'All subjects' ? p.cat : p.subj + ' · ' + p.cat)}${p.stage && p.stage !== 'Any' ? ' · ' + esc(p.stage) : ''}</span>`;
+  const from = p.issue ? (live || canManage() ? `<a href="#issue-${esc(p.issue.id)}">From Issue ${p.issue.n} · ${esc(p.issue.title)}</a>` : '<span>From an upcoming issue</span>') : `<span>${esc(p.subj[0] === 'All subjects' ? p.cat : p.subj.join(', ') + ' · ' + p.cat)}${p.stage && p.stage !== 'Any' ? ' · ' + esc(p.stage) : ''}</span>`;
   return `<article class="pl-card"><header><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b><h3>${esc(p.title)}</h3></header><pre class="pl-text">${ph(p.text)}</pre><footer>${from}<button class="btn small primary" data-plcopy>Copy</button></footer></article>`;
 }
 async function plCopy(b) {
@@ -538,7 +538,7 @@ function renderPrompts() {
   const all = allPrompts();
   if (!$('#plCats').dataset.ready) {
     $('#plCats').dataset.ready = 1;
-    const subs = [...new Set(all.map(p => p.subj).filter(s => s !== 'All subjects'))].sort();
+    const subs = [...new Set(all.flatMap(p => p.subj).filter(s => s !== 'All subjects'))].sort();
     $('#plSubj').innerHTML = '<option value="">All subjects</option><option value="__gen">General (any subject)</option>' + subs.map(s => `<option>${esc(s)}</option>`).join('');
     $('#plStage').innerHTML = '<option value="">Any stage</option>' + ['KS3', 'GCSE', 'A Level'].map(s => `<option>${s}</option>`).join('');
     $('#plTool').innerHTML = '<option value="">Any tool</option>' + ['Gemini', 'Copilot', 'NotebookLM'].map(s => `<option>${s}</option>`).join('');
@@ -547,17 +547,18 @@ function renderPrompts() {
     $('#plSubj').addEventListener('change', e => set('subj', e.target.value));
     $('#plStage').addEventListener('change', e => set('stage', e.target.value));
     $('#plTool').addEventListener('change', e => set('tool', e.target.value));
+    $('#plGen').addEventListener('change', e => set('withGen', e.target.checked));
     $('#plCats').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) set('cat', b.dataset.cat); });
-    $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: '', subj: '', stage: '', tool: '', shown: 40 }); $('#plQ').value = ''; ['#plSubj', '#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); renderPrompts(); });
+    $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: '', subj: '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plSubj', '#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); renderPrompts(); });
     $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); });
     $('#plList').addEventListener('click', e => { const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); });
   }
   const words = plFilt.q.split(/\s+/).filter(Boolean);
   const base = all.filter(p => {
-    if (plFilt.subj === '__gen' ? p.subj !== 'All subjects' : plFilt.subj && p.subj !== plFilt.subj) return false;
+    if (plFilt.subj === '__gen' ? p.subj[0] !== 'All subjects' : plFilt.subj && !p.subj.includes(plFilt.subj) && !(plFilt.withGen && p.subj[0] === 'All subjects')) return false;
     if (plFilt.stage && !(p.stage === plFilt.stage || p.stage === 'Any')) return false;
     if (plFilt.tool && !p.tool.includes(plFilt.tool)) return false;
-    const hay = (p.title + ' ' + p.text + ' ' + (p.issue ? p.issue.title + ' ' + (p.issue.theme || '') : '') + ' ' + p.tool + ' ' + p.subj + ' ' + p.cat).toLowerCase();
+    const hay = (p.title + ' ' + p.text + ' ' + (p.issue ? p.issue.title + ' ' + (p.issue.theme || '') : '') + ' ' + p.tool + ' ' + p.subj.join(' ') + ' ' + p.cat).toLowerCase();
     return words.every(w => hay.includes(w));
   });
   const counts = {}; base.forEach(p => { counts[p.cat] = (counts[p.cat] || 0) + 1; });
@@ -566,7 +567,9 @@ function renderPrompts() {
   const list = base.filter(p => !plFilt.cat || p.cat === plFilt.cat);
   // released issue prompts first (newest first), then the library, then upcoming issue prompts
   const rank = p => p.issue ? (status(p.issue) === 'live' ? 0 : 2) : 1;
-  list.sort((x, y) => (rank(x) - rank(y)) || (rank(x) === 0 ? y.issue.n - x.issue.n : 0));
+  const own = p => plFilt.subj && plFilt.subj !== '__gen' && p.subj.includes(plFilt.subj) ? 0 : 1;   // the chosen subject's own prompts first
+  list.sort((x, y) => (own(x) - own(y)) || (rank(x) - rank(y)) || (rank(x) === 0 ? y.issue.n - x.issue.n : 0));
+  $('#plGenWrap').hidden = !plFilt.subj || plFilt.subj === '__gen';
   $('#plCount').textContent = `${list.length} prompt${list.length === 1 ? '' : 's'}`;
   $('#plReset').hidden = !(plFilt.q || plFilt.cat || plFilt.subj || plFilt.stage || plFilt.tool);
   $('#plList').innerHTML = list.slice(0, plFilt.shown).map(promptCard).join('') || '<p class="empty">No prompts match – try clearing a filter.</p>';
@@ -578,7 +581,7 @@ function renderPromptHome() {
   const lib = allPrompts().filter(p => !p.issue || status(p.issue) === 'live'); if (!lib.length) { el.hidden = true; return; }
   const p = lib[Math.floor(Date.now() / 864e5) % lib.length], total = allPrompts().length;
   el.hidden = false;
-  el.innerHTML = `<div class="plh-text"><span class="eyebrow">Prompt library</span><h2>${total} ready-made prompts</h2><p>Planning, resources, feedback, SEN, revision, admin and more – filter by subject, stage or AI tool, then copy and go.</p><a class="btn primary" href="#prompts">Browse all prompts</a></div>
+  el.innerHTML = `<div class="plh-text"><span class="eyebrow">Prompt library</span><h2>${total} ready-made prompts</h2><p>For every subject we teach, from KS3 to A Level – planning, resources, feedback, SEN, revision, admin and more. Filter by subject, stage or AI tool, then copy and go.</p><a class="btn primary" href="#prompts">Browse all prompts</a></div>
     <div class="plh-pick"><span class="plh-label">Prompt of the day</span>${promptCard(p)}</div>`;
   el.querySelector('[data-plcopy]').addEventListener('click', e => plCopy(e.currentTarget));
 }

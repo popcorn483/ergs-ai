@@ -949,3 +949,5 @@ body.clean #library>.pl-home{order:9}
 .plh-pick .pl-text{max-height:170px}
 @media (max-width:820px){.pl-home{grid-template-columns:1fr;padding:24px 20px;gap:20px}}
 @media (min-width:621px){.pl-cats{flex-wrap:wrap;overflow:visible}}
+.pl-gen{text-transform:none!important;letter-spacing:0!important;font:14px var(--body)!important;color:#4a5468!important}
+.pl-gen input{width:16px;height:16px}
