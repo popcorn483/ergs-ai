@@ -1218,3 +1218,11 @@ body.is-admin .foot-dot{display:none}
 .viewswitch .vs-saver:hover{color:#e2c48a}
 body.is-admin .foot-saver,body.is-admin .foot-dot{display:none}
 .viewswitch button{white-space:nowrap}
+
+/* Friday P9 easter egg */
+.saver-period .wk-count{font:400 clamp(44px,8vw,84px)/1 var(--display);letter-spacing:.04em;color:#fff;text-shadow:0 0 24px rgba(226,196,138,.55);font-variant-numeric:tabular-nums;margin-top:4px}
+.saver-period .wk-bar{display:block;width:min(320px,70vw);height:6px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}
+.saver-period .wk-bar i{display:block;height:100%;background:linear-gradient(90deg,#b8955a,#e2c48a,#fff3d6);border-radius:6px;transition:width 1s linear}
+.saver.friday .saver-period b{animation:wkPulse 2.4s ease-in-out infinite}
+@keyframes wkPulse{50%{box-shadow:0 0 22px rgba(226,196,138,.45);transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){.saver.friday .saver-period b{animation:none}}

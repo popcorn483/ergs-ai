@@ -212,7 +212,7 @@ function schoolPeriod(d) {
   const m = d.getHours() * 60 + d.getMinutes(), mins = t => { const [h, mm] = t.split(':').map(Number); return h * 60 + mm; };
   const ft = t => { const [h, mm] = t.split(':').map(Number); return `${h > 12 ? h - 12 : h}:${String(mm).padStart(2, '0')}`; };
   if (m < mins('9:00')) return ['Before school', m >= mins('7:30') ? `Period 1 starts at 9:00` : ''];
-  if (m >= mins('15:25')) return ['After school', ''];
+  if (m >= mins('15:25')) return day === 5 ? ['🎉 Have a great weekend', ''] : ['After school', ''];
   const i = BELLS.findIndex(([a, b]) => m >= mins(a) && m < mins(b)); if (i < 0) return null;
   const [, end, name] = BELLS[i], left = mins(end) - m, next = BELLS[i + 1];
   return [name, `${left} min left · ${next ? `${next[2]} at ${ft(end)}` : `home time at ${ft(end)}`}`];
@@ -234,7 +234,16 @@ function startSaver() {
     if (el || blocked() || document.hidden) return arm();
     el = document.createElement('div'); el.className = 'splash saver'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Screensaver – press any key to continue');
     el.innerHTML = html(); document.body.appendChild(el); mountIntro();
-    const ck = el.querySelector('.saver-clock'), dt = el.querySelector('.saver-date'), tick = () => { if (!el) return; const d = new Date(); ck.textContent = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); dt.textContent = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); const pp = el.querySelector('.saver-period'), pn = schoolPeriod(d); pp.innerHTML = pn ? `<b>${esc(pn[0])}</b>${pn[1] ? `<span>${esc(pn[1])}</span>` : ''}` : ''; pp.hidden = !pn; setTimeout(tick, 10000); }; tick();
+    const ck = el.querySelector('.saver-clock'), dt = el.querySelector('.saver-date'), tick = () => { if (!el) return; const d = new Date(); ck.textContent = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); dt.textContent = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); const pp = el.querySelector('.saver-period'), pn = schoolPeriod(d);
+      // Friday, last period: a little countdown to the weekend
+      const wk = d.getDay() === 5 && pn && pn[0] === 'Period 9';
+      el.classList.toggle('friday', !!wk);
+      if (wk) {
+        const end = new Date(d); end.setHours(15, 25, 0, 0); const left = Math.max(0, Math.round((end - d) / 1000)), pct = 100 - left / 18;
+        const lines = ['Nearly there…', 'Hold the line!', 'The weekend is loading…', 'Last push!', 'So close you can taste it'];
+        pp.innerHTML = `<b>🎉 Weekend in</b><strong class="wk-count">${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}</strong><i class="wk-bar"><i style="width:${Math.min(100, Math.max(0, pct)).toFixed(1)}%"></i></i><span>${lines[Math.floor(left / 360) % lines.length]}</span>`;
+      } else pp.innerHTML = pn ? `<b>${esc(pn[0])}</b>${pn[1] ? `<span>${esc(pn[1])}</span>` : ''}` : '';
+      pp.hidden = !pn; setTimeout(tick, wk ? 1000 : 10000); }; tick();
   };
   const hide = () => { const x = el; el = null; x.classList.add('out'); setTimeout(() => x.remove(), 650); };
   const arm = () => { clearTimeout(t); t = setTimeout(show, SAVER_MS); };
