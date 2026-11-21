@@ -1200,3 +1200,8 @@ body.is-admin .home3{padding-bottom:90px}
 .fill-ed{width:100%;box-sizing:border-box;font:15px/1.5 var(--body);color:#1c2333;background:#f6f8fb;border:1px solid #cdd4de;border-left:3px solid #b8955a;border-radius:8px;padding:10px 12px;resize:vertical;min-height:120px}
 .fill-ed:focus{outline:2px solid var(--navy);outline-offset:1px;background:#fff}
 .pl-fbtns{display:inline-flex;gap:6px;flex:none}
+
+.pl-card{cursor:pointer;transition:box-shadow .15s,transform .15s}
+.pl-card:hover{box-shadow:0 10px 24px -12px rgba(20,40,75,.35);transform:translateY(-1px)}
+.pl-card .pl-text{cursor:text}
+.h3-today pre{cursor:pointer}

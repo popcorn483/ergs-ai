@@ -474,6 +474,7 @@ function renderHome3() {
   el.querySelectorAll('[data-tried]').forEach(b => b.addEventListener('click', () => { setTried(b.dataset.tried, !triedMap()[b.dataset.tried]); renderHome3(); }));
   $('#h3TipOpen')?.addEventListener('click', () => showTipSheet(t));
   el.querySelectorAll('[data-area]').forEach(b => b.addEventListener('click', () => { plFilt.cat = b.dataset.area; plFilt.keepCat = true; plFilt.shown = 40; location.hash = 'prompts'; }));
+  $('.h3-today pre')?.addEventListener('click', () => $('#h3TryPrompt').click());
   $('#h3TryPrompt')?.addEventListener('click', () => { const tmp = document.createElement('div'); tmp.innerHTML = promptCard(pd); const card = tmp.firstElementChild; card.hidden = true; document.body.appendChild(card); openFill(card, (txt, go) => { card.remove(); go && go !== 'copy' ? sendText(txt, go) : copyText(txt, null); }, true); if (!document.querySelector('.fill-sheet')) card.remove(); });
 }
 function edCard() {
@@ -789,7 +790,8 @@ function renderPrompts() {
     $('#plCrumb').addEventListener('click', e => { if (e.target.closest('[data-back]')) { plFilt.q = ''; $('#plQ').value = ''; set('cat', null); scrollTo({ top: 0, behavior: 'smooth' }); } });
     $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: plFilt.cat ?? '', subj: (!canManage() && (mySubjects() || [])[0]) || '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); $('#plSubj').value = plFilt.subj; renderPrompts(); });
     if (!$('#plMore').dataset.w) { $('#plMore').dataset.w = 1; $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); }); $('#plMySubj').addEventListener('click', () => askSubjects(true)); }
-    $('#plList').addEventListener('click', e => { const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); const s = e.target.closest('[data-send]'); if (s) plSend(s); const ed = e.target.closest('[data-pledit]'); if (ed) plEdit(ed); });
+    $('#plList').addEventListener('click', e => { const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); const s = e.target.closest('[data-send]'); if (s) plSend(s); const ed = e.target.closest('[data-pledit]'); if (ed) return plEdit(ed);
+      const card = e.target.closest('.pl-card'); if (card && !e.target.closest('button,a,select,input') && !getSelection().toString()) plEdit(card); });
     }
   }
   const mine = canManage() ? null : (mySubjects() || []).length ? mySubjects() : null;
@@ -844,7 +846,8 @@ function renderPromptHome() {
     <div class="plh-pick"><span class="plh-label">${mine ? 'Your prompt of the day' : 'Prompt of the day'}</span>${promptCard(p)}</div>`;
   el.querySelector('[data-plcopy]').addEventListener('click', e => plCopy(e.currentTarget));
   el.querySelectorAll('[data-send]').forEach(s => s.addEventListener('click', () => plSend(s)));
-  el.querySelector('[data-pledit]')?.addEventListener('click', e => plEdit(e.currentTarget));
+  el.querySelector('.pl-card')?.addEventListener('click', e => { if (!e.target.closest('button,a') && !getSelection().toString()) plEdit(e.currentTarget); });
+  el.querySelector('[data-pledit]')?.addEventListener('click', e => { e.stopPropagation(); plEdit(e.currentTarget); });
   el.querySelector('[data-mysubj]')?.addEventListener('click', () => askSubjects(true));
 }
 
