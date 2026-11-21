@@ -439,17 +439,16 @@ function carousel() {
 /* ---------- staff home: three clean cards (Tip of the day · Binder · Prompt bank) ---------- */
 function renderHome3() {
   const el = $('#home3'); if (!el) return;
-  if (canManage()) { el.hidden = true; return; }
-  el.hidden = false;
+  el.hidden = false; const ed = canManage();
   const t = window.TODAY_TIP, live = allIssues().filter(i => status(i) === 'live'), L = live[live.length - 1];
-  const mine = (mySubjects() || []).length ? mySubjects() : null;
+  const mine = !ed && (mySubjects() || []).length ? mySubjects() : null;
   const pr = allPrompts().filter(p => (!p.issue || status(p.issue) === 'live') && (!mine || p.subj[0] === 'All subjects' || p.subj.some(s => mine.includes(s))));
   const own = mine ? pr.filter(p => p.subj.some(s => mine.includes(s))) : []; const pool = own.length ? own : pr;
   const pd = pool.length ? pool[Math.floor(Date.now() / 864e5) % pool.length] : null;
   const hr = new Date().getHours(), first = (LS.get('ergsNL.name') || '').split(' ')[0];
   const tried = t && triedMap()[t.id];
-  el.innerHTML = `<div class="h3-greet"><h1>${hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening'}${first ? ', ' + esc(first) : ''}</h1><p>Three things for today – each takes a minute or two.</p></div>
-  <div class="h3-grid">
+  el.innerHTML = `<div class="h3-greet"><h1>${hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening'}${first ? ', ' + esc(first) : ''}</h1><p>${ed ? 'Editor view – what staff see today, plus your release desk.' : 'Three things for today – each takes a minute or two.'}</p></div>
+  <div class="h3-grid${ed ? ' ed' : ''}">
     <article class="h3-card h3-tip">${t ? `<span class="h3-label">Tip of the day <b>${esc(t.app)}</b></span><h2>${esc(t.title)}</h2><p>${esc(t.why)}</p>
       <div class="h3-actions"><button class="btn h3-btn" id="h3TipOpen">Show me how</button><button class="tried-btn${tried ? ' on' : ''}" data-tried="${esc(t.id)}">${tried ? '✓ Tried it' : 'I tried this'}</button></div>` : '<span class="h3-label">Tip of the day</span><h2>Loading…</h2>'}</article>
     <a class="h3-card h3-binder" href="${L ? '#issue-' + esc(L.id) : '#binder'}" id="h3Binder">
@@ -461,12 +460,26 @@ function renderHome3() {
       <h2>${pr.length} prompts${mine ? ` for ${esc(mine[0])}${mine.length > 1 ? ' and more' : ''}` : ''}</h2>
       ${pd ? `<div class="h3-today"><span class="h3-tlabel">Today’s prompt <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></span><h3>${esc(pd.title)}</h3><pre>${esc(pd.text).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`)}</pre><button class="btn h3-btn h3-use" id="h3TryPrompt">Use this prompt</button></div>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
       <div class="h3-actions"><a class="h3-link" href="#prompts">Browse all prompts →</a></div></article>
-  </div>`;
+    ${ed ? edCard() : ''}
+  </div>
+  ${ed ? `<div class="h3-more"><button class="btn" id="h3Grid">${document.body.classList.contains('show-grid') ? 'Hide all issues' : 'Show all issues'}</button></div>` : ''}`;
+  $('#h3Grid')?.addEventListener('click', () => { document.body.classList.toggle('show-grid'); renderHome3(); });
+  $('#h3Release')?.addEventListener('click', e => { const b = e.currentTarget; if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Tap again to release'; setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = 'Release now'; } }, 4000); return; } setRelease(b.dataset.id, { s: 'live' }, 'Released – staff can see it now'); });
   el.querySelector('[data-binder]')?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); location.hash = 'binder'; });
   el.querySelectorAll('[data-tried]').forEach(b => b.addEventListener('click', () => { setTried(b.dataset.tried, !triedMap()[b.dataset.tried]); renderHome3(); }));
   $('#h3TipOpen')?.addEventListener('click', () => showTipSheet(t));
   el.querySelectorAll('[data-area]').forEach(b => b.addEventListener('click', () => { plFilt.cat = b.dataset.area; plFilt.shown = 40; location.hash = 'prompts'; }));
   $('#h3TryPrompt')?.addEventListener('click', () => { const tmp = document.createElement('div'); tmp.innerHTML = promptCard(pd); const card = tmp.firstElementChild; card.hidden = true; document.body.appendChild(card); openFill(card, (txt, go) => { card.remove(); go && go !== 'copy' ? sendText(txt, go) : copyText(txt, null); }); if (!document.querySelector('.fill-sheet')) card.remove(); });
+}
+function edCard() {
+  const all = allIssues(), st = s => all.filter(i => status(i) === s).length;
+  const vis = all.filter(i => status(i) !== 'removed'); let k = vis.length; while (k > 0 && status(vis[k - 1]) !== 'live') k--;
+  const next = vis.slice(k).find(i => status(i) === 'locked') || null, sch = all.filter(i => status(i) === 'sched');
+  return `<article class="h3-card h3-ed"><span class="h3-label">Release desk</span>
+    <div class="h3-stats"><div><b>${st('live')}</b><span>released</span></div><div><b>${sch.length}</b><span>scheduled</span></div><div><b>${st('locked')}</b><span>to come</span></div></div>
+    ${next ? `<div class="h3-next"><span class="h3-tlabel">Next to release</span><h3>Issue ${next.n}: ${esc(next.title)}</h3><div class="h3-actions"><button class="btn h3-btn primary" id="h3Release" data-id="${esc(next.id)}">Release now</button><a class="h3-link" href="#issue-${esc(next.id)}">Preview →</a></div></div>` : '<p>Nothing waiting to be released.</p>'}
+    ${sch.length ? `<p class="h3-sch">Scheduled: ${sch.slice(0, 2).map(i => `Issue ${i.n} on ${fmtDate(RELEASES[i.id].d)}`).join(' · ')}</p>` : ''}
+    <div class="h3-edlinks"><a href="#admin">Release desk</a><a href="#tips">Tips</a><a href="#flow">Workflow</a><a href="#admin">Usage</a></div></article>`;
 }
 function showTipSheet(t) {
   if (!t) return;
