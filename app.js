@@ -436,6 +436,48 @@ function carousel() {
   const go = () => { g.style.scrollBehavior = 'auto'; g.scrollLeft = g._start(); g.style.scrollBehavior = ''; g._upd(); };
   if (g._touched) { g._fix(); g._upd(); } else { go(); requestAnimationFrame(go); }
 }
+/* ---------- staff home: three clean cards (Tip of the day · Binder · Prompt bank) ---------- */
+function renderHome3() {
+  const el = $('#home3'); if (!el) return;
+  if (canManage()) { el.hidden = true; return; }
+  el.hidden = false;
+  const t = window.TODAY_TIP, live = allIssues().filter(i => status(i) === 'live'), L = live[live.length - 1];
+  const mine = (mySubjects() || []).length ? mySubjects() : null;
+  const pr = allPrompts().filter(p => (!p.issue || status(p.issue) === 'live') && (!mine || p.subj[0] === 'All subjects' || p.subj.some(s => mine.includes(s))));
+  const own = mine ? pr.filter(p => p.subj.some(s => mine.includes(s))) : []; const pool = own.length ? own : pr;
+  const pd = pool.length ? pool[Math.floor(Date.now() / 864e5) % pool.length] : null;
+  const hr = new Date().getHours(), first = (LS.get('ergsNL.name') || '').split(' ')[0];
+  const tried = t && triedMap()[t.id];
+  el.innerHTML = `<div class="h3-greet"><h1>${hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening'}${first ? ', ' + esc(first) : ''}</h1><p>Three things for today – each takes a minute or two.</p></div>
+  <div class="h3-grid">
+    <article class="h3-card h3-tip">${t ? `<span class="h3-label">Tip of the day <b>${esc(t.app)}</b></span><h2>${esc(t.title)}</h2><p>${esc(t.why)}</p>
+      <div class="h3-actions"><button class="btn h3-btn" id="h3TipOpen">Show me how</button><button class="tried-btn${tried ? ' on' : ''}" data-tried="${esc(t.id)}">${tried ? '✓ Tried it' : 'I tried this'}</button></div>` : '<span class="h3-label">Tip of the day</span><h2>Loading…</h2>'}</article>
+    <a class="h3-card h3-binder" href="${L ? '#issue-' + esc(L.id) : '#binder'}" id="h3Binder">
+      <span class="h3-label">The binder</span>
+      <div class="h3-book" aria-hidden="true"><img alt="" src="${window.ERGS_CREST || ''}"><b>ERGS Digital Skills &amp; AI</b><i>${live.length} issues</i></div>
+      <h2>${L ? `Issue ${L.n}: ${esc(L.title)}` : 'Every issue in one place'}</h2><p>${L ? esc(L.summary || 'The latest issue') : 'Turn the pages like a printed book.'}</p>
+      <div class="h3-actions"><span class="btn h3-btn primary">Read the latest</span><span class="h3-link" data-binder>Open the binder →</span></div></a>
+    <article class="h3-card h3-prompts"><span class="h3-label">Prompt bank</span>
+      <h2>${pr.length} prompts${mine ? ` for ${esc(mine[0])}${mine.length > 1 ? ' and more' : ''}` : ''}</h2>
+      ${pd ? `<p><b>Today:</b> ${esc(pd.title)} <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></p>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
+      <div class="h3-areas">${['Planning', 'Resources', 'Assessment & Feedback', 'Inclusion & SEN', 'Revision & Exams', 'Admin & Communication'].map(c => `<button data-area="${esc(c)}" style="--c:${PL_AREA[c][1]}"><span aria-hidden="true">${PL_AREA[c][0]}</span>${esc(c.split(' & ')[0])}</button>`).join('')}</div>
+      <div class="h3-actions"><a class="btn h3-btn" href="#prompts">Browse prompts</a>${pd ? '<button class="h3-link" id="h3TryPrompt">Use today’s prompt →</button>' : ''}</div></article>
+  </div>`;
+  el.querySelector('[data-binder]')?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); location.hash = 'binder'; });
+  el.querySelectorAll('[data-tried]').forEach(b => b.addEventListener('click', () => { setTried(b.dataset.tried, !triedMap()[b.dataset.tried]); renderHome3(); }));
+  $('#h3TipOpen')?.addEventListener('click', () => showTipSheet(t));
+  el.querySelectorAll('[data-area]').forEach(b => b.addEventListener('click', () => { plFilt.cat = b.dataset.area; plFilt.shown = 40; location.hash = 'prompts'; }));
+  $('#h3TryPrompt')?.addEventListener('click', () => { const tmp = document.createElement('div'); tmp.innerHTML = promptCard(pd); const card = tmp.firstElementChild; card.hidden = true; document.body.appendChild(card); openFill(card, (txt, go) => { card.remove(); go && go !== 'copy' ? sendText(txt, go) : copyText(txt, null); }); if (!document.querySelector('.fill-sheet')) card.remove(); });
+}
+function showTipSheet(t) {
+  if (!t) return;
+  const s = document.createElement('div'); s.className = 'fill-sheet';
+  s.innerHTML = `<div class="fill-card tip-sheet"><header><span class="eyebrow">Tip of the day · ${esc(t.app)}</span><h3>${esc(t.title)}</h3><button type="button" class="fill-x" aria-label="Close">×</button></header>${tipBody(t)}<footer><button class="btn primary" data-done>${triedMap()[t.id] ? 'Close' : 'I tried this ✓'}</button></footer></div>`;
+  document.body.appendChild(s); document.body.classList.add('sp-open');
+  const close = () => { s.remove(); document.body.classList.remove('sp-open'); };
+  s.addEventListener('click', e => { if (e.target === s || e.target.closest('.fill-x')) close(); });
+  s.querySelector('[data-done]').addEventListener('click', () => { if (!triedMap()[t.id]) setTried(t.id, true); close(); renderHome3(); });
+}
 function renderLibrary() {
   const all = allIssues(), live = all.filter(i => status(i) === 'live'), soon = all.filter(i => status(i) !== 'live' && status(i) !== 'removed');
   { const th = new Set(live.map(i => i.theme)).size;
@@ -1470,6 +1512,7 @@ function renderTipDay() {
   }
   // today's tip first, then earlier tips (most recent first) – staff swipe back through them
   const past = releasedTips().filter(x => x.id !== t.id).sort((a, b) => lastUse(b.id).localeCompare(lastUse(a.id)));
+  window.TODAY_TIP = t;
   const items = [t, ...past];
   const card = (x, k) => `<div class="td-card"><div class="td-label"><span>${k ? fmtDay(lastUse(x.id)) : 'Tip of the day'}</span><b data-app="${esc(x.app)}">${esc(x.app)}</b></div><h3>${esc(x.title)}</h3>${tipBody(x)}<div class="td-tried"><button class="tried-btn" data-tried="${esc(x.id)}" aria-pressed="false">I tried this</button></div></div>`;
   el.innerHTML = `<div class="td-track" id="tdTrack">${items.map(card).join('')}</div>
@@ -1483,6 +1526,7 @@ function renderTipDay() {
   el.insertAdjacentHTML('beforeend', '<p class="td-tally" id="tdTally" hidden></p>');
   el.querySelectorAll('[data-tried]').forEach(b => b.addEventListener('click', () => setTried(b.dataset.tried, !triedMap()[b.dataset.tried])));
   renderTipDayTally();
+  renderHome3();
   if (!logged) ensureTodayTip();
 }
 function tipUses(id) {   // all dates a tip was used: as Tip of the day, or marked by the editor

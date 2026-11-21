@@ -1052,3 +1052,40 @@ a.fl-step:hover{transform:translateY(-3px);box-shadow:0 10px 20px -12px rgba(20,
 .fill-skip{text-align:center;margin:10px 0 0}
 .fill-skip .linkbtn{color:#5b6679;font-size:13px}
 @media (max-width:620px){.fill-sheet{place-items:end center;padding:0}.fill-card{border-radius:18px 18px 0 0;max-height:92vh}.fill-card footer .btn{flex:1 1 100%;justify-content:center}}
+/* ===== staff home: three cards ===== */
+body.clean #library>.hero,body.clean #library>.tipday,body.clean #library>.binder-promo,body.clean #library>.help-link,body.clean #library>.car-head,body.clean #library>.toolbar,body.clean #library>#grid,body.clean #library>#empty,body.clean #library>.pl-home{display:none!important}
+body.clean #library>.home3{order:0}
+.home3{padding:34px 0 50px}
+.h3-greet h1{font:700 clamp(26px,3.6vw,40px)/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase;color:var(--navy);margin:0 0 6px}
+.h3-greet p{color:#4a5468;margin:0 0 22px;font-size:17px}
+.h3-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
+.h3-card{position:relative;display:flex;flex-direction:column;gap:10px;border-radius:16px;padding:22px 22px 20px;min-height:320px;text-decoration:none;color:#fff;overflow:hidden;box-shadow:0 20px 40px -24px rgba(11,24,48,.6);transition:transform .2s,box-shadow .2s}
+.h3-card:hover{transform:translateY(-3px);box-shadow:0 26px 50px -24px rgba(11,24,48,.7)}
+.h3-tip{background:radial-gradient(120% 90% at 100% 0%,rgba(255,255,255,.14),transparent 55%),linear-gradient(150deg,#8e2632,#5e141c)}
+.h3-binder{background:radial-gradient(120% 90% at 0% 0%,#2a4f8f,transparent 60%),linear-gradient(150deg,#163061,#0b1830)}
+.h3-prompts{background:linear-gradient(150deg,#fffaf0,#f3e7cc);color:var(--navy);border:1px solid #eadfc6}
+.h3-label{font:400 11px var(--display);letter-spacing:.14em;text-transform:uppercase;opacity:.85;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.h3-label b{font-weight:400;background:rgba(255,255,255,.18);border-radius:12px;padding:3px 8px 2px}
+.h3-card h2{font:600 clamp(20px,2vw,25px)/1.2 var(--serif);margin:2px 0 0}
+.h3-card p{margin:0;font-size:15px;line-height:1.5;opacity:.92;flex:1}
+.h3-prompts p{opacity:1;color:#4a5468}
+.h3-tool{display:inline-block;font:400 9.5px var(--display);letter-spacing:.1em;text-transform:uppercase;background:var(--navy);color:#fff;border-radius:12px;padding:3px 7px 2px;margin-left:4px;vertical-align:2px}
+.h3-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:6px}
+.h3-btn{background:#fff;color:var(--navy);border-color:#fff}
+.h3-btn.primary{background:#f4dfa6;color:#0b1830;border-color:#f4dfa6}
+.h3-prompts .h3-btn{background:var(--navy);color:#fff;border-color:var(--navy)}
+.h3-link{background:none;border:0;padding:0;color:inherit;font:600 14px var(--body);cursor:pointer;opacity:.9;text-decoration:underline;text-underline-offset:3px}
+.h3-book{align-self:flex-start;width:92px;height:128px;border-radius:3px 8px 8px 3px;background:linear-gradient(90deg,#0a1530 0 8px,#1b3a74 8px);box-shadow:6px 8px 18px rgba(0,0,0,.45),inset -2px 0 0 rgba(255,255,255,.08);display:flex;flex-direction:column;align-items:center;padding:12px 6px 0 12px;gap:4px;text-align:center;transform:rotate(-4deg);margin:4px 0 4px 4px}
+.h3-book img{width:26px}
+.h3-book b{font:700 8px/1.2 var(--display);letter-spacing:.06em;text-transform:uppercase;color:#f4dfa6}
+.h3-book i{font:italic 9px var(--serif);color:#c9d3e6;margin-top:auto;margin-bottom:10px}
+.h3-tip .tried-btn{border-color:rgba(255,255,255,.75)}
+.tip-sheet .tip-why{margin:0 0 10px}
+.tip-sheet footer{margin-top:14px}
+@media (max-width:900px){.h3-grid{grid-template-columns:1fr}.h3-card{min-height:0}.home3{padding-top:24px}}
+.h3-areas{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 2px}
+.h3-areas button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;border:0;border-radius:10px;padding:9px 10px;color:#fff;font:400 10px/1.2 var(--display);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;background:linear-gradient(150deg,var(--c),color-mix(in srgb,var(--c) 65%,#000));text-align:left}
+.h3-areas button span{font-size:18px}
+.h3-areas button:hover{filter:brightness(1.1)}
+.h3-prompts p{flex:0}
+.h3-prompts .h3-actions{margin-top:auto}
