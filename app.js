@@ -459,9 +459,8 @@ function renderHome3() {
       <div class="h3-actions"><span class="btn h3-btn primary">Read the latest</span><span class="h3-link" data-binder>Open the binder →</span></div></a>
     <article class="h3-card h3-prompts"><span class="h3-label">Prompt bank</span>
       <h2>${pr.length} prompts${mine ? ` for ${esc(mine[0])}${mine.length > 1 ? ' and more' : ''}` : ''}</h2>
-      ${pd ? `<p><b>Today:</b> ${esc(pd.title)} <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></p>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
-      <div class="h3-areas">${['Planning', 'Resources', 'Assessment & Feedback', 'Inclusion & SEN', 'Revision & Exams', 'Admin & Communication'].map(c => `<button data-area="${esc(c)}" style="--c:${PL_AREA[c][1]}"><span aria-hidden="true">${PL_AREA[c][0]}</span>${esc(c.split(' & ')[0])}</button>`).join('')}</div>
-      <div class="h3-actions"><a class="btn h3-btn" href="#prompts">Browse prompts</a>${pd ? '<button class="h3-link" id="h3TryPrompt">Use today’s prompt →</button>' : ''}</div></article>
+      ${pd ? `<div class="h3-today"><span class="h3-tlabel">Today’s prompt <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></span><h3>${esc(pd.title)}</h3><pre>${esc(pd.text).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`)}</pre><button class="btn h3-btn h3-use" id="h3TryPrompt">Use this prompt</button></div>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
+      <div class="h3-actions"><a class="h3-link" href="#prompts">Browse all prompts →</a></div></article>
   </div>`;
   el.querySelector('[data-binder]')?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); location.hash = 'binder'; });
   el.querySelectorAll('[data-tried]').forEach(b => b.addEventListener('click', () => { setTried(b.dataset.tried, !triedMap()[b.dataset.tried]); renderHome3(); }));

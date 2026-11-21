@@ -1089,3 +1089,15 @@ body.clean #library>.home3{order:0}
 .h3-areas button:hover{filter:brightness(1.1)}
 .h3-prompts p{flex:0}
 .h3-prompts .h3-actions{margin-top:auto}
+.h3-today{background:#fff;border:1px solid #eadfc6;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;box-shadow:0 8px 18px -14px rgba(122,84,16,.6)}
+.h3-tlabel{font:400 10px var(--display);letter-spacing:.12em;text-transform:uppercase;color:#8a6a33;display:flex;align-items:center;gap:6px}
+.h3-today h3{font:600 17px/1.25 var(--serif);color:var(--navy);margin:0}
+.h3-today pre{white-space:pre-wrap;font:13.5px/1.5 var(--body);color:#26324a;margin:0;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.h3-use{align-self:flex-start;background:var(--navy)!important;color:#fff!important;border-color:var(--navy)!important;margin-top:4px}
+.h3-areas{grid-template-columns:repeat(6,1fr)!important;gap:6px!important}
+.h3-areas button{align-items:center!important;padding:7px 4px!important;font-size:8.5px!important;text-align:center!important}
+.h3-areas button span{font-size:16px!important}
+@media (max-width:900px){.h3-areas{grid-template-columns:repeat(3,1fr)!important}}
+.h3-areas{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.h3-areas button{flex-direction:row!important;justify-content:flex-start!important;gap:6px!important;padding:7px 8px!important;font-size:9.5px!important;min-width:0}
+.h3-areas button span{font-size:14px!important}
