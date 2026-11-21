@@ -589,7 +589,7 @@ function promptCard(p) {
   const from = p.issue ? (live || canManage() ? `<a href="#issue-${esc(p.issue.id)}">From Issue ${p.issue.n} · ${esc(p.issue.title)}</a>` : '<span>From an upcoming issue</span>') : `<span>${esc(p.subj[0] === 'All subjects' ? p.cat : p.subj.join(', ') + ' · ' + p.cat)}${p.stage && p.stage !== 'Any' ? ' · ' + esc(p.stage) : ''}</span>`;
   const tools = ['Gemini', 'Copilot', 'NotebookLM'].filter(x => p.tool.includes(x)); if (!tools.length) tools.push('Gemini', 'Copilot');
   const send = tools.map(x => `<button class="pl-send" data-send="${x}" title="Copy this prompt and open ${x}"><img src="${TOOL_ICON[x]}" alt="">Send to ${x}</button>`).join('');
-  return `<article class="pl-card"><header><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b><h3>${esc(p.title)}</h3></header><pre class="pl-text">${ph(p.text)}</pre><div class="pl-sendrow">${send}</div><footer>${from}<button class="btn small" data-plcopy>Copy</button></footer></article>`;
+  return `<article class="pl-card" data-subj="${esc((p.subj || []).join('|'))}"><header><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b><h3>${esc(p.title)}</h3></header><pre class="pl-text">${ph(p.text)}</pre><div class="pl-sendrow">${send}</div><footer>${from}<button class="btn small" data-plcopy>Copy</button></footer></article>`;
 }
 // "Send to…": copies the prompt and opens the tool in a new tab (none of these tools accept a prompt in the link, so staff paste with Ctrl+V)
 const TOOL_URL = { Gemini: 'https://gemini.google.com/app', Copilot: 'https://m365.cloud.microsoft/chat', NotebookLM: 'https://notebooklm.google.com/' };
@@ -599,16 +599,93 @@ const TOOL_ICON = {
   Copilot: svgIcon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><defs><linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2aa8f2"/><stop offset=".5" stop-color="#7b5cf0"/><stop offset="1" stop-color="#f2668b"/></linearGradient></defs><path fill="url(#c)" d="M7 3h7a4 4 0 0 1 3.8 2.8L21 16a3.5 3.5 0 0 1-3.4 5H10a4 4 0 0 1-3.8-2.8L3 8a3.5 3.5 0 0 1 3.4-5z"/></svg>'),
   NotebookLM: svgIcon('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#111"/><path d="M6 15a6 6 0 0 1 12 0M8.5 15a3.5 3.5 0 0 1 7 0" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>')
 };
-function plSend(b) {
-  const txt = b.closest('.pl-card').querySelector('.pl-text').textContent, x = b.dataset.send;
+function plSend(b) { openFill(b.closest('.pl-card'), (txt, go) => (go === 'copy' ? copyText(txt, b) : sendText(txt, go && go !== 'copy' ? go : b.dataset.send))); }
+function sendText(txt, x) {
   let ok = true; try { navigator.clipboard.writeText(txt).catch(() => { ok = false; }); } catch (e) { ok = false; }
   const w = window.open(TOOL_URL[x], '_blank', 'noopener');
   toast(`Prompt copied – in ${x}, click the message box and paste (Ctrl+V)${/Android|iPhone|iPad/i.test(navigator.userAgent) ? ' or press and hold, then Paste' : ''}`);
   if (!w) setTimeout(() => toast(`Prompt copied – now open ${x} and paste it in`), 2700);
   if (!ok) setTimeout(() => toast('Couldn’t copy automatically – select the prompt text and copy it'), 200);
 }
-async function plCopy(b) {
-  const txt = b.closest('.pl-card').querySelector('.pl-text').textContent;
+/* ---------- "Make it yours": fill the [brackets] before sending ---------- */
+// Topic suggestions taken from the CCEA GCSE specifications (unit titles and main content areas). Staff can always type their own.
+const CCEA_TOPICS = {
+  'Biology': ['Cells', 'Living processes', 'Biodiversity', 'Body systems', 'Genetics', 'Microorganisms and health', 'Practical skills'],
+  'Chemistry': ['Structures', 'Trends', 'Chemical reactions', 'Quantitative chemistry', 'Analysis', 'Further chemical reactions', 'Rates and equilibrium', 'Calculations', 'Organic chemistry', 'Practical skills'],
+  'Physics': ['Motion', 'Force', 'Moments', 'Density and kinetic theory', 'Energy', 'Atomic and nuclear physics', 'Waves', 'Light', 'Electricity', 'Magnetism and electromagnetism', 'Space physics', 'Practical skills'],
+  'Science': ['Cells, living processes and biodiversity', 'Body systems, genetics, microorganisms and health', 'Structures, trends and chemical reactions', 'Quantitative chemistry and analysis', 'Rates, equilibrium and organic chemistry', 'Motion, force, moments and energy', 'Density, kinetic theory and radioactivity', 'Waves, light, electricity and magnetism', 'Space physics', 'Practical skills'],
+  'English': ['Writing for purpose and audience', 'Reading non-fiction and media texts', 'Speaking and listening', 'Studying spoken and written language', 'Personal or creative writing', 'Reading literary and non-fiction texts'],
+  'English Literature': ['The study of prose', 'The study of drama', 'The study of poetry', 'The study of Shakespeare'],
+  'Geography': ['Rivers and river management', 'Coasts and coastal management', 'Weather and extreme weather', 'Earthquakes and volcanoes', 'Population and migration', 'Refugees', 'Inner city issues and urban change', 'Sustainable development', 'Consumption and the environment', 'Fieldwork'],
+  'History': ["Germany 1933–45 (Hitler's dictatorship)", 'The USA 1920–33 (the Roaring Twenties)', 'Northern Ireland and its neighbours', 'International relations 1945–2003', 'The Cuban Missile Crisis', 'The USA and 9/11'],
+  'Religious Studies': ['The Christian Church (Catholic and Protestant)', 'The revelation of God', 'The Gospel of Matthew', 'The Gospel of Mark', 'Christian ethics', 'Philosophy of religion', 'Islam', 'Judaism'],
+  'Digital Technology & IT': ['Digital technology', 'Digital authoring concepts', 'Digital authoring practice', 'Digital development concepts (programming)', 'Digital development practice'],
+  'Business Studies': ['Starting a business', 'Developing a business', 'Planning a business'],
+  'Home Economics': ['Where food comes from', 'Macronutrients and micronutrients', 'Nutritional guidelines', 'Food safety', 'Dietary needs of different groups', 'Practical food preparation', 'Being an effective consumer'],
+  'Learning for Life and Work': ['Local and global citizenship', 'Personal development', 'Employability', 'Controlled assessment task'],
+  'Moving Image Arts': ['Critical understanding of moving image production', 'Acquisition of skills in moving image production', 'Planning and making a moving image product'],
+  'Music': ['Performing and appraising', 'Composing', 'Listening and appraising']
+};
+const YEARS = ['Year 8', 'Year 9', 'Year 10', 'Year 11', 'Year 12', 'Year 13', 'Year 14'];
+const fillMem = () => { try { return JSON.parse(LS.get('ergsNL.fill') || '{}'); } catch (e) { return {}; } };
+function fieldKind(tok) {
+  const t = tok.toLowerCase();
+  if (/^\[(x|year|year group|year group\/class)\]$/.test(t)) return 'year';
+  if (/^\[(subject)\]$/.test(t) || /^\[subject\/topic\]$/.test(t) && false) return 'subject';
+  if (/paste|insert text|attach/.test(t)) return 'paste';
+  if (/topic|unit/.test(t)) return 'topic';
+  return 'text';
+}
+function openFill(card, action) {
+  const txt = card.querySelector('.pl-text').textContent;
+  const toks = [...new Set(txt.match(/\[[^\]\n]{1,80}\]/g) || [])];
+  if (!toks.length) return action(txt);
+  const mem = fillMem(), main = (mySubjects() || [])[0] || '';
+  const subjOfCard = (card.dataset.subj || '').split('|').find(s => CCEA_TOPICS[s]) || '';
+  const label = t => { const k = fieldKind(t), s = t.slice(1, -1); return k === 'year' ? 'Year group' : k === 'paste' ? s.charAt(0).toUpperCase() + s.slice(1) : s.charAt(0).toUpperCase() + s.slice(1); };
+  const sheet = document.createElement('div'); sheet.className = 'fill-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-label', 'Fill in this prompt');
+  const tools = [...card.querySelectorAll('[data-send]')].map(b => b.dataset.send);
+  sheet.innerHTML = `<form class="fill-card"><header><span class="eyebrow">Make it yours</span><h3>${esc(card.querySelector('h3').textContent)}</h3><button type="button" class="fill-x" aria-label="Close">×</button></header>
+    <div class="fill-fields">${toks.map((t, k) => {
+      const kind = fieldKind(t), id = 'ff' + k;
+      if (kind === 'year') return `<label for="${id}">Year group</label><select id="${id}" data-tok="${esc(t)}"><option value="">Choose…</option>${YEARS.map(y => `<option ${mem.year === y ? 'selected' : ''}>${y}</option>`).join('')}</select>`;
+      if (kind === 'paste') return `<label for="${id}">${esc(label(t))} <small>optional – you can paste this in the AI tool instead</small></label><textarea id="${id}" rows="3" data-tok="${esc(t)}" placeholder="Paste here, or leave blank"></textarea>`;
+      if (kind === 'subject') return `<label for="${id}">Subject</label><input id="${id}" data-tok="${esc(t)}" list="fillSubj" value="${esc(subjOfCard || main || mem.subject || '')}" placeholder="e.g. Geography">`;
+      if (kind === 'topic') return `<label for="${id}">${esc(label(t))}</label><input id="${id}" data-tok="${esc(t)}" data-topic list="fillTopics" value="${esc(mem.topic && mem.topicSubj === (subjOfCard || main) ? mem.topic : '')}" placeholder="Type or pick a CCEA topic">`;
+      return `<label for="${id}">${esc(label(t))}</label><input id="${id}" data-tok="${esc(t)}" placeholder="${esc(t.slice(1, -1))}">`;
+    }).join('')}</div>
+    <datalist id="fillSubj">${(mySubjects() && mySubjects().length ? mySubjects() : SUBJECTS.map(s => s[0])).map(s => `<option value="${esc(s)}">`).join('')}</datalist><datalist id="fillTopics"></datalist>
+    <p class="fill-hint" id="fillHint"></p>
+    <details class="fill-prev"><summary>Preview your prompt</summary><pre id="fillPrev"></pre></details>
+    <footer>${tools.map((x, i) => `<button type="submit" class="btn ${i ? '' : 'primary'}" data-go="${x}"><img src="${TOOL_ICON[x]}" alt=""> Send to ${x}</button>`).join('')}<button type="submit" class="btn" data-go="copy">Copy</button></footer>
+    <p class="fill-skip"><button type="button" class="linkbtn" data-go-raw>Use it with the [brackets] as they are</button></p></form>`;
+  document.body.appendChild(sheet); document.body.classList.add('sp-open');
+  const f = sheet.querySelector('form'), fields = [...f.querySelectorAll('[data-tok]')];
+  const curSubj = () => { const s = f.querySelector('[list="fillSubj"]'); return (s && s.value.trim()) || subjOfCard || main; };
+  const build = () => { let out = txt; fields.forEach(el => { const v = el.value.trim(); if (v) out = out.split(el.dataset.tok).join(fieldKind(el.dataset.tok) === 'year' && /Year \[/i.test(txt) && el.dataset.tok === '[X]' ? v.replace(/^Year /, '') : v); }); return out; };
+  const refresh = () => {
+    const s = curSubj(), list = CCEA_TOPICS[s] || [];
+    $('#fillTopics').innerHTML = list.map(t => `<option value="${esc(t)}">`).join('');
+    $('#fillHint').textContent = f.querySelector('[data-topic]') ? (list.length ? `Topic suggestions are from the CCEA GCSE ${s} specification – or type your own.` : 'Type your topic – suggestions appear for subjects with a CCEA GCSE specification.') : '';
+    $('#fillPrev').textContent = build();
+  };
+  f.addEventListener('input', refresh); refresh();
+  const close = () => { sheet.remove(); document.body.classList.remove('sp-open'); };
+  sheet.addEventListener('click', e => { if (e.target === sheet || e.target.closest('.fill-x')) close(); });
+  sheet.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  let go = null; f.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go = b.dataset.go; });
+  f.querySelector('[data-go-raw]').addEventListener('click', () => { close(); action(txt); });
+  f.addEventListener('submit', e => {
+    e.preventDefault(); const out = build();
+    const y = f.querySelector('select[data-tok]'), tp = f.querySelector('[data-topic]');
+    LS.set('ergsNL.fill', JSON.stringify({ ...fillMem(), ...(y && y.value ? { year: y.value } : {}), ...(tp && tp.value ? { topic: tp.value, topicSubj: curSubj() } : {}) }));
+    close(); action(out, go);
+  });
+  setTimeout(() => (fields.find(el => !el.value) || fields[0]).focus(), 60);
+}
+function plCopy(b) { openFill(b.closest('.pl-card'), (txt, go) => (go && go !== 'copy' ? sendText(txt, go) : copyText(txt, b))); }
+async function copyText(txt, b) {
+  if (!b || !b.hasAttribute('data-plcopy')) { try { await navigator.clipboard.writeText(txt); toast('Prompt copied'); } catch (er) { toast('Select the prompt text to copy it'); } return; }
   try { await navigator.clipboard.writeText(txt); b.textContent = 'Copied ✓'; b.classList.add('done'); setTimeout(() => { b.textContent = 'Copy'; b.classList.remove('done'); }, 1800); }
   catch (er) { toast('Select the prompt text to copy it'); }
 }
