@@ -238,6 +238,16 @@ function startSaver() {
       // Friday, last period: a little countdown to the weekend
       const wk = d.getDay() === 5 && pn && pn[0] === 'Period 9';
       el.classList.toggle('friday', !!wk);
+      // Monday 6–9am: a calm "fresh week" welcome with a soft sunrise
+      const mon = d.getDay() === 1 && d.getHours() >= 6 && d.getHours() < 9;
+      el.classList.toggle('monday', mon);
+      if (mon) {
+        const left = 9 * 60 - (d.getHours() * 60 + d.getMinutes()), h = Math.floor(left / 60), mm = left % 60;
+        const lines = ['A fresh week, a fresh start.', 'Small steps make big weeks.', 'One good lesson at a time.', 'Coffee first. Then greatness.', 'You’ve got this week.', 'Be the calm in the corridor.'];
+        const wkNo = Math.floor((d - new Date(d.getFullYear(), 0, 1)) / 6048e5);
+        pp.innerHTML = `<b>☕ Good morning</b><em class="mon-line">${lines[wkNo % lines.length]}</em><span>Period 1 starts at 9:00 · ${h ? `${h} hr ${mm} min` : `${mm} min`} to go</span>`;
+        pp.hidden = false; setTimeout(tick, 10000); return;
+      }
       if (wk) {
         const end = new Date(d); end.setHours(15, 25, 0, 0); const left = Math.max(0, Math.round((end - d) / 1000)), pct = 100 - left / 18;
         const lines = ['Nearly there…', 'Hold the line!', 'The weekend is loading…', 'Last push!', 'So close you can taste it'];
