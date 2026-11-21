@@ -1122,3 +1122,20 @@ body:not(.clean):not(.show-grid) #library>.car-head,body:not(.clean):not(.show-g
 .h3-edlinks a:hover{border-color:var(--navy);background:#f3f6fb}
 .h3-more{text-align:center;margin:22px 0 0}
 body.show-grid .home3{padding-bottom:10px}
+@media (max-width:760px){
+  .h3-grid.ed{grid-template-columns:1fr!important}
+  .h3-grid.ed .h3-ed{order:-1}
+  .h3-card{padding:18px 18px 16px;gap:8px}
+  .h3-card h2{font-size:20px}
+  .h3-binder{display:grid;grid-template-columns:76px 1fr;column-gap:14px;align-items:start}
+  .h3-binder>*{grid-column:2}
+  .h3-binder>.h3-label{grid-column:1 / -1}
+  .h3-binder .h3-book{grid-column:1;grid-row:2 / span 3;width:70px;height:98px;padding:8px 4px 0 10px;margin:4px 0 0}
+  .h3-binder .h3-book img{width:20px}.h3-binder .h3-book b{font-size:6.5px}.h3-binder .h3-book i{font-size:8px;margin-bottom:6px}
+  .h3-binder .h3-actions{grid-column:1 / -1}
+  .h3-stats b{font-size:20px}
+  .h3-edlinks a{flex:1 1 auto;text-align:center}
+  .h3-greet h1{font-size:26px}
+  .h3-greet p{font-size:15px;margin-bottom:16px}
+}
+body.is-admin .home3{padding-bottom:90px}
