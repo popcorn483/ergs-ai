@@ -246,6 +246,7 @@ function startSaver() {
   let lastMove = 0; addEventListener('pointermove', e => { const now = Date.now(); if (now - lastMove > 1000) { lastMove = now; if (!el) arm(); } }, { passive: true });
   addEventListener('click', e => { if (e.target.closest && e.target.closest('.saver')) { e.preventDefault(); e.stopPropagation(); } }, true);
   arm();
+  $('#saverNow')?.addEventListener('click', e => { e.preventDefault(); setTimeout(show, 50); });
 }
 async function boot() {
   $('#gateCrest').src = $('#mastCrest').src = $('#splashCrest').src = window.ERGS_CREST || '';

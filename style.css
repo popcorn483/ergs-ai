@@ -1209,3 +1209,7 @@ body.is-admin .home3{padding-bottom:90px}
 .saver-period[hidden]{display:none}
 .saver-period b{font:400 clamp(15px,2.4vw,24px)/1.2 var(--display);letter-spacing:.16em;text-transform:uppercase;color:#e2c48a;border:1px solid rgba(226,196,138,.45);border-radius:999px;padding:8px 20px;background:rgba(226,196,138,.08)}
 .saver-period span{font:400 clamp(12px,1.6vw,16px) var(--body);color:rgba(255,255,255,.6);letter-spacing:.04em}
+.foot-saver{background:none;border:0;padding:0;font-family:var(--body);cursor:pointer}
+body.is-admin .foot-saver{display:inline-block}
+.foot-dot{color:#c3cad4;font-size:12px;margin:0 8px}
+body.is-admin .foot-dot{display:none}
