@@ -1448,32 +1448,68 @@ const Binder = (() => {
     const iss = curIssue(); $('#bkOpen').hidden = !iss; if (iss) $('#bkOpen').href = '#issue-' + iss.id;
     $('#bkRange').max = maxSpread(); $('#bkRange').value = spread;
   }
+  // page turn: the leaf is built from thin vertical strips chained in 3D, so it curls like paper as it turns,
+  // with light and shadow worked out per strip each frame and a soft shadow cast on the page underneath
+  const N = 14, DUR = 1050, ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function leaf(side, frontIdx, backIdx, reverse, under, done) {
+    const s = st(), W = s.querySelector('.bk-slot').offsetWidth, H = s.querySelector('.bk-slot').offsetHeight, w = W / N, R = side === 'r';
+    const make = idx => idx === 'paper' ? Object.assign(document.createElement('div'), { className: 'bk-page paper' }) : pageEl(idx);
+    const root = document.createElement('div'); root.className = 'bk-leaf ' + side;
+    root.style.cssText = `left:${R ? (single ? 0 : W) : 0}px;width:${W}px;height:${H}px`;
+    const faces = []; let parent = root;
+    for (let i = 0; i < N; i++) {
+      const st_ = document.createElement('div'); st_.className = 'lf-strip';
+      st_.style.cssText = `width:${w + .6}px;height:${H}px;left:${i === 0 ? (R ? 0 : W - w) : (R ? w : -w)}px;transform-origin:${R ? 'left' : 'right'} center`;
+      const fx = R ? i * w : W - (i + 1) * w, bx = R ? W - (i + 1) * w : i * w;
+      const f = document.createElement('div'); f.className = 'lf-face front'; const fi = make(frontIdx); fi.style.cssText = `position:absolute;top:0;left:${-fx}px;width:${W}px;height:${H}px`; f.appendChild(fi);
+      const b = document.createElement('div'); b.className = 'lf-face back'; const bi = make(backIdx); bi.style.cssText = `position:absolute;top:0;left:${-bx}px;width:${W}px;height:${H}px`; b.appendChild(bi);
+      const fs = document.createElement('i'), bs = document.createElement('i'); fs.className = bs.className = 'lf-light'; f.appendChild(fs); b.appendChild(bs);
+      st_.append(f, b); parent.appendChild(st_); faces.push([st_, fs, bs]); parent = st_;
+    }
+    const cast = document.createElement('div'); cast.className = 'bk-cast'; s.append(root, cast);
+    const sg = R ? -1 : 1, t0 = performance.now();
+    const frame = now => {
+      let t = Math.min(1, (now - t0) / DUR); const e = ease(reverse ? 1 - t : t);
+      const th = 180 * e, bend = 62 * Math.sin(Math.PI * e) * (reverse ? -1 : 1), lift = Math.sin(Math.PI * e);
+      let acc = 0; const angs = [];
+      faces.forEach(([el], i) => {
+        const a = i === 0 ? th + bend * .55 : -bend * 1.1 / (N - 1);   // the edge by the spine leads, the free edge trails behind
+        acc += a; angs.push(acc); el.style.transform = `rotateY(${sg * a}deg)`;
+      });
+      // light each strip with a gradient running into its neighbour's value, so the curl shades smoothly (no bands)
+      const lit = k => { const g = angs[Math.min(k, N - 1)] * Math.PI / 180, c = Math.cos(g); return [.46 * (1 - Math.abs(c)), Math.max(0, Math.sin(2 * g)) * .14]; };
+      faces.forEach(([, fs, bs], i) => {
+        const [d0] = lit(i), [d1] = lit(i + 1), [, g0] = lit(i), [, g1] = lit(i + 1);
+        fs.style.background = `linear-gradient(${R ? 'to right' : 'to left'},rgba(0,0,0,${d0.toFixed(3)}),rgba(0,0,0,${d1.toFixed(3)}))`;
+        bs.style.background = `linear-gradient(${R ? 'to left' : 'to right'},rgba(${g0 > d0 ? '255,255,255' : '0,0,0'},${Math.max(g0, d0 * .8).toFixed(3)}),rgba(${g1 > d1 ? '255,255,255' : '0,0,0'},${Math.max(g1, d1 * .8).toFixed(3)}))`;
+      });
+      // shadow thrown onto the page being uncovered, strongest mid-turn and hugging the spine
+      const proj = Math.max(0, Math.cos(th * Math.PI / 180)), reach = (proj * 100 + 14 * lift).toFixed(1);
+      cast.style.cssText = `left:${R ? (single ? 0 : W) : (th < 90 ? 0 : W)}px;width:${W}px;height:${H}px;background:linear-gradient(${R === th < 90 ? 'to right' : 'to left'},rgba(0,0,0,${(.42 * lift).toFixed(3)}) 0%,rgba(0,0,0,${(.18 * lift).toFixed(3)}) ${(+reach * .55).toFixed(1)}%,transparent ${reach}%)`;
+      if (t < 1) requestAnimationFrame(frame); else { root.remove(); cast.remove(); done(); }
+    };
+    requestAnimationFrame(frame);
+  }
   function flip(dir) {
     if (busy) return;
     const target = spread + dir; if (target < 0 || target > maxSpread()) return;
     busy = true;
-    const s = st(), f = document.createElement('div'), front = document.createElement('div'), back = document.createElement('div');
-    f.className = 'bk-flip'; front.className = 'bk-face front'; back.className = 'bk-face back';
-    const shade = document.createElement('div'); shade.className = 'bk-shade';
+    const s = st(), fin = () => { spread = target; busy = false; draw(); };
+    if (reduced()) return fin();
     if (single) {
       const slot = s.querySelector('.bk-slot');
-      if (dir > 0) { front.appendChild(pageEl(spread)); slot.replaceChildren(pageEl(target)); f.classList.add('r'); }
-      else { front.appendChild(pageEl(target)); f.classList.add('r', 'from'); }
-      back.appendChild(Object.assign(document.createElement('div'), { className: 'bk-page paper' }));
+      if (dir > 0) { slot.replaceChildren(pageEl(target)); leaf('r', spread, 'paper', false, null, fin); }
+      else leaf('r', target, 'paper', true, null, fin);
     } else if (dir > 0) {
-      front.appendChild(pageEl(rightIdx(spread))); back.appendChild(pageEl(leftIdx(target)));
-      s.querySelector('.bk-slot.r').replaceChildren(pageEl(rightIdx(target))); f.classList.add('r');
-      s.classList.remove('end'); if (rightIdx(target) >= pages.length) s.classList.add('end');
-      s.classList.remove('closed');
+      s.querySelector('.bk-slot.r').replaceChildren(pageEl(rightIdx(target)));
+      s.classList.remove('end', 'closed'); if (rightIdx(target) >= pages.length) s.classList.add('end');
+      leaf('r', rightIdx(spread), leftIdx(target), false, null, fin);
     } else {
-      front.appendChild(pageEl(leftIdx(spread))); back.appendChild(pageEl(rightIdx(target)));
-      s.querySelector('.bk-slot.l').replaceChildren(pageEl(leftIdx(target))); f.classList.add('l');
+      s.querySelector('.bk-slot.l').replaceChildren(pageEl(leftIdx(target)));
+      s.classList.remove('end');
+      leaf('l', leftIdx(spread), rightIdx(target), false, null, fin);
     }
-    f.append(front, back, shade); s.appendChild(f);
-    requestAnimationFrame(() => requestAnimationFrame(() => f.classList.add('go')));
-    const done = () => { spread = target; busy = false; draw(); };
-    f.addEventListener('transitionend', e => { if (e.target === f) done(); }, { once: false });
-    setTimeout(() => { if (busy) done(); }, 1100);
   }
   function go(pageIndex) {
     spread = single ? pageIndex : Math.ceil(pageIndex / 2);

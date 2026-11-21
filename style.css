@@ -1243,3 +1243,15 @@ body.is-admin .foot-saver,body.is-admin .foot-dot{display:none}
 .h3-steps{counter-reset:st;list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .h3-steps li{counter-increment:st;position:relative;padding:8px 10px 8px 40px;background:rgba(255,255,255,.1);border-radius:10px;font:15px/1.45 var(--body);color:#fff}
 .h3-steps li::before{content:counter(st);position:absolute;left:9px;top:8px;width:22px;height:22px;border-radius:50%;background:#fff;color:#7a1f29;font:700 12px/22px var(--body);text-align:center}
+
+/* paper-curl page turn */
+.bk-leaf{position:absolute;top:0;transform-style:preserve-3d;z-index:6;pointer-events:none}
+.lf-strip{position:absolute;top:0;transform-style:preserve-3d;will-change:transform}
+.lf-face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#fff}
+.lf-face.back{transform:rotateY(180deg)}
+.lf-face .bk-page{box-shadow:none!important;border-radius:0!important}
+.lf-face .bk-page::after{display:none}
+.lf-light{position:absolute;inset:0;pointer-events:none}
+.bk-cast{position:absolute;top:0;pointer-events:none;z-index:5;mix-blend-mode:multiply}
+.bk-stage{perspective:2200px;perspective-origin:50% 40%}
+.bk-stage{perspective:3600px}
