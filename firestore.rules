@@ -34,6 +34,23 @@ service cloud.firestore {
         && request.resource.data.app is bool && request.resource.data.mob is bool
         && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 60));
     }
+    // "How I used it" one-liners under each issue: text and name are encrypted with the staff key.
+    match /newsletterUses/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['issue','enc','t','at'])
+        && request.resource.data.t == '0ddd4e393a7f0180e83d86fa' && request.resource.data.issue is string && request.resource.data.issue.size() <= 60
+        && request.resource.data.enc is string && request.resource.data.enc.size() < 3000 && request.resource.data.at == request.time;
+      allow update: if false;
+      allow delete: if nlEditor();
+    }
+    // Tips each device has marked as tried (a count only).
+    match /newsletterTried/{id} {
+      allow get: if true;
+      allow list, delete: if nlEditor();
+      allow create, update: if id.size() <= 40 && request.resource.data.keys().hasOnly(['t','c','at'])
+        && request.resource.data.t == '0ddd4e393a7f0180e83d86fa' && request.resource.data.c is int
+        && request.resource.data.c >= 0 && request.resource.data.c < 5000 && request.resource.data.at == request.time;
+    }
     // Tip of the day log: one doc per date.
     match /newsletterTipLog/{day} {
       allow read: if true;

@@ -322,18 +322,19 @@ function render() {
   if (!CONTENT) return;
   if (location.hash === '#binder' && Binder.active) { Binder.refresh(); return; }
   const h = location.hash.slice(1);
-  document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === ((h === 'admin' || h === 'tips' || (canManage() && h === 'help')) ? 'admin' : h === 'binder' ? 'binder' : (h === 'help' || h.startsWith('sheet-') || h.startsWith('issue-')) ? '' : 'library')));
+  document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === ((h === 'admin' || h === 'tips' || (canManage() && h === 'help')) ? 'admin' : h === 'binder' ? 'binder' : h === 'prompts' ? 'prompts' : (h === 'help' || h.startsWith('sheet-') || h.startsWith('issue-')) ? '' : 'library')));
   $('#adminLink').hidden = !canManage();
   document.body.classList.toggle('clean', !canManage());
   document.body.classList.toggle('is-admin', ADMIN);
   const vs = $('#viewSwitch'); vs.hidden = !ADMIN;
   vs.querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'staff') === STAFFVIEW));
   document.querySelectorAll('.admin-tabs').forEach(t => { t.hidden = !canManage(); t.innerHTML = ADMIN_TABS(h); });
-  $('#library').hidden = $('#reader').hidden = $('#admin').hidden = $('#binder').hidden = $('#tips').hidden = $('#help').hidden = $('#sheetView').hidden = true;
+  $('#library').hidden = $('#reader').hidden = $('#admin').hidden = $('#binder').hidden = $('#prompts').hidden = $('#tips').hidden = $('#help').hidden = $('#sheetView').hidden = true;
   document.body.classList.toggle('sheet-on', h.startsWith('sheet-'));
   document.body.classList.toggle('binder-on', h === 'binder');
   if (h === 'admin') { $('#admin').hidden = false; renderAdmin(); }
   else if (h === 'binder') { $('#binder').hidden = false; Binder.open(); }
+  else if (h === 'prompts') { $('#prompts').hidden = false; renderPrompts(); document.title = 'Prompt library · ERGS Digital Skills & AI'; }
   else if (h === 'tips') { if (!canManage()) { location.replace('#help'); return; } $('#tips').hidden = false; renderTips(); document.title = 'Quick tips · ERGS Digital Skills & AI'; }
   else if (h === 'help') { $('#help').hidden = false; renderSheets(); document.title = 'Help sheets · ERGS Digital Skills & AI'; }
   else if (h.startsWith('sheet-')) { $('#sheetView').hidden = false; renderSheet(+h.slice(6)); }
@@ -478,7 +479,7 @@ function renderReader(id) {
   const all = allIssues(); let i = all.find(x => x.id === id), inPool = false;
   if (!i && canManage()) { i = poolIssues().find(x => x.id === id); inPool = !!i; if (i) i = { ...i, n: '–' }; }
   const sheet = $('#sheet');
-  if (!i) { sheet.innerHTML = '<p class="empty">Issue not found – it may still be loading.</p>'; return; }
+  if (!i) { sheet.innerHTML = '<p class="empty">Issue not found – it may still be loading.</p>'; $('#uses').hidden = true; return; }
   const st = inPool ? 'pool' : status(i);
   if (st !== 'live' && !canManage()) { sheet.innerHTML = '<div class="info"><h1>This issue isn’t available</h1><p>Have a look through the library for the latest issues.</p><a class="btn" href="#">Back to the library</a></div>'; $('#lockNote').hidden = true; return; }
   $('#lockNote').hidden = st === 'live';
@@ -501,9 +502,104 @@ function renderReader(id) {
       (i.fsPages ? customPageImg(p) : fileImg(p)).then(u => { img.src = u; }).catch(() => { img.alt = 'Page could not be loaded'; });
     });
   }
+  renderUses(i.id);
   sheet.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(b.parentElement.querySelector('q').textContent); toast('Prompt copied'); } catch (e) { toast('Select the prompt text to copy it'); }
   }));
+}
+
+/* ---------- prompt library ---------- */
+const plFilt = { q: '', sel: '', shown: 40 };
+function allPrompts() {
+  const P = (CONTENT && CONTENT.prompts) || {};
+  return allIssues().filter(i => status(i) !== 'removed').flatMap(i => {
+    const list = (P[i.id] || []).slice();
+    if (i.kind === 'tpl' && i.prompt) list.push({ tool: (i.tools || [])[0] || 'Gemini or Copilot', title: i.title, text: i.prompt });
+    return list.map((p, k) => ({ ...p, key: i.id + ':' + k, issue: i }));
+  });
+}
+function renderPrompts() {
+  const sel = $('#plSel');
+  if (!sel.dataset.ready) {
+    sel.dataset.ready = 1;
+    sel.innerHTML = '<option value="">All prompts</option><optgroup label="Tool">' + ['Gemini', 'Copilot', 'NotebookLM'].map(t => `<option value="tl:${t}">${t}</option>`).join('') + '</optgroup><optgroup label="Topic">' + THEMES.map(t => `<option value="th:${esc(t)}">${esc(t)}</option>`).join('') + '</optgroup>';
+    $('#plQ').addEventListener('input', e => { plFilt.q = e.target.value.toLowerCase().trim(); plFilt.shown = 40; renderPrompts(); });
+    sel.addEventListener('change', e => { plFilt.sel = e.target.value; plFilt.shown = 40; renderPrompts(); });
+    $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); });
+    $('#plList').addEventListener('click', async e => {
+      const b = e.target.closest('[data-plcopy]'); if (!b) return;
+      const txt = b.closest('.pl-card').querySelector('.pl-text').textContent;
+      try { await navigator.clipboard.writeText(txt); b.textContent = 'Copied ✓'; b.classList.add('done'); setTimeout(() => { b.textContent = 'Copy'; b.classList.remove('done'); }, 1800); }
+      catch (er) { toast('Select the prompt text to copy it'); }
+    });
+  }
+  const words = plFilt.q.split(/\s+/).filter(Boolean);
+  const list = allPrompts().filter(p => {
+    if (plFilt.sel.startsWith('tl:') && !p.tool.includes(plFilt.sel.slice(3))) return false;
+    if (plFilt.sel.startsWith('th:') && p.issue.theme !== plFilt.sel.slice(3)) return false;
+    const hay = (p.title + ' ' + p.text + ' ' + p.issue.title + ' ' + (p.issue.theme || '') + ' ' + p.tool).toLowerCase();
+    return words.every(w => hay.includes(w));
+  });
+  // released issues first, newest first; then upcoming ones
+  const live = x => status(x.issue) === 'live';
+  list.sort((x, y) => (live(y) - live(x)) || (live(x) ? (y.issue.n - x.issue.n) : (x.issue.n - y.issue.n)));
+  $('#plCount').textContent = `${list.length} prompt${list.length === 1 ? '' : 's'}`;
+  const ph = t => esc(t).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`);
+  $('#plList').innerHTML = list.slice(0, plFilt.shown).map(p => {
+    const from = live(p) || canManage() ? `<a href="#issue-${esc(p.issue.id)}">From Issue ${p.issue.n} · ${esc(p.issue.title)}</a>` : '<span>From an upcoming issue</span>';
+    return `<article class="pl-card"><header><b class="pl-tool">${esc(p.tool)}</b><h3>${esc(p.title)}</h3></header><pre class="pl-text">${ph(p.text)}</pre><footer>${from}<button class="btn small primary" data-plcopy>Copy</button></footer></article>`;
+  }).join('') || '<p class="empty">No prompts match that search.</p>';
+  $('#plMore').hidden = list.length <= plFilt.shown;
+}
+
+/* ---------- "How I used it" one-liners under each issue (encrypted with the staff key) ---------- */
+let USES = null, usesUnsub = null;
+function watchUses() {
+  if (usesUnsub || !DB) return;
+  usesUnsub = onSnapshot(collection(DB, 'newsletterUses'), async s => {
+    const out = {};
+    for (const d of s.docs) { try { const x = await decJSON(d.data().enc); (out[d.data().issue] ||= []).push({ ...x, id: d.id, at: d.data().at?.toMillis?.() || 0 }); } catch (e) {} }
+    USES = out; const h = location.hash.slice(1); if (h.startsWith('issue-')) renderUses(h.slice(6));
+  }, e => { console.warn('uses', e); USES = USES || {}; usesUnsub = null; const h = location.hash.slice(1); if (h.startsWith('issue-')) renderUses(h.slice(6)); });
+}
+function renderUses(id) {
+  const el = $('#uses'); if (!el) return;
+  const i = allIssues().find(x => x.id === id); if (!i) { el.hidden = true; return; }
+  el.hidden = false; watchUses();
+  const list = ((USES || {})[id] || []).slice().sort((a, b) => b.at - a.at);
+  const name = LS.get('ergsNL.name') || '';
+  el.innerHTML = `<h2>How colleagues have used this</h2>
+    ${USES === null ? '<p class="muted">Loading…</p>' : list.length ? `<ul class="uses-list">${list.map(u => `<li><p>“${esc(u.text)}”</p><span>${esc(u.name || 'A colleague')}${u.at ? ' · ' + new Date(u.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}${canManage() ? ` <button class="linkbtn" data-unuse="${esc(u.id)}">Remove</button>` : ''}</span></li>`).join('')}</ul>` : '<p class="muted">Nobody has shared how they used this yet – be the first.</p>'}
+    <form class="uses-form" id="usesForm"><label for="usesText">Tried this? Share how in one line</label>
+      <div><input id="usesText" maxlength="140" placeholder="e.g. Used the quiz prompt for Y9 – saved 20 mins" required><button class="btn primary">Share</button></div>
+      <small class="muted">Shown to staff with your name${name ? ` (${esc(name)})` : ''}. No pupil names or details, please.</small></form>`;
+  $('#usesForm').addEventListener('submit', async e => {
+    e.preventDefault(); const txt = $('#usesText').value.trim(); if (!txt) return;
+    if (!DB || !KEY) return toast('Can’t share right now – check your connection');
+    const btn = e.target.querySelector('button'); btn.disabled = true;
+    try {
+      await setDoc(doc(collection(DB, 'newsletterUses')), { issue: id, enc: await encJSON({ text: txt.slice(0, 140), name: (LS.get('ergsNL.name') || '').slice(0, 60) }), t: await visitToken(), at: serverTimestamp() });
+      toast('Thanks for sharing'); $('#usesText').value = '';
+    } catch (er) { console.warn(er); toast('Couldn’t share – try again'); }
+    btn.disabled = false;
+  });
+  el.querySelectorAll('[data-unuse]').forEach(b => b.addEventListener('click', async () => { try { await deleteDoc(doc(DB, 'newsletterUses', b.dataset.unuse)); toast('Removed'); } catch (er) { toast('Couldn’t remove – check you’re signed in'); } }));
+}
+
+/* ---------- "I tried this" on tips ---------- */
+const triedMap = () => { try { return JSON.parse(LS.get('ergsNL.tried') || '{}'); } catch (e) { return {}; } };
+async function setTried(id, on) {
+  const m = triedMap(); if (on) m[id] = today(); else delete m[id];
+  LS.set('ergsNL.tried', JSON.stringify(m)); renderTipDayTally();
+  try {
+    if (!DB || !KEY) return; const dev = LS.get('ergsNL.dev'); if (!dev) return;
+    await setDoc(doc(DB, 'newsletterTried', dev), { t: await visitToken(), c: Object.keys(m).length, at: serverTimestamp() });
+  } catch (e) { console.warn('tried', e.code || e); }
+}
+function renderTipDayTally() {
+  const el = $('#tdTally'); if (!el) return; const n = Object.keys(triedMap()).length;
+  el.textContent = n ? `You’ve tried ${n} tip${n === 1 ? '' : 's'} so far` : ''; el.hidden = !n;
+  document.querySelectorAll('[data-tried]').forEach(b => { const on = !!triedMap()[b.dataset.tried]; b.classList.toggle('on', on); b.textContent = on ? '✓ Tried it' : 'I tried this'; b.setAttribute('aria-pressed', on); });
 }
 
 /* ---------- writes ---------- */
@@ -1165,7 +1261,7 @@ function renderTipDay() {
   // today's tip first, then earlier tips (most recent first) – staff swipe back through them
   const past = releasedTips().filter(x => x.id !== t.id).sort((a, b) => lastUse(b.id).localeCompare(lastUse(a.id)));
   const items = [t, ...past];
-  const card = (x, k) => `<div class="td-card"><div class="td-label"><span>${k ? fmtDay(lastUse(x.id)) : 'Tip of the day'}</span><b data-app="${esc(x.app)}">${esc(x.app)}</b></div><h3>${esc(x.title)}</h3>${tipBody(x)}</div>`;
+  const card = (x, k) => `<div class="td-card"><div class="td-label"><span>${k ? fmtDay(lastUse(x.id)) : 'Tip of the day'}</span><b data-app="${esc(x.app)}">${esc(x.app)}</b></div><h3>${esc(x.title)}</h3>${tipBody(x)}<div class="td-tried"><button class="tried-btn" data-tried="${esc(x.id)}" aria-pressed="false">I tried this</button></div></div>`;
   el.innerHTML = `<div class="td-track" id="tdTrack">${items.map(card).join('')}</div>
     <div class="td-foot">${items.length > 1 ? `<span class="td-hint">Swipe for earlier tips</span><span class="td-dots">${items.slice(0, 12).map((_, k) => `<i class="${k ? '' : 'on'}"></i>`).join('')}</span><span class="td-nav"><button class="td-arrow" id="tdPrev" aria-label="Newer tip" disabled>‹</button><button class="td-arrow" id="tdNext" aria-label="Earlier tip">›</button></span>` : '<span class="td-hint">A new tip every day</span>'}${canManage() ? '<a class="btn small ghost" href="#tips">Manage tips →</a>' : ''}</div>`;
   const tr = $('#tdTrack');
@@ -1174,6 +1270,9 @@ function renderTipDay() {
   tr.addEventListener('scroll', () => requestAnimationFrame(sync), { passive: true });
   $('#tdPrev')?.addEventListener('click', () => tr.scrollBy({ left: -tr.clientWidth, behavior: 'smooth' }));
   $('#tdNext')?.addEventListener('click', () => tr.scrollBy({ left: tr.clientWidth, behavior: 'smooth' }));
+  el.insertAdjacentHTML('beforeend', '<p class="td-tally" id="tdTally" hidden></p>');
+  el.querySelectorAll('[data-tried]').forEach(b => b.addEventListener('click', () => setTried(b.dataset.tried, !triedMap()[b.dataset.tried])));
+  renderTipDayTally();
   if (!logged) ensureTodayTip();
 }
 function tipUses(id) {   // all dates a tip was used: as Tip of the day, or marked by the editor
@@ -1303,7 +1402,8 @@ async function renderUsage() {
   const el = $('#usagePanel'); if (!el) return;
   try {
     const snap = await getDocs(collection(DB, 'newsletterVisits'));
-    const now = Date.now(), day = 864e5, rows = snap.docs.map(d => d.data()).map(x => ({ name: x.name || '', first: x.first?.toMillis?.() || 0, last: x.last?.toMillis?.() || 0, n: x.n || 1, app: !!x.app, mob: !!x.mob }));
+    let TR = {}; try { (await getDocs(collection(DB, 'newsletterTried'))).docs.forEach(d => { TR[d.id] = d.data().c || 0; }); } catch (e) {}
+    const now = Date.now(), day = 864e5, rows = snap.docs.map(d => ({ ...d.data(), _id: d.id })).map(x => ({ tried: TR[x._id] || 0, name: x.name || '', first: x.first?.toMillis?.() || 0, last: x.last?.toMillis?.() || 0, n: x.n || 1, app: !!x.app, mob: !!x.mob }));
     const total = rows.length, a7 = rows.filter(r => now - r.last < 7 * day).length, a30 = rows.filter(r => now - r.last < 30 * day).length;
     const n7 = rows.filter(r => now - r.first < 7 * day).length, apps = rows.filter(r => r.app).length, phones = rows.filter(r => r.mob).length, visits = rows.reduce((t, r) => t + r.n, 0);
     const weeks = Array.from({ length: 8 }, (_, k) => rows.filter(r => r.first && now - r.first >= (7 - k) * 7 * day && now - r.first < (8 - k) * 7 * day).length);
@@ -1314,7 +1414,7 @@ async function renderUsage() {
     rows.forEach((r, i) => { const k = r.name.trim() ? 'n:' + key(r.name) : 'd:' + i; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
     const people = [...groups.values()].map(devs => {
       const vs = devs.map(d => d.name.trim().replace(/\s+/g, ' ')).filter(Boolean), cap = vs.find(v => /[A-Z]/.test(v)) || (vs[0] || '').replace(/\b\w/g, c => c.toUpperCase());
-      return { name: cap, devs, first: Math.min(...devs.map(d => d.first || Infinity)), last: Math.max(...devs.map(d => d.last)), n: devs.reduce((t, d) => t + d.n, 0), app: devs.filter(d => d.app).length }; })
+      return { name: cap, devs, first: Math.min(...devs.map(d => d.first || Infinity)), last: Math.max(...devs.map(d => d.last)), n: devs.reduce((t, d) => t + d.n, 0), tried: devs.reduce((t, d) => t + d.tried, 0), app: devs.filter(d => d.app).length }; })
       .sort((x, y) => (!!y.name - !!x.name) || y.last - x.last);
     const devMix = ds => { const m = ds.filter(d => d.mob).length, c = ds.length - m; return '(' + [c && c + (c > 1 ? ' computers' : ' computer'), m && m + (m > 1 ? ' phones/tablets' : ' phone/tablet')].filter(Boolean).join(', ') + ')'; };
     const fmtD = t => t && isFinite(t) ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '–';
@@ -1322,17 +1422,17 @@ async function renderUsage() {
       <div class="usage-grid">
         <div><b>${people.filter(p => p.name).length}</b><span>named staff</span></div>
         <div><b>${total}</b><span>devices unlocked</span></div>
+        <div><b>${rows.reduce((t, r) => t + r.tried, 0)}</b><span>tips tried</span></div>
         <div><b>${a7}</b><span>active in the last 7 days</span></div>
         <div><b>${a30}</b><span>active in the last 30 days</span></div>
         <div><b>${apps}</b><span>using the installed app</span></div>
-        <div><b>${visits}</b><span>visits in total</span></div>
       </div>
       <div class="usage-bars" aria-label="New devices per week, last 8 weeks">${weeks.map((w, k) => `<div title="${w} new"><i style="height:${Math.round(w / mx * 100)}%"></i><small>${k === 7 ? 'This wk' : (7 - k) + 'w'}</small><em>${w || ''}</em></div>`).join('')}</div>
       <p class="muted usage-note">New devices per week · ${phones} of ${total} are phones or tablets. One person may use more than one device.</p>
       <h3 style="margin:22px 0 0;font:600 18px var(--serif);color:var(--navy)">Who’s using ERGS AI</h3>
       <p class="muted" style="margin:4px 0 0">${people.filter(p => p.name).length} named ${people.filter(p => p.name).length === 1 ? 'person' : 'people'}. Devices logged in with the same name are grouped together.</p>
-      <div style="overflow-x:auto"><table class="who"><thead><tr><th>Name</th><th>Devices</th><th>First used</th><th>Last used</th><th>Visits</th><th>App installed</th></tr></thead><tbody>
-      ${people.map(p => `<tr><td>${p.name ? esc(p.name) : '<span class="muted">Not given yet</span>'}</td><td><b>${p.devs.length}</b> <span class="muted">${devMix(p.devs)}</span></td><td>${fmtD(p.first)}</td><td>${fmtD(p.last)}</td><td>${p.n}</td><td>${p.app ? `<span class="yes">✓ ${p.devs.length > 1 ? p.app + ' of ' + p.devs.length : 'Yes'}</span>` : 'No'}</td></tr>`).join('')}
+      <div style="overflow-x:auto"><table class="who"><thead><tr><th>Name</th><th>Devices</th><th>First used</th><th>Last used</th><th>Visits</th><th>Tips tried</th><th>App installed</th></tr></thead><tbody>
+      ${people.map(p => `<tr><td>${p.name ? esc(p.name) : '<span class="muted">Not given yet</span>'}</td><td><b>${p.devs.length}</b> <span class="muted">${devMix(p.devs)}</span></td><td>${fmtD(p.first)}</td><td>${fmtD(p.last)}</td><td>${p.n}</td><td>${p.tried || '–'}</td><td>${p.app ? `<span class="yes">✓ ${p.devs.length > 1 ? p.app + ' of ' + p.devs.length : 'Yes'}</span>` : 'No'}</td></tr>`).join('')}
       </tbody></table></div>`;
   } catch (e) {
     el.innerHTML = /permission/.test(String(e.code || e.message))

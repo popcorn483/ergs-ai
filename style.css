@@ -886,3 +886,44 @@ body.clean .binder-promo .btn.primary{font-size:14px!important;font-weight:700}
 @media (prefers-reduced-motion:reduce){.saver-drift{animation:none}}
 .splash.saver.out{animation:spOut .65s ease forwards}
 .saver-date{font:400 clamp(14px,2.2vw,22px)/1.3 var(--display);letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.78);margin:14px 0 0;text-align:center;opacity:0;animation:spFade 1s 1.9s forwards}
+/* ===== prompt library ===== */
+.pl-head{padding:34px 0 10px}
+.pl-head h1{font:600 clamp(30px,4vw,42px)/1.1 var(--serif);color:var(--navy);margin:6px 0 10px}
+.pl-head>p{max-width:62ch}
+mark.ph{background:#fbefd2;color:#7a5410;border-radius:3px;padding:0 2px}
+.pl-tools{display:flex;gap:10px;margin:18px 0 6px;flex-wrap:wrap}
+.pl-tools input{flex:1 1 280px;font:16px var(--body);padding:11px 14px;border:1px solid #cdd4de;border-radius:10px;background:#fff}
+.pl-tools select{font:15px var(--body);padding:10px 12px;border:1px solid #cdd4de;border-radius:10px;background:#fff}
+.pl-count{margin:6px 0 14px;font-size:14px}
+.pl-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;margin-bottom:20px}
+.pl-card{background:#fff;border:1px solid #e1e6ee;border-radius:12px;padding:16px 18px 14px;display:flex;flex-direction:column;box-shadow:0 6px 18px -12px rgba(20,40,75,.3)}
+.pl-card header{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.pl-tool{align-self:flex-start;font:400 10px var(--display);letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--navy);border-radius:20px;padding:4px 9px 3px}
+.pl-card h3{font:600 18px/1.25 var(--serif);color:var(--navy);margin:0}
+.pl-text{flex:1;white-space:pre-wrap;font:14.5px/1.55 var(--body);color:#26324a;background:#f6f8fb;border-left:3px solid var(--ergs-gold,#b8955a);border-radius:6px;padding:10px 12px;margin:0 0 12px;max-height:240px;overflow:auto}
+.pl-card footer{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px}
+.pl-card footer a,.pl-card footer span{color:#5b6679;text-decoration:none}
+.pl-card footer a:hover{color:var(--navy);text-decoration:underline}
+.pl-card [data-plcopy].done{background:#2e7d4f;border-color:#2e7d4f}
+.pl-more{text-align:center;margin:6px 0 40px}
+@media (max-width:620px){.pl-list{grid-template-columns:1fr}.mast-nav{gap:14px}}
+/* ===== how colleagues used it ===== */
+.uses{max-width:860px;margin:26px auto 50px;padding:22px 24px;background:#fff;border:1px solid #e1e6ee;border-radius:12px}
+.uses h2{font:700 16px var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--navy);margin:0 0 12px}
+.uses-list{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:10px}
+.uses-list li{border-left:3px solid var(--ergs-gold,#b8955a);padding:6px 12px;background:#faf7f0;border-radius:4px}
+.uses-list p{margin:0 0 3px;font:italic 16px/1.4 var(--serif);color:#26324a}
+.uses-list span{font-size:12.5px;color:#6b7588}
+.linkbtn{background:none;border:0;color:#b3261e;cursor:pointer;font-size:12.5px;padding:0 0 0 6px;text-decoration:underline}
+.uses-form label{display:block;font-weight:600;margin-bottom:6px;color:var(--navy)}
+.uses-form div{display:flex;gap:8px}
+.uses-form input{flex:1;font:16px var(--body);padding:10px 12px;border:1px solid #cdd4de;border-radius:8px}
+.uses-form small{display:block;margin-top:6px}
+@media print{.uses{display:none}}
+/* ===== tried it ===== */
+.td-tried{margin-top:12px}
+.tried-btn{font:400 11.5px var(--display);letter-spacing:.1em;text-transform:uppercase;border:1.5px solid rgba(255,255,255,.75);background:transparent;color:#fff;border-radius:20px;padding:7px 14px 6px;cursor:pointer;transition:background .15s,color .15s}
+.tried-btn:hover{background:rgba(255,255,255,.15)}
+.tried-btn.on{background:#fff;color:#2e7d4f;border-color:#fff}
+.td-tally{margin:8px 0 0;font:400 11px var(--display);letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.8)}
+.td-tally{padding:0 20px 14px}
