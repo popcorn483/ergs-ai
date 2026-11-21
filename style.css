@@ -1284,3 +1284,7 @@ body.is-admin .foot-saver,body.is-admin .foot-dot{display:none}
 .fill-tidy small{display:block;font:12.5px/1.4 var(--body);color:#4d5f50;margin-top:2px}
 .fill-tidy a{color:#2f6b3a}
 .fill-tidypeek{white-space:pre-wrap;font:12.5px/1.45 var(--body);background:#f6f8fb;border-radius:8px;padding:10px 12px;margin:6px 0 0;color:#33405a}
+
+#themeBtn .ic-sun{display:none}
+html.dark #themeBtn .ic-sun{display:block}
+html.dark #themeBtn .ic-moon{display:none}

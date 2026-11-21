@@ -180,7 +180,7 @@ function appNet() {
       if (di + dj > lim || (di === 0 && dj === 0)) continue;
       const al = Math.min(alphaOf(p, t), alphaOf(q, t)) * (1 - (di + dj) / (lim + 1)) * .38;
       if (al < .01) continue;
-      ctx.strokeStyle = `rgba(31,79,143,${al.toFixed(3)})`;
+      ctx.strokeStyle = `rgba(${document.documentElement.classList.contains('dark') ? '120,165,225' : '31,79,143'},${al.toFixed(3)})`;
       const x1 = X(p.i) + .5, y1 = Y(p.j) + .5, x2 = X(q.i) + .5, y2 = Y(q.j) + .5;
       ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y1); ctx.lineTo(x2, y2); ctx.stroke();
       links.push([p, q]);
@@ -188,7 +188,7 @@ function appNet() {
     for (const p of pts) {
       const al = alphaOf(p, t), x = X(p.i), y = Y(p.j), r = (p.hub ? 2.4 : 1.8) * d;
       if (p.hub) { ctx.strokeStyle = `rgba(184,134,43,${(.3 * al).toFixed(3)})`; ctx.strokeRect(x - 5 * d, y - 5 * d, 10 * d, 10 * d); }
-      ctx.fillStyle = p.hub ? `rgba(184,134,43,${(.55 * al).toFixed(3)})` : `rgba(31,79,143,${(.5 * al).toFixed(3)})`;
+      ctx.fillStyle = p.hub ? `rgba(184,134,43,${(.55 * al).toFixed(3)})` : `rgba(${document.documentElement.classList.contains('dark') ? '120,165,225' : '31,79,143'},${(.5 * al).toFixed(3)})`;
       ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
     }
     if (!reduce && links.length && pulses.length < 3 && Math.random() < .015) { const [p, q] = links[Math.random() * links.length | 0]; pulses.push({ p, q, k: 0 }); }
@@ -266,7 +266,17 @@ function startSaver() {
   arm();
   document.querySelectorAll('#saverNow,[data-saver]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); setTimeout(show, 50); }));
 }
+// light / dark theme, remembered on this device
+function applyTheme(dark) {
+  document.documentElement.classList.toggle('dark', dark);
+  const b = $('#themeBtn'); if (b) { b.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode'); b.title = dark ? 'Light mode' : 'Dark mode'; }
+}
+function wireTheme() {
+  applyTheme(document.documentElement.classList.contains('dark'));
+  $('#themeBtn')?.addEventListener('click', () => { const d = !document.documentElement.classList.contains('dark'); LS.set('ergsNL.theme', d ? 'dark' : 'light'); applyTheme(d); });
+}
 async function boot() {
+  wireTheme();
   $('#gateCrest').src = $('#mastCrest').src = $('#splashCrest').src = window.ERGS_CREST || '';
   mountIntro(); appNet(); startSaver();
   const raw = LS.get('ergsNL.k') || SS.get('ergsNL.k');
