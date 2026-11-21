@@ -1235,3 +1235,11 @@ body.is-admin .foot-saver,body.is-admin .foot-dot{display:none}
 .saver.monday .saver-period b{color:#f3d9a8;border-color:rgba(243,217,168,.5)}
 .saver-period .mon-line{font:italic 400 clamp(18px,2.6vw,26px)/1.3 var(--serif);color:rgba(255,255,255,.88);margin-top:4px}
 @media (prefers-reduced-motion:reduce){.saver.monday::after{animation:none}}
+
+/* Tip of the day shown in full on the home card */
+.h3-tipbody{margin:14px 0 4px}
+.h3-tipbody .tip-art{margin:0 0 12px;border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 6px 18px -8px rgba(0,0,0,.5)}
+.h3-tipbody .tip-art img,.h3-tipbody .tip-art svg{display:block;width:100%;height:auto;max-height:240px;object-fit:cover;object-position:top}
+.h3-steps{counter-reset:st;list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.h3-steps li{counter-increment:st;position:relative;padding:8px 10px 8px 40px;background:rgba(255,255,255,.1);border-radius:10px;font:15px/1.45 var(--body);color:#fff}
+.h3-steps li::before{content:counter(st);position:absolute;left:9px;top:8px;width:22px;height:22px;border-radius:50%;background:#fff;color:#7a1f29;font:700 12px/22px var(--body);text-align:center}

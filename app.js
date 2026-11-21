@@ -486,7 +486,8 @@ function renderHome3() {
   el.innerHTML = `<div class="h3-greet"><h1>${hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening'}${first ? ', ' + esc(first) : ''}</h1><p>${ed ? 'Editor view – what staff see today, plus your release desk.' : 'Three things for today – each takes a minute or two.'}</p></div>
   <div class="h3-grid${ed ? ' ed' : ''}">
     <article class="h3-card h3-tip">${t ? `<span class="h3-label">Tip of the day <b>${esc(t.app)}</b></span><h2>${esc(t.title)}</h2><p>${esc(t.why)}</p>
-      <div class="h3-actions"><button class="btn h3-btn" id="h3TipOpen">Show me how</button><button class="tried-btn${tried ? ' on' : ''}" data-tried="${esc(t.id)}">${tried ? '✓ Tried it' : 'I tried this'}</button></div>` : '<span class="h3-label">Tip of the day</span><h2>Loading…</h2>'}</article>
+      <div class="h3-tipbody">${tipArt(t)}${t.steps.length ? `<ol class="h3-steps">${t.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}</div>
+      <div class="h3-actions"><button class="tried-btn${tried ? ' on' : ''}" data-tried="${esc(t.id)}">${tried ? '✓ Tried it' : 'I tried this'}</button></div>` : '<span class="h3-label">Tip of the day</span><h2>Loading…</h2>'}</article>
     <a class="h3-card h3-binder" href="${L ? '#issue-' + esc(L.id) : '#binder'}" id="h3Binder">
       <span class="h3-label">The binder</span>
       <div class="h3-book" aria-hidden="true"><img alt="" src="${window.ERGS_CREST || ''}"><b>ERGS Digital Skills &amp; AI</b><i>${live.length} issues</i></div>
