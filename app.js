@@ -1455,6 +1455,7 @@ const Binder = (() => {
   function leaf(side, frontIdx, backIdx, reverse, under, done) {
     const s = st(), W = s.querySelector('.bk-slot').offsetWidth, H = s.querySelector('.bk-slot').offsetHeight, w = W / N, R = side === 'r';
     const make = idx => idx === 'paper' ? Object.assign(document.createElement('div'), { className: 'bk-page paper' }) : pageEl(idx);
+    const dur = single ? 820 : DUR, curl = single ? 95 : 62;
     const root = document.createElement('div'); root.className = 'bk-leaf ' + side;
     root.style.cssText = `left:${R ? (single ? 0 : W) : 0}px;width:${W}px;height:${H}px`;
     const faces = []; let parent = root;
@@ -1470,8 +1471,8 @@ const Binder = (() => {
     const cast = document.createElement('div'); cast.className = 'bk-cast'; s.append(root, cast);
     const sg = R ? -1 : 1, t0 = performance.now();
     const frame = now => {
-      let t = Math.min(1, (now - t0) / DUR); const e = ease(reverse ? 1 - t : t);
-      const th = 180 * e, bend = 62 * Math.sin(Math.PI * e) * (reverse ? -1 : 1), lift = Math.sin(Math.PI * e);
+      let t = Math.min(1, (now - t0) / dur); const e = ease(reverse ? 1 - t : t);
+      const th = 180 * e, bend = curl * Math.sin(Math.PI * e) * (reverse ? -1 : 1), lift = Math.sin(Math.PI * e);
       let acc = 0; const angs = [];
       faces.forEach(([el], i) => {
         const a = i === 0 ? th + bend * .55 : -bend * 1.1 / (N - 1);   // the edge by the spine leads, the free edge trails behind
@@ -1491,6 +1492,29 @@ const Binder = (() => {
     };
     requestAnimationFrame(frame);
   }
+  // phones (one page at a time): a fold sweeps from the right edge to the spine, lifting the page off the one beneath –
+  // the folded flap shows the paper's back, lit by the curl, with a soft shadow on the page being revealed
+  function peel(idx, reverse, done) {
+    const s = st(), slot = s.querySelector('.bk-slot'), W = slot.offsetWidth, H = slot.offsetHeight, t0 = performance.now(), dur = 900;
+    const box = document.createElement('div'); box.className = 'pl-peel';
+    const flat = document.createElement('div'); flat.className = 'pp-flat'; flat.appendChild(pageEl(idx));
+    const flap = document.createElement('div'); flap.className = 'pp-flap';
+    const inner = pageEl(idx); inner.style.cssText = `position:absolute;top:0;width:${W}px;height:${H}px`; flap.appendChild(inner);
+    const veil = document.createElement('i'); veil.className = 'pp-veil'; flap.appendChild(veil);
+    const shade = document.createElement('i'); shade.className = 'pp-shade';
+    box.append(flat, shade, flap); s.appendChild(box);
+    const frame = now => {
+      const t = Math.min(1, (now - t0) / dur), e = ease(reverse ? 1 - t : t);
+      const f = W * (1 - e), lift = Math.sin(Math.PI * e), ang = 180 - 38 * lift;   // fold position and how far the flap lifts off the page
+      flat.style.clipPath = `inset(0 ${(W - f).toFixed(1)}px 0 0)`;
+      flap.style.cssText = `left:${f.toFixed(1)}px;width:${(W - f + 1).toFixed(1)}px;height:${H}px;transform:rotateY(${-ang}deg)`;
+      inner.style.left = `${(-f).toFixed(1)}px`;
+      veil.style.background = `linear-gradient(to right,rgba(0,0,0,${(.28 * lift + .06).toFixed(3)}),rgba(255,255,255,0) 35%,rgba(0,0,0,${(.12 * lift).toFixed(3)}))`;
+      shade.style.cssText = `left:${f.toFixed(1)}px;width:${Math.min(W - f, 90 + 60 * lift).toFixed(1)}px;height:${H}px;background:linear-gradient(to right,rgba(0,0,0,${(.38 * Math.min(1, e * 6) * (1 - e * .7)).toFixed(3)}),transparent)`;
+      if (t < 1) requestAnimationFrame(frame); else { box.remove(); done(); }
+    };
+    requestAnimationFrame(frame);
+  }
   function flip(dir) {
     if (busy) return;
     const target = spread + dir; if (target < 0 || target > maxSpread()) return;
@@ -1499,8 +1523,9 @@ const Binder = (() => {
     if (reduced()) return fin();
     if (single) {
       const slot = s.querySelector('.bk-slot');
-      if (dir > 0) { slot.replaceChildren(pageEl(target)); leaf('r', spread, 'paper', false, null, fin); }
-      else leaf('r', target, 'paper', true, null, fin);
+      // one page at a time: the page peels away to the left and folds into the spine; its back shows through faintly like real paper
+      if (dir > 0) { slot.replaceChildren(pageEl(target)); peel(spread, false, fin); }
+      else peel(target, true, fin);
     } else if (dir > 0) {
       s.querySelector('.bk-slot.r').replaceChildren(pageEl(rightIdx(target)));
       s.classList.remove('end', 'closed'); if (rightIdx(target) >= pages.length) s.classList.add('end');

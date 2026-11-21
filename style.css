@@ -1255,3 +1255,18 @@ body.is-admin .foot-saver,body.is-admin .foot-dot{display:none}
 .bk-cast{position:absolute;top:0;pointer-events:none;z-index:5;mix-blend-mode:multiply}
 .bk-stage{perspective:2200px;perspective-origin:50% 40%}
 .bk-stage{perspective:3600px}
+
+/* phones: keep the turning page inside the book, and give its back a see-through paper look */
+.bk-stage.single{clip-path:inset(-60px 0 -60px 0)}
+.bk-stage.single .lf-face.back::before{content:"";position:absolute;inset:0;background:rgba(250,248,243,.86);z-index:1}
+.bk-stage.single .lf-face.back .lf-light{z-index:2}
+
+.pl-peel{position:absolute;inset:0;z-index:6;pointer-events:none;transform-style:preserve-3d}
+.pp-flat{position:absolute;inset:0}
+.pp-flat .bk-page{border-radius:4px}
+.pp-flap{position:absolute;top:0;overflow:hidden;transform-origin:left center;backface-visibility:visible;box-shadow:-6px 0 18px rgba(0,0,0,.28)}
+.pp-flap .bk-page{border-radius:0!important;box-shadow:none!important}
+.pp-flap .bk-page::after{display:none}
+.pp-flap::before{content:"";position:absolute;inset:0;background:rgba(250,248,243,.88);z-index:1}
+.pp-veil{position:absolute;inset:0;z-index:2}
+.pp-shade{position:absolute;top:0;z-index:0}
