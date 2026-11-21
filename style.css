@@ -1213,3 +1213,8 @@ body.is-admin .home3{padding-bottom:90px}
 body.is-admin .foot-saver{display:inline-block}
 .foot-dot{color:#c3cad4;font-size:12px;margin:0 8px}
 body.is-admin .foot-dot{display:none}
+
+.viewswitch .vs-saver{display:inline-flex;align-items:center;justify-content:center;padding:7px 10px 7px 9px;margin-left:2px;border-left:1px solid rgba(255,255,255,.12);border-radius:0 999px 999px 0;color:#6f7d93}
+.viewswitch .vs-saver:hover{color:#e2c48a}
+body.is-admin .foot-saver,body.is-admin .foot-dot{display:none}
+.viewswitch button{white-space:nowrap}

@@ -246,7 +246,7 @@ function startSaver() {
   let lastMove = 0; addEventListener('pointermove', e => { const now = Date.now(); if (now - lastMove > 1000) { lastMove = now; if (!el) arm(); } }, { passive: true });
   addEventListener('click', e => { if (e.target.closest && e.target.closest('.saver')) { e.preventDefault(); e.stopPropagation(); } }, true);
   arm();
-  $('#saverNow')?.addEventListener('click', e => { e.preventDefault(); setTimeout(show, 50); });
+  document.querySelectorAll('#saverNow,[data-saver]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); setTimeout(show, 50); }));
 }
 async function boot() {
   $('#gateCrest').src = $('#mastCrest').src = $('#splashCrest').src = window.ERGS_CREST || '';
@@ -360,7 +360,7 @@ function setView(staff) {
   if (staff && (h === 'admin' || h === 'tips')) { location.hash = ''; return; }
   render(); toast(staff ? 'Staff view – exactly what staff see' : 'Editor view');
 }
-document.addEventListener('click', e => { const b = e.target.closest('#viewSwitch button'); if (b) setView(b.dataset.v === 'staff'); });
+document.addEventListener('click', e => { const b = e.target.closest('#viewSwitch button[data-v]'); if (b) setView(b.dataset.v === 'staff'); });
 function route() { render(); window.scrollTo(0, 0); }
 const ADMIN_TABS = h => [['admin', 'Release desk'], ['tips', 'Tips editor'], ['help', 'Help sheets'], ['flow', 'Workflow']].map(([k, l]) => `<a href="#${k}" class="${h === k ? 'on' : ''}">${l}</a>`).join('');
 function render() {
@@ -372,7 +372,7 @@ function render() {
   document.body.classList.toggle('clean', !canManage());
   document.body.classList.toggle('is-admin', ADMIN);
   const vs = $('#viewSwitch'); vs.hidden = !ADMIN;
-  vs.querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'staff') === STAFFVIEW));
+  vs.querySelectorAll('button[data-v]').forEach(b => b.classList.toggle('on', (b.dataset.v === 'staff') === STAFFVIEW));
   document.querySelectorAll('.admin-tabs').forEach(t => { t.hidden = !canManage(); t.innerHTML = ADMIN_TABS(h); });
   $('#library').hidden = $('#reader').hidden = $('#admin').hidden = $('#binder').hidden = $('#prompts').hidden = $('#flow').hidden = $('#tips').hidden = $('#help').hidden = $('#sheetView').hidden = true;
   document.body.classList.toggle('sheet-on', h.startsWith('sheet-'));
