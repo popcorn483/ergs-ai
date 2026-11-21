@@ -342,24 +342,25 @@ function setView(staff) {
 }
 document.addEventListener('click', e => { const b = e.target.closest('#viewSwitch button'); if (b) setView(b.dataset.v === 'staff'); });
 function route() { render(); window.scrollTo(0, 0); }
-const ADMIN_TABS = h => [['admin', 'Release desk'], ['tips', 'Tips editor'], ['help', 'Help sheets']].map(([k, l]) => `<a href="#${k}" class="${h === k ? 'on' : ''}">${l}</a>`).join('');
+const ADMIN_TABS = h => [['admin', 'Release desk'], ['tips', 'Tips editor'], ['help', 'Help sheets'], ['flow', 'Workflow']].map(([k, l]) => `<a href="#${k}" class="${h === k ? 'on' : ''}">${l}</a>`).join('');
 function render() {
   if (!CONTENT) return;
   if (location.hash === '#binder' && Binder.active) { Binder.refresh(); return; }
   const h = location.hash.slice(1);
-  document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === ((h === 'admin' || h === 'tips' || (canManage() && h === 'help')) ? 'admin' : h === 'binder' ? 'binder' : h === 'prompts' ? 'prompts' : (h === 'help' || h.startsWith('sheet-') || h.startsWith('issue-')) ? '' : 'library')));
+  document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === ((h === 'admin' || h === 'tips' || h === 'flow' || (canManage() && h === 'help')) ? 'admin' : h === 'binder' ? 'binder' : h === 'prompts' ? 'prompts' : (h === 'help' || h.startsWith('sheet-') || h.startsWith('issue-')) ? '' : 'library')));
   $('#adminLink').hidden = !canManage();
   document.body.classList.toggle('clean', !canManage());
   document.body.classList.toggle('is-admin', ADMIN);
   const vs = $('#viewSwitch'); vs.hidden = !ADMIN;
   vs.querySelectorAll('button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'staff') === STAFFVIEW));
   document.querySelectorAll('.admin-tabs').forEach(t => { t.hidden = !canManage(); t.innerHTML = ADMIN_TABS(h); });
-  $('#library').hidden = $('#reader').hidden = $('#admin').hidden = $('#binder').hidden = $('#prompts').hidden = $('#tips').hidden = $('#help').hidden = $('#sheetView').hidden = true;
+  $('#library').hidden = $('#reader').hidden = $('#admin').hidden = $('#binder').hidden = $('#prompts').hidden = $('#flow').hidden = $('#tips').hidden = $('#help').hidden = $('#sheetView').hidden = true;
   document.body.classList.toggle('sheet-on', h.startsWith('sheet-'));
   document.body.classList.toggle('binder-on', h === 'binder');
   if (h === 'admin') { $('#admin').hidden = false; renderAdmin(); }
   else if (h === 'binder') { $('#binder').hidden = false; Binder.open(); }
   else if (h === 'prompts') { $('#prompts').hidden = false; renderPrompts(); document.title = 'Prompt library · ERGS Digital Skills & AI'; }
+  else if (h === 'flow') { if (!canManage()) { location.replace('#'); return; } $('#flow').hidden = false; renderFlow(); document.title = 'Workflow · ERGS Digital Skills & AI'; }
   else if (h === 'tips') { if (!canManage()) { location.replace('#help'); return; } $('#tips').hidden = false; renderTips(); document.title = 'Quick tips · ERGS Digital Skills & AI'; }
   else if (h === 'help') { $('#help').hidden = false; renderSheets(); document.title = 'Help sheets · ERGS Digital Skills & AI'; }
   else if (h.startsWith('sheet-')) { $('#sheetView').hidden = false; renderSheet(+h.slice(6)); }
@@ -531,6 +532,37 @@ function renderReader(id) {
   sheet.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(b.parentElement.querySelector('q').textContent); toast('Prompt copied'); } catch (e) { toast('Select the prompt text to copy it'); }
   }));
+}
+
+/* ---------- admin: how everything fits together ---------- */
+function renderFlow() {
+  const all = allIssues(), st = s => all.filter(i => status(i) === s).length;
+  const live = st('live'), locked = st('locked'), sched = st('sched'), latest = all.filter(i => status(i) === 'live').pop();
+  const nPrompts = allPrompts().length, nTips = (typeof visibleTips === 'function' ? visibleTips().length : 0);
+  const step = (ic, t, d, href, stat) => `<${href ? `a href="${href}"` : 'div'} class="fl-step">${stat ? `<b class="fl-stat">${stat}</b>` : ''}<span class="fl-ic" aria-hidden="true">${ic}</span><h4>${t}</h4><p>${d}</p>${href ? '<span class="fl-go">Open →</span>' : ''}</${href ? 'a' : 'div'}>`;
+  const lane = (cls, title, sub, steps) => `<section class="fl-lane ${cls}"><header><h3>${title}</h3><p>${sub}</p></header><ol class="fl-row">${steps.map(s => `<li>${s}</li>`).join('')}</ol></section>`;
+  $('#flowBody').innerHTML = `<div class="fl-head"><span class="eyebrow">Admin</span><h1>Workflow</h1><p class="muted">How staff use ERGS Digital Skills &amp; AI, and what you do to keep it running. Tap any step to go there.</p></div>
+  ${lane('staff', 'Staff journey', 'What a member of staff does, from first install to everyday use.', [
+    step('📲', 'Install', 'Open the link or scan the QR code, then Add to Home Screen.'),
+    step('🔑', 'Unlock', 'Staff password once per device – content stays encrypted.'),
+    step('🙋', 'Name', 'First and last name, so you can see who is using it.', '', ''),
+    step('🎯', 'Pick subjects', 'Pinterest-style tiles tailor the prompt library.'),
+    step('💡', 'Tip of the day', 'A quick win each day – tap “I tried this”.', '#', nTips + ' tips'),
+    step('📰', 'Read issues', 'Latest issue, carousel and the binder.', '#binder', live + ' released'),
+    step('✨', 'Use prompts', 'Filter by area, subject, stage or tool – Send to Gemini/Copilot.', '#prompts', nPrompts + ' prompts'),
+    step('💬', 'Share', '“How I used it” one-liners under each issue.')])}
+  ${lane('admin', 'Your workflow', 'Your regular jobs as editor – most take a minute or two.', [
+    step('🗂️', 'Order the series', 'Drag, arrows or type a number. Released issues stay locked in place.', '#admin', (live + locked + sched) + ' issues'),
+    step('📅', 'Release or schedule', 'Release the next issue now, or set a date.', '#admin', latest ? 'Latest: ' + latest.n : ''),
+    step('✏️', 'Edit or upload', 'Fix a title, replace a PDF, or upload your own issue.', '#admin'),
+    step('💡', 'Curate tips', 'Hide tips, add your own, attach screenshots.', '#tips'),
+    step('🧹', 'Moderate', 'Remove any “How I used it” comment that isn’t suitable (open an issue).'),
+    step('📊', 'Check usage', 'Named staff, devices, tips tried and installs.', '#admin')])}
+  ${lane('behind', 'Behind the scenes', 'Where things live – nothing here needs your attention day to day.', [
+    step('🔒', 'Encrypted content', 'Issues, prompts and comments are locked with the staff password.'),
+    step('☁️', 'Firebase (ergs-ai)', 'Release state, usage, tips tried and comments.'),
+    step('🌐', 'GitHub Pages', 'The app itself, with offline caching and auto-update.')])}
+  <p class="muted fl-foot">Right now: ${live} released · ${sched} scheduled · ${locked} locked · ${nPrompts} prompts · ${nTips} tips.</p>`;
 }
 
 /* ---------- prompt library ---------- */
