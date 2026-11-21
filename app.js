@@ -495,7 +495,7 @@ function renderHome3() {
       <div class="h3-actions"><span class="btn h3-btn primary">${L ? 'Open at the latest' : 'Open the binder'}</span><span class="h3-link" data-binder>Start from the cover →</span></div></a>
     <article class="h3-card h3-prompts">${canManage() ? `<span class="h3-label">Prompt bank</span>
       <h2>${pr.length} prompts${mine ? ` for ${esc(mine[0])}${mine.length > 1 ? ' and more' : ''}` : ''}</h2>` : `<h2>Prompt Bank</h2>`}
-      ${pd ? `<div class="h3-today"><span class="h3-tlabel">Today’s prompt <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></span><h3>${esc(pd.title)}</h3><pre>${esc(pd.text).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`)}</pre><button class="btn h3-btn h3-use" id="h3TryPrompt">Use this prompt</button></div>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
+      ${pd ? `<div class="h3-today"><span class="h3-tlabel">Today’s prompt <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></span><h3>${esc(pd.title)}</h3><pre class="${pd.text.length > 650 ? 'xl' : pd.text.length > 420 ? 'l' : ''}">${esc(pd.text).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`)}</pre><button class="btn h3-btn h3-use" id="h3TryPrompt">Use this prompt</button></div>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
       <div class="h3-actions"><a class="h3-link" href="#prompts">Browse all prompts →</a></div></article>
     ${ed ? edCard() : ''}
   </div>

@@ -1270,3 +1270,10 @@ body.is-admin .foot-saver,body.is-admin .foot-dot{display:none}
 .pp-flap::before{content:"";position:absolute;inset:0;background:rgba(250,248,243,.88);z-index:1}
 .pp-veil{position:absolute;inset:0;z-index:2}
 .pp-shade{position:absolute;top:0;z-index:0}
+
+/* Today's prompt: show it whole, never cut off or spilling out of the card */
+.h3-today{min-width:0;max-width:100%;box-sizing:border-box}
+.h3-today pre{display:block!important;-webkit-line-clamp:unset!important;overflow:visible!important;max-width:100%;overflow-wrap:anywhere;word-break:normal}
+.h3-today pre.l{font-size:12.5px;line-height:1.45}
+.h3-today pre.xl{font-size:12px;line-height:1.42}
+.h3-prompts{min-width:0;overflow:hidden}
