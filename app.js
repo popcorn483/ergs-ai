@@ -205,6 +205,18 @@ function appNet() {
 }
 /* ---------- screensaver: the intro, after 5 minutes without any activity ---------- */
 const SAVER_MS = 5 * 60 * 1000;
+// ERGS school day (bell times from the ICT dept)
+const BELLS = [['9:00', '9:35', 'Period 1'], ['9:35', '10:10', 'Period 2'], ['10:10', '10:45', 'Period 3'], ['10:45', '11:00', 'Form Time A'], ['11:00', '11:15', 'Form Time B'], ['11:15', '11:50', 'Period 4'], ['11:50', '12:25', 'Period 5'], ['12:25', '13:05', 'Period 6A'], ['13:05', '13:45', 'Period 6B'], ['13:45', '14:20', 'Period 7'], ['14:20', '14:55', 'Period 8'], ['14:55', '15:25', 'Period 9']];
+function schoolPeriod(d) {
+  const day = d.getDay(); if (day === 0 || day === 6) return ['Weekend', ''];
+  const m = d.getHours() * 60 + d.getMinutes(), mins = t => { const [h, mm] = t.split(':').map(Number); return h * 60 + mm; };
+  const ft = t => { const [h, mm] = t.split(':').map(Number); return `${h > 12 ? h - 12 : h}:${String(mm).padStart(2, '0')}`; };
+  if (m < mins('9:00')) return ['Before school', m >= mins('7:30') ? `Period 1 starts at 9:00` : ''];
+  if (m >= mins('15:25')) return ['After school', ''];
+  const i = BELLS.findIndex(([a, b]) => m >= mins(a) && m < mins(b)); if (i < 0) return null;
+  const [, end, name] = BELLS[i], left = mins(end) - m, next = BELLS[i + 1];
+  return [name, `${left} min left · ${next ? `${next[2]} at ${ft(end)}` : `home time at ${ft(end)}`}`];
+}
 function startSaver() {
   let t, el = null;
   const html = () => `<div class="sp-bg"></div><div class="sp-center saver-drift">
@@ -215,14 +227,14 @@ function startSaver() {
       <p class="sp-school">Enniskillen Royal Grammar School</p>
       <h1 class="sp-title">ERGS Digital Skills &amp; AI</h1>
       <div class="sp-rule"></div>
-      <p class="saver-clock"></p><p class="saver-date"></p>
+      <p class="saver-clock"></p><p class="saver-date"></p><p class="saver-period"></p>
     </div><p class="sp-foot">Tap or press any key to continue</p>`;
   const blocked = () => document.getElementById('splash') || !$('#gate').hidden || $('#app').hidden || document.querySelector('dialog[open], .modal:not([hidden])');
   const show = () => {
     if (el || blocked() || document.hidden) return arm();
     el = document.createElement('div'); el.className = 'splash saver'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Screensaver – press any key to continue');
     el.innerHTML = html(); document.body.appendChild(el); mountIntro();
-    const ck = el.querySelector('.saver-clock'), dt = el.querySelector('.saver-date'), tick = () => { if (!el) return; const d = new Date(); ck.textContent = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); dt.textContent = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); setTimeout(tick, 10000); }; tick();
+    const ck = el.querySelector('.saver-clock'), dt = el.querySelector('.saver-date'), tick = () => { if (!el) return; const d = new Date(); ck.textContent = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); dt.textContent = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); const pp = el.querySelector('.saver-period'), pn = schoolPeriod(d); pp.innerHTML = pn ? `<b>${esc(pn[0])}</b>${pn[1] ? `<span>${esc(pn[1])}</span>` : ''}` : ''; pp.hidden = !pn; setTimeout(tick, 10000); }; tick();
   };
   const hide = () => { const x = el; el = null; x.classList.add('out'); setTimeout(() => x.remove(), 650); };
   const arm = () => { clearTimeout(t); t = setTimeout(show, SAVER_MS); };
