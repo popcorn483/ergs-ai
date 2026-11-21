@@ -796,8 +796,8 @@ function renderPrompts() {
   $('#plCrumb').hidden = choosing;
   if (choosing) {
     $('#plTitle').textContent = 'What do you want a prompt for?'; $('#plMore').hidden = true;
-    $('#plPick').innerHTML = PL_CATS.filter(c => counts[c]).map(c => { const [ic, col] = PL_AREA[c]; return `<button class="pp-card" style="--c:${col}" data-cat="${esc(c)}"><span class="pp-ic" aria-hidden="true">${ic}</span><b>${esc(c)}</b><span class="pp-desc">${esc(PL_DESC[c] || '')}</span><small>${counts[c]} prompt${counts[c] === 1 ? '' : 's'}</small></button>`; }).join('')
-      + `<button class="pp-card pp-all" data-cat=""><span class="pp-ic" aria-hidden="true">🗂️</span><b>Show me everything</b><span class="pp-desc">Browse every prompt with filters</span><small>${base.length} prompts</small></button>`;
+    $('#plPick').innerHTML = PL_CATS.filter(c => counts[c]).map(c => { const [ic, col] = PL_AREA[c]; return `<button class="pp-card" style="--c:${col}" data-cat="${esc(c)}"><span class="pp-ic" aria-hidden="true">${ic}</span><b>${esc(c)}</b><span class="pp-desc">${esc(PL_DESC[c] || '')}</span></button>`; }).join('')
+      + `<button class="pp-card pp-all" data-cat=""><span class="pp-ic" aria-hidden="true">🗂️</span><b>Show me everything</b><span class="pp-desc">Browse every prompt with filters</span></button>`;
     return;
   }
   { const c = plFilt.cat || '', [ic, col] = PL_AREA[c] || ['🔎', '#14284b'];
