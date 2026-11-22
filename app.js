@@ -2361,3 +2361,44 @@ document.addEventListener('click', async e => {
   const r = e.target.closest('[data-pe-restore]'); if (!r) return;
   try { await deleteDoc(doc(DB, 'newsletterPromptEdits', r.dataset.peRestore)); toast('Restored'); } catch (er) { toast('Couldn’t restore – check you’re signed in'); }
 });
+
+
+// ---------- My settings: change or reset this device's choices ----------
+function openSettings() {
+  const name = LS.get('ergsNL.name') || '', roles = myRoles(), subs = mySubjects() || [], lv = myLevels(), dark = document.documentElement.classList.contains('dark');
+  const lvText = subs.filter(x => !NOLEVEL.includes(x)).map(x => `${x}${lv[x] && lv[x].length ? ' (' + lv[x].join(', ') + ')' : ''}`).join(' · ');
+  const sheet = document.createElement('div'); sheet.className = 'fill-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-label', 'My settings');
+  sheet.innerHTML = `<div class="fill-card set-card"><header><span class="eyebrow">This device</span><h3>My settings</h3><button type="button" class="fill-x" aria-label="Close">×</button></header>
+    <section class="set-sec"><h4>Your name</h4><div class="set-row"><input id="setName" maxlength="60" value="${esc(name)}" placeholder="First and last name"><button class="btn small" id="setNameSave">Save</button></div></section>
+    <section class="set-sec"><h4>Role, subjects and levels</h4><p class="set-val">${esc(roles.join(', ') || 'No role chosen')}<br>${esc(lvText || subs.join(', ') || 'No subjects chosen')}</p><button class="btn small" id="setSubj">Change role, subjects and levels</button></section>
+    <section class="set-sec"><h4>My AI tool</h4><div class="tp-seg" id="setTool">${toolPick(myTool(), 'data-st')}</div></section>
+    <section class="set-sec"><h4>Appearance</h4><div class="tp-seg"><button type="button" class="tp-opt${dark ? '' : ' on'}" data-th="light">☀️ Light</button><button type="button" class="tp-opt${dark ? ' on' : ''}" data-th="dark">🌙 Dark</button></div></section>
+    <section class="set-sec"><h4>My data on this device</h4><p class="set-val">${savedKeys().length + myVersions().length} saved prompts · ${usedLog().length} prompts used · ${Object.keys(triedMap()).length} tips tried</p>
+      <div class="set-btns"><button class="btn small" data-clear="saved">Clear saved prompts</button><button class="btn small" data-clear="history">Clear my CPD history</button></div></section>
+    <section class="set-sec set-danger"><h4>Start again</h4><p class="set-val">Reset your choices (role, subjects, levels, AI tool and theme) and go through the welcome screens again. Your saved prompts and history are kept.</p>
+      <div class="set-btns"><button class="btn small" id="setReset">Reset my settings</button><button class="btn small set-red" id="setSignout">Remove everything from this device</button></div></section>
+  </div>`;
+  document.body.appendChild(sheet); document.body.classList.add('sp-open');
+  const close = () => { sheet.remove(); document.body.classList.remove('sp-open'); };
+  sheet.querySelector('.fill-x').onclick = close; sheet.addEventListener('click', e => { if (e.target === sheet) close(); });
+  $('#setNameSave').onclick = () => { const v = $('#setName').value.trim().replace(/\s+/g, ' '); if (v.split(' ').length < 2) return toast('Please enter your first and last name'); LS.set('ergsNL.name', v.slice(0, 60)); LS.del('ergsNL.nameSent'); trackVisit?.(); toast('Name saved'); render(); };
+  $('#setSubj').onclick = () => { close(); askSubjects(true); };
+  $('#setTool').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; setMyTool(b.dataset.st); $('#setTool').innerHTML = toolPick(myTool(), 'data-st'); toast(b.dataset.st ? `Prompts will open in ${b.dataset.st}` : 'No default AI tool'); };
+  sheet.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { const d = b.dataset.th === 'dark'; LS.set('ergsNL.theme', d ? 'dark' : 'light'); applyTheme(d); sheet.querySelectorAll('[data-th]').forEach(x => x.classList.toggle('on', x === b)); });
+  sheet.querySelectorAll('[data-clear]').forEach(b => b.onclick = () => {
+    if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to confirm'; return; }
+    if (b.dataset.clear === 'saved') { LS.del('ergsNL.saved'); LS.del('ergsNL.mine'); toast('Saved prompts cleared'); } else { LS.del('ergsNL.used'); LS.del('ergsNL.rated'); toast('CPD history cleared'); }
+    close(); openSettings();
+  });
+  $('#setReset').onclick = e => {
+    const b = e.currentTarget; if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to reset'; return; }
+    ['ergsNL.subjects', 'ergsNL.roles', 'ergsNL.levels', 'ergsNL.tool', 'ergsNL.theme', 'ergsNL.fill', 'ergsNL.sv'].forEach(k => LS.del(k));
+    applyTheme(false); Object.assign(plFilt, { q: '', cat: null, subj: '', stage: '', tool: '', subjSet: false }); close(); toast('Settings reset'); render(); askSubjects(true);
+  };
+  $('#setSignout').onclick = e => {
+    const b = e.currentTarget; if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again: removes your name, choices, saved prompts and history'; return; }
+    try { Object.keys(localStorage).filter(k => k.startsWith('ergsNL.') && k !== 'ergsNL.dev').forEach(k => localStorage.removeItem(k)); sessionStorage.clear(); } catch (er) {}
+    location.reload();
+  };
+}
+$('#settingsBtn')?.addEventListener('click', openSettings);
