@@ -1612,7 +1612,7 @@ const Binder = (() => {
         <div class="cvf-top"><img src="${window.ERGS_CREST || ''}" alt=""><div><b>Enniskillen Royal Grammar School</b><span>Staff Professional Learning</span></div></div>
         <div class="cvf-title"><p class="cvf-eyebrow">Whole-School AI Skills CPD Portfolio</p><h1>ERGS Digital<br>Skills &amp; AI</h1><h2>A Teacher’s Guide</h2><div class="cvf-rule"></div>
           <p class="cvf-lede">Practical, classroom-focused guidance on using Microsoft Copilot, Google Gemini and NotebookLM to support teaching and learning.</p></div>
-        <div class="cvf-foot"><div><small>Collected edition</small><b>${n} issues</b></div><div><small>Academic year</small><b>${y}–${String(y + 1).slice(2)}</b></div><div><small>Audience</small><b>All teaching staff</b></div></div>`;
+        <div class="cvf-foot"><div><small>Collected edition</small><b>${n} issues</b></div><div><small>Academic year</small><b>${y}–${String(y + 1).slice(2)}</b></div><div><small>Audience</small><b>All staff</b></div></div>`;
     } else if (p.kind === 'contents') {
       el.classList.add('contents');
       el.innerHTML = `<h3>Contents${p.cont ? ' <small>continued</small>' : ''}</h3><ol>${p.list.map(i => `<li data-go="${i._page - 1}"${status(i) !== 'live' ? ' class="lk" title="Locked – only you can see this"' : ''}><b>${i.n}</b><span>${esc(i.title)}</span><i>${i._page}</i></li>`).join('')}</ol>`;
