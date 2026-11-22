@@ -1,6 +1,6 @@
 // ERGS Digital Skills & AI: lets phones install the library as an app and read released issues offline.
 // Pages and code come fresh from the network when online; issue files (encrypted) are kept for offline reading.
-const CACHE = 'ergsai-v96';
+const CACHE = 'ergsai-v99';
 const SHELL = ['./', 'index.html', 'style.css', 'dark.css', 'app.js', 'config.js', 'crest.js', 'share.js', 'tips.js', 'skills.js', 'skills-art.js', 'tips-art.js', 'skillart-draw.js', 'tipshots.js', 'sheets.js', 'manifest.webmanifest', 'icons/icon-192.png', 'fonts/lemonmilk-bold.woff', 'fonts/lemonmilk-regular.woff', 'fonts/lemonmilk-light.woff'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));

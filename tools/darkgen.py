@@ -7,7 +7,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 css = open(os.path.join(ROOT, 'style.css'), encoding='utf-8').read()
 css = re.sub(r'/\*.*?\*/', '', css, flags=re.S)
 
-SKIP_SEL = re.compile(r'bk-page|\.lf-|pp-flat|pp-flap|pl-peel|splash|gate|saver|coin|orbit|tip-art|pp-card|\.h3-tip\b|h3-steps|app-bg|app-net|print|@page|\.wk-|mon-line|bk-cast|h3-btn|tried-btn')
+SKIP_SEL = re.compile(r'bk-page|\.lf-|pp-flat|pp-flap|pl-peel|splash|gate|saver|coin|orbit|tip-art|pp-card|\.h3-tip\b|h3-steps|app-bg|app-net|print|@page|\.wk-|mon-line|bk-cast|h3-btn|tried-btn|cpd-')
 NAMED = {'white': (255, 255, 255), '#fff': (255, 255, 255)}
 
 def parse_hex(h):

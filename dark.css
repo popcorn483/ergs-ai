@@ -255,6 +255,19 @@ html.dark .fill-tidypeek{background:#171f2a;color:#bfc8db}
 html.dark .pl-fit{color:#e5d9bb;background:#342c19;border:1px solid #584e34}
 html.dark .pl-fit b{color:#e4d6b7}
 html.dark mark.ph.def{background:#19202c}
+html.dark .pl-star.on{color:#daca9e}
+html.dark .pl-score{color:#b6dfbe;background:#202b20}
+html.dark .pl-rate{background:#171f2b;border:1px solid #373e48;color:#bfc8db}
+html.dark .pl-rate button{border:1px solid #304059;background:#151c26;color:var(--navy-text)}
+html.dark .fill-save{color:#e2d5b2!important}
+html.dark .h3-cpd .linkbtn{color:var(--navy-text, #c2d0e8)}
+html.dark .h3-pend a{color:#e2ceb2}
+html.dark .fl-shared{border:2px solid #584e34}
+html.dark .sq-list li{background:#151c26;border:1px solid #2e3c50}
+html.dark .sq-list b{color:var(--navy-text)}
+html.dark .sq-list span{color:#b8bec9}
+html.dark .sq-list pre{background:#171f2a}
+html.dark .sq-live summary{color:#b5bcd2}
 
 /* hand-tuned extras */
 html.dark .app-bg{background:linear-gradient(180deg,#0b111a 0%,#0d1420 60%,#12130f 100%)}

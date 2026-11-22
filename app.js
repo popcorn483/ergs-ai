@@ -484,7 +484,7 @@ function carousel() {
 }
 /* ---------- staff home: three clean cards (Tip of the day · Binder · Prompt bank) ---------- */
 function renderHome3() {
-  const el = $('#home3'); if (!el) return;
+  const el = $('#home3'); if (!el) return; watchShared(); watchUses();
   el.hidden = false; const ed = canManage();
   const t = window.TODAY_TIP, live = allIssues().filter(i => status(i) === 'live'), L = live[live.length - 1];
   const mine = !ed && (mySubjects() || []).length ? mySubjects() : null;
@@ -493,7 +493,7 @@ function renderHome3() {
   const pd = pool.length ? pool[Math.floor(Date.now() / 864e5) % pool.length] : null;
   const hr = new Date().getHours(), first = (LS.get('ergsNL.name') || '').split(' ')[0];
   const tried = t && triedMap()[t.id];
-  el.innerHTML = `<div class="h3-greet"><h1>${hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening'}${first ? ', ' + esc(first) : ''}</h1><p>${ed ? 'Editor view – what staff see today, plus your release desk.' : 'Three things for today – each takes a minute or two.'}</p></div>
+  el.innerHTML = `<div class="h3-greet"><h1>${hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening'}${first ? ', ' + esc(first) : ''}</h1><p>${ed ? 'Editor view – what staff see today, plus your release desk.' : 'Three things for today – each takes a minute or two.'}</p><p class="h3-cpd"><button type="button" class="linkbtn" id="h3Cpd">📄 My CPD record</button></p></div>
   <div class="h3-grid${ed ? ' ed' : ''}">
     <article class="h3-card h3-tip">${t ? `<span class="h3-label">Tip of the day <b>${esc(t.app)}</b></span><h2>${esc(t.title)}</h2><p>${esc(t.why)}</p>
       <div class="h3-tipbody">${tipArt(t)}${t.steps.length ? `<ol class="h3-steps">${t.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}</div>
@@ -518,6 +518,7 @@ function renderHome3() {
   $('#h3TipOpen')?.addEventListener('click', () => showTipSheet(t));
   el.querySelectorAll('[data-area]').forEach(b => b.addEventListener('click', () => { plFilt.cat = b.dataset.area; plFilt.keepCat = true; plFilt.shown = 40; location.hash = 'prompts'; }));
   $('.h3-today pre')?.addEventListener('click', () => $('#h3TryPrompt').click());
+  $('#h3Cpd')?.addEventListener('click', openCPD);
   $('#h3TryPrompt')?.addEventListener('click', () => { const tmp = document.createElement('div'); tmp.innerHTML = promptCard(pd); const card = tmp.firstElementChild; card.hidden = true; document.body.appendChild(card); openFill(card, (txt, go) => { card.remove(); go && go !== 'copy' ? sendText(txt, go) : copyText(txt, null); }, true); if (!document.querySelector('.fill-sheet')) card.remove(); });
 }
 function edCard() {
@@ -528,6 +529,7 @@ function edCard() {
     <div class="h3-stats"><div><b>${st('live')}</b><span>released</span></div><div><b>${sch.length}</b><span>scheduled</span></div><div><b>${st('locked')}</b><span>to come</span></div></div>
     ${next ? `<div class="h3-next"><span class="h3-tlabel">Next to release</span><h3>Issue ${next.n}: ${esc(next.title)}</h3><div class="h3-actions"><button class="btn h3-btn primary" id="h3Release" data-id="${esc(next.id)}">Release now</button><a class="h3-link" href="#issue-${esc(next.id)}">Preview →</a></div></div>` : '<p>Nothing waiting to be released.</p>'}
     ${sch.length ? `<p class="h3-sch">Scheduled: ${sch.slice(0, 2).map(i => `Issue ${i.n} on ${fmtDate(RELEASES[i.id].d)}`).join(' · ')}</p>` : ''}
+    ${SHARED.filter(x => x.st === 'pending').length ? `<p class="h3-pend"><a href="#flow">✍️ ${SHARED.filter(x => x.st === 'pending').length} shared prompt${SHARED.filter(x => x.st === 'pending').length === 1 ? '' : 's'} waiting for you to check →</a></p>` : ''}
     <div class="h3-edlinks"><a href="#admin">Release desk</a><a href="#tips">Tips</a><a href="#flow">Workflow</a><a href="#admin">Usage</a></div></article>`;
 }
 function showTipSheet(t) {
@@ -641,12 +643,14 @@ function renderReader(id) {
 
 /* ---------- admin: how everything fits together ---------- */
 function renderFlow() {
+  watchShared();
   const all = allIssues(), st = s => all.filter(i => status(i) === s).length;
   const live = st('live'), locked = st('locked'), sched = st('sched'), latest = all.filter(i => status(i) === 'live').pop();
   const nPrompts = allPrompts().length, nTips = (typeof visibleTips === 'function' ? visibleTips().length : 0);
   const step = (ic, t, d, href, stat) => `<${href ? `a href="${href}"` : 'div'} class="fl-step">${stat ? `<b class="fl-stat">${stat}</b>` : ''}<span class="fl-ic" aria-hidden="true">${ic}</span><h4>${t}</h4><p>${d}</p>${href ? '<span class="fl-go">Open →</span>' : ''}</${href ? 'a' : 'div'}>`;
   const lane = (cls, title, sub, steps) => `<section class="fl-lane ${cls}"><header><h3>${title}</h3><p>${sub}</p></header><ol class="fl-row">${steps.map(s => `<li>${s}</li>`).join('')}</ol></section>`;
   $('#flowBody').innerHTML = `<div class="fl-head"><span class="eyebrow">Admin</span><h1>Workflow</h1><p class="muted">How staff use ERGS Digital Skills &amp; AI, and what you do to keep it running. Tap any step to go there.</p></div>
+  ${sharedQueueHTML()}
   ${lane('staff', 'Staff journey', 'What a member of staff does, from first install to everyday use.', [
     step('📲', 'Install', 'Open the link or scan the QR code, then Add to Home Screen.'),
     step('🔑', 'Unlock', 'Staff password once per device – content stays encrypted.'),
@@ -671,8 +675,8 @@ function renderFlow() {
 }
 
 /* ---------- prompt library ---------- */
-const PL_AREA = { '': ['🗂️', '#14284b'], 'Planning': ['🗓️', '#1f4f8f'], 'Resources': ['📄', '#2f7d6b'], 'Assessment & Feedback': ['✅', '#7b2d42'], 'Inclusion & SEN': ['🤝', '#b5476a'], 'Revision & Exams': ['📚', '#6b5b95'], 'Engagement': ['✨', '#c05621'], 'Pastoral & Wellbeing': ['💚', '#2f855a'], 'Admin & Communication': ['✉️', '#4a5578'], 'Leadership & Data': ['📊', '#2c5282'], 'Pupil AI Literacy': ['🤖', '#0f7a74'], 'Metacognition & Cowriting': ['🧠', '#8a5a14'] };
-const PL_DESC = { 'Planning': 'Lesson plans, schemes of work, starters and plenaries', 'Resources': 'Worksheets, slides, reading texts and model answers', 'Assessment & Feedback': 'Quizzes, mark schemes and feedback comments', 'Inclusion & SEN': 'Scaffolds, simplified texts and support for every learner', 'Revision & Exams': 'Revision guides, exam-style questions and practice', 'Engagement': 'Hooks, games, debates and real-world links', 'Pastoral & Wellbeing': 'Form time, PD and wellbeing activities', 'Admin & Communication': 'Emails, letters, reports and minutes', 'Leadership & Data': 'Department planning, data and policy', 'Pupil AI Literacy': 'Teaching pupils to use AI safely and well', 'Metacognition & Cowriting': 'Live modelling, co-writing and plan, monitor, evaluate routines' };
+const PL_AREA = { '': ['🗂️', '#14284b'], 'Planning': ['🗓️', '#1f4f8f'], 'Resources': ['📄', '#2f7d6b'], 'Assessment & Feedback': ['✅', '#7b2d42'], 'Inclusion & SEN': ['🤝', '#b5476a'], 'Revision & Exams': ['📚', '#6b5b95'], 'Engagement': ['✨', '#c05621'], 'Pastoral & Wellbeing': ['💚', '#2f855a'], 'Admin & Communication': ['✉️', '#4a5578'], 'Leadership & Data': ['📊', '#2c5282'], 'Pupil AI Literacy': ['🤖', '#0f7a74'], 'Metacognition & Cowriting': ['🧠', '#8a5a14'], '__saved': ['⭐', '#8a6a12'] };
+const PL_DESC = { 'Planning': 'Lesson plans, schemes of work, starters and plenaries', 'Resources': 'Worksheets, slides, reading texts and model answers', 'Assessment & Feedback': 'Quizzes, mark schemes and feedback comments', 'Inclusion & SEN': 'Scaffolds, simplified texts and support for every learner', 'Revision & Exams': 'Revision guides, exam-style questions and practice', 'Engagement': 'Hooks, games, debates and real-world links', 'Pastoral & Wellbeing': 'Form time, PD and wellbeing activities', 'Admin & Communication': 'Emails, letters, reports and minutes', 'Leadership & Data': 'Department planning, data and policy', 'Pupil AI Literacy': 'Teaching pupils to use AI safely and well', 'Metacognition & Cowriting': 'Live modelling, co-writing and plan, monitor, evaluate routines', '__saved': 'Prompts you starred and your own edited versions' };
 const PL_CATS = ['Planning', 'Resources', 'Assessment & Feedback', 'Metacognition & Cowriting', 'Inclusion & SEN', 'Revision & Exams', 'Engagement', 'Pastoral & Wellbeing', 'Admin & Communication', 'Leadership & Data', 'Pupil AI Literacy'];
 const THEME_CAT = { 'Getting Started': 'Planning', 'Planning': 'Planning', 'Assessment & Feedback': 'Assessment & Feedback', 'Inclusion': 'Inclusion & SEN', 'Admin & Communication': 'Admin & Communication', 'Leadership & Data': 'Leadership & Data', 'Tools & Platforms': 'Resources', 'Pupil AI Literacy': 'Pupil AI Literacy' };
 const plFilt = { q: '', cat: null, subj: '', stage: '', tool: '', shown: 40, withGen: true };
@@ -685,7 +689,7 @@ function allPrompts() {
     return list.map((p, k) => ({ ...p, text: noDash(p.text || ''), cat, subj: ['All subjects'], stage: 'Any', key: i.id + ':' + k, issue: i }));
   });
   const lib = ((CONTENT && CONTENT.plib) || []).map((p, k) => ({ ...p, text: noDash(p.text || ''), subj: Array.isArray(p.subj) ? p.subj : [p.subj], key: 'L' + k, issue: null }));
-  return [...fromIssues, ...lib];
+  return [...fromIssues, ...lib, ...sharedLive()];
 }
 const CAT_USE = { 'Planning': 'planning lessons and units', 'Resources': 'making classroom resources', 'Assessment & Feedback': 'marking, feedback and assessment', 'Inclusion & SEN': 'supporting pupils with additional needs', 'Revision & Exams': 'revision and exam classes', 'Engagement': 'hooks and lively lessons', 'Pastoral & Wellbeing': 'form time and pastoral work', 'Admin & Communication': 'emails, letters and reports', 'Leadership & Data': 'department leadership and data', 'Pupil AI Literacy': 'teaching pupils about AI', 'Metacognition & Cowriting': 'modelling and independent learning' };
 // "Great for" hint: the new CCEA prompts carry their own; others are described from their stage, subject and area
@@ -698,7 +702,7 @@ function promptFit(p) {
 function promptCard(p) {
   const ph = t => showTokens(esc(t));
   const live = p.issue && status(p.issue) === 'live';
-  const from = p.issue ? (live || canManage() ? `<a href="#issue-${esc(p.issue.id)}">From Issue ${p.issue.n} · ${esc(p.issue.title)}</a>` : '<span>From an upcoming issue</span>') : `<span>${esc(p.subj[0] === 'All subjects' ? p.cat : p.subj.join(', ') + ' · ' + p.cat)}${p.stage && p.stage !== 'Any' ? ' · ' + esc(p.stage) : ''}</span>`;
+  const from = p.mine ? `<span>Your own version</span>` : p.by ? `<span>Shared by ${esc(p.by)}</span>` : p.issue ? (live || canManage() ? `<a href="#issue-${esc(p.issue.id)}">From Issue ${p.issue.n} · ${esc(p.issue.title)}</a>` : '<span>From an upcoming issue</span>') : `<span>${esc(p.subj[0] === 'All subjects' ? p.cat : p.subj.join(', ') + ' · ' + p.cat)}${p.stage && p.stage !== 'Any' ? ' · ' + esc(p.stage) : ''}</span>`;
   let tools = ['Gemini', 'Copilot', 'NotebookLM'].filter(x => p.tool.includes(x)); if (!tools.length) tools = ['Gemini', 'Copilot'];
   const mt = myTool();
   // plain Gemini/Copilot prompts work in either, so lead with the teacher's own tool and offer the other as "Use … instead"
@@ -707,7 +711,10 @@ function promptCard(p) {
   const send = mt && tools[0] === mt
     ? `<button class="pl-send main" data-send="${mt}" title="Copy this prompt and open ${mt}"><img src="${TOOL_ICON[mt]}" alt="">Send to ${mt}</button>` + tools.slice(1).map(x => `<button class="pl-alt" data-send="${x}" title="Copy this prompt and open ${x}">Use ${x} instead</button>`).join('')
     : tools.map(x => `<button class="pl-send" data-send="${x}" title="Copy this prompt and open ${x}"><img src="${TOOL_ICON[x]}" alt="">Send to ${x}</button>`).join('');
-  return `<article class="pl-card" data-subj="${esc((p.subj || []).join('|'))}" data-raw="${esc(p.text)}"><header><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b><h3>${esc(p.title)}</h3><p class="pl-fit"><span aria-hidden="true">🎯</span> <b>Great for:</b> ${esc(promptFit(p))}</p></header><pre class="pl-text">${ph(p.text)}</pre><div class="pl-sendrow">${send}</div><footer>${from}<span class="pl-fbtns"><button class="btn small" data-pledit>✎ Edit</button><button class="btn small" data-plcopy>Copy</button></span></footer></article>`;
+  const starred = savedKeys().includes(p.key), rt = ratingOf(p.key), ed = canManage();
+  const badge = rt.up || (ed && rt.down) ? `<span class="pl-score" title="${rt.up} said it worked${ed ? `, ${rt.down} said it needed fixing` : ''}">👍 ${rt.up}${ed && rt.down ? ` · 👎 ${rt.down}` : ''}</span>` : '';
+  const extra = p.mine ? `<button class="btn small" data-mine-share="${esc(p.mine.id)}">Share with staff</button><button class="btn small" data-mine-del="${esc(p.mine.id)}">Delete</button>` : '';
+  return `<article class="pl-card" data-key="${esc(p.key)}" data-cat="${esc(p.cat)}" data-stage="${esc(p.stage || 'Any')}" data-tool="${esc(p.tool)}" data-subj="${esc((p.subj || []).join('|'))}" data-raw="${esc(p.text)}"><header><div class="pl-toprow"><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b>${badge}${p.mine ? '' : `<button class="pl-star${starred ? ' on' : ''}" data-star="${esc(p.key)}" aria-pressed="${starred}" title="${starred ? 'Saved – tap to remove' : 'Save this prompt'}">${starred ? '★' : '☆'}</button>`}</div><h3>${esc(p.title)}</h3><p class="pl-fit"><span aria-hidden="true">🎯</span> <b>Great for:</b> ${esc(promptFit(p))}</p></header><pre class="pl-text">${ph(p.text)}</pre><div class="pl-sendrow">${send}</div><footer>${from}<span class="pl-fbtns">${extra}<button class="btn small" data-pledit>✎ Edit</button><button class="btn small" data-plcopy>Copy</button></span></footer></article>`;
 }
 // "Send to…": copies the prompt and opens the tool in a new tab (none of these tools accept a prompt in the link, so staff paste with Ctrl+V)
 const TOOL_URL = { Gemini: 'https://gemini.google.com/app', Copilot: 'https://m365.cloud.microsoft/chat', NotebookLM: 'https://notebooklm.google.com/' };
@@ -786,7 +793,7 @@ const tidyOn = () => true;   // always on: every prompt asks for a clean, ready-
 const noDash = t => t.replace(/\s*[\u2014]\s*/g, ', ').replace(/\u2013/g, '-');
 const withTidy = (t, on = tidyOn()) => { t = noDash(resolveDefaults(t)); return on && !t.includes("I'm a busy teacher") ? t.trim() + TIDY : t; };
 function openFill(card, action0, edit) {
-  const action = (t, go) => action0(withTidy(t), go);
+  const action = (t, go) => { const r = action0(withTidy(t), go); logUse(card, go); setTimeout(() => askRating(card), 900); return r; };
   const txt = card.dataset.raw || card.querySelector('.pl-text').textContent;
   const toks = [...new Set(txt.match(TOKRE) || [])];
   if (!toks.length && !edit) return action(txt);
@@ -811,7 +818,7 @@ function openFill(card, action0, edit) {
     <label class="fill-edlab" for="fillPrev">Your prompt <small>edit anything before you send it</small></label><textarea id="fillPrev" class="fill-ed" rows="${edit ? 10 : 6}" spellcheck="true"></textarea>
     <div class="fill-tidy"><span class="ft-ic" aria-hidden="true">✓</span><span><b>Ready-to-use answer is switched on</b><small>Every prompt asks the AI to skip the waffle: headings, short bullets, answers at the end, UK English, no em dashes. <a href="#" id="fillTidyPeek">See what's added</a></small></span></div>
     <pre class="fill-tidypeek" id="fillTidyText" hidden></pre>
-    <footer>${tools.map((x, i) => i && myTool() === tools[0] ? `<button type="submit" class="linkbtn fill-alt" data-go="${x}">Use ${x} instead</button>` : `<button type="submit" class="btn ${i ? '' : 'primary'}" data-go="${x}"><img src="${TOOL_ICON[x]}" alt=""> Send to ${x}</button>`).join('')}<button type="submit" class="btn" data-go="copy">Copy</button></footer>
+    <footer>${tools.map((x, i) => i && myTool() === tools[0] ? `<button type="submit" class="linkbtn fill-alt" data-go="${x}">Use ${x} instead</button>` : `<button type="submit" class="btn ${i ? '' : 'primary'}" data-go="${x}"><img src="${TOOL_ICON[x]}" alt=""> Send to ${x}</button>`).join('')}<button type="submit" class="btn" data-go="copy">Copy</button><button type="button" class="linkbtn fill-save" data-save-mine>☆ Save my version</button></footer>
     ${toks.length ? '<p class="fill-skip"><button type="button" class="linkbtn" data-go-raw>Use it with the [brackets] as they are</button></p>' : ''}</form>`;
   document.body.appendChild(sheet); document.body.classList.add('sp-open');
   const f = sheet.querySelector('form'), fields = [...f.querySelectorAll('[data-tok]')];
@@ -825,6 +832,7 @@ function openFill(card, action0, edit) {
   };
   // changing the topic: if the teacher hasn't touched 'Content to cover', swap it for a neutral line so the two never clash
   const topicEl = fields.find(el => tokParts(el.dataset.tok).label === 'Topic' && tokParts(el.dataset.tok).def), contentEl = fields.find(el => tokParts(el.dataset.tok).label === 'Content to cover');
+  f.querySelector('[data-save-mine]').addEventListener('click', () => saveMyVersion(card, $('#fillPrev').value.trim() || build()));
   f.addEventListener('input', e => {
     if (e.target.id === 'fillPrev') { e.target.dataset.dirty = 1; return; }
     if (e.target === contentEl) contentEl.dataset.edited = 1;
@@ -852,6 +860,7 @@ async function copyText(txt, b) {
   catch (er) { toast('Select the prompt text to copy it'); }
 }
 function renderPrompts() {
+  watchRatings(); watchShared();
   const all = allPrompts();
   if (!plFilt.subjSet) { plFilt.subjSet = true; const m = !canManage() && (mySubjects() || [])[0]; if (m) plFilt.subj = m; }
   if (!$('#plCats').dataset.ready) {
@@ -870,12 +879,16 @@ function renderPrompts() {
     $('#plTool').addEventListener('change', e => set('tool', e.target.value));
     $('#plGen').addEventListener('change', e => set('withGen', e.target.checked));
     $('#plCats').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) set('cat', b.dataset.cat); });
-    $('#plPick').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) { set('cat', b.dataset.cat); scrollTo({ top: 0, behavior: 'smooth' }); } });
+    $('#plPick').addEventListener('click', e => { if (e.target.closest('[data-share]')) return openSharePrompt(); const b = e.target.closest('[data-cat]'); if (b) { set('cat', b.dataset.cat); scrollTo({ top: 0, behavior: 'smooth' }); } });
     $('#plMyTool').addEventListener('click', e => { const b = e.target.closest('[data-mt]'); if (!b) return; setMyTool(b.dataset.mt); toast(b.dataset.mt ? `Prompts will open in ${b.dataset.mt} – you can still pick the other one` : 'No default AI tool – both are shown'); renderPrompts(); });
     $('#plCrumb').addEventListener('click', e => { if (e.target.closest('[data-back]')) { plFilt.q = ''; $('#plQ').value = ''; set('cat', null); scrollTo({ top: 0, behavior: 'smooth' }); } });
     $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: plFilt.cat ?? '', subj: (!canManage() && (mySubjects() || [])[0]) || '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); $('#plSubj').value = plFilt.subj; renderPrompts(); });
     if (!$('#plMore').dataset.w) { $('#plMore').dataset.w = 1; $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); }); $('#plMySubj').addEventListener('click', () => askSubjects(true)); }
-    $('#plList').addEventListener('click', e => { const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); const s = e.target.closest('[data-send]'); if (s) plSend(s); const ed = e.target.closest('[data-pledit]'); if (ed) return plEdit(ed);
+    $('#plList').addEventListener('click', e => {
+      const st_ = e.target.closest('[data-star]'); if (st_) { e.stopPropagation(); toggleStar(st_.dataset.star, st_); if (plFilt.cat === '__saved') renderPrompts(); return; }
+      const md = e.target.closest('[data-mine-del]'); if (md) return deleteMine(md.dataset.mineDel);
+      const ms = e.target.closest('[data-mine-share]'); if (ms) { const m = myVersions().find(x => x.id === ms.dataset.mineShare); return openSharePrompt(m); }
+      const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); const s = e.target.closest('[data-send]'); if (s) plSend(s); const ed = e.target.closest('[data-pledit]'); if (ed) return plEdit(ed);
       const card = e.target.closest('.pl-card'); if (card && !e.target.closest('button,a,select,input') && !getSelection().toString()) plEdit(card); });
     }
   }
@@ -898,20 +911,25 @@ function renderPrompts() {
   if (choosing) {
     $('#plTitle').textContent = 'What do you want a prompt for?'; $('#plMore').hidden = true;
     $('#plPick').innerHTML = PL_CATS.filter(c => counts[c]).map(c => { const [ic, col] = PL_AREA[c]; return `<button class="pp-card" style="--c:${col}" data-cat="${esc(c)}"><span class="pp-ic" aria-hidden="true">${ic}</span><b>${esc(c)}</b><span class="pp-desc">${esc(PL_DESC[c] || '')}</span></button>`; }).join('')
-      + `<button class="pp-card pp-all" data-cat=""><span class="pp-ic" aria-hidden="true">🗂️</span><b>Show me everything</b><span class="pp-desc">Browse every prompt with filters</span></button>`;
+      + `<button class="pp-card pp-all" data-cat=""><span class="pp-ic" aria-hidden="true">🗂️</span><b>Show me everything</b><span class="pp-desc">Browse every prompt with filters</span></button>`
+      + `<button class="pp-card pp-all pp-share" data-share><span class="pp-ic" aria-hidden="true">✍️</span><b>Share a prompt that worked</b><span class="pp-desc">Add your own to the bank, with your name on it</span></button>`;
+    const nSaved = savedPrompts().length;
+    if (nSaved) $('#plPick').insertAdjacentHTML('afterbegin', `<button class="pp-card pp-saved" style="--c:#8a6a12" data-cat="__saved"><span class="pp-ic" aria-hidden="true">⭐</span><b>My saved prompts</b><span class="pp-desc">${nSaved} saved, including your own versions</span></button>`);
     return;
   }
   { const c = plFilt.cat || '', [ic, col] = PL_AREA[c] || ['🔎', '#14284b'];
-    $('#plTitle').textContent = plFilt.cat ? plFilt.cat : plFilt.q && plFilt.cat === null ? 'Search results' : 'All prompts';
+    $('#plTitle').textContent = plFilt.cat === '__saved' ? 'My saved prompts' : plFilt.cat ? plFilt.cat : plFilt.q && plFilt.cat === null ? 'Search results' : 'All prompts';
     $('#plCrumb').innerHTML = `<button class="pc-back" data-back>← Choose something else</button>${plFilt.cat ? `<span class="pc-tag" style="--c:${col}">${ic} ${esc(PL_DESC[c] || '')}</span>` : ''}`; }
   $('#plCats').classList.toggle('picked', !!plFilt.cat);
   $('#plCats').innerHTML = [['', 'All areas', base.length], ...PL_CATS.map(c => [c, c, counts[c] || 0])].map(([v, l, n]) => { const [ic, col] = PL_AREA[v] || ['🗂️', '#14284b']; return `<button class="pl-area${plFilt.cat === v ? ' on' : ''}" style="--c:${col}" data-cat="${esc(v)}" role="tab" aria-selected="${plFilt.cat === v}"${n || !v ? '' : ' disabled'}><span class="pa-ic" aria-hidden="true">${ic}</span><span class="pa-name">${esc(l)}</span><small>${n} prompt${n === 1 ? '' : 's'}</small></button>`; }).join('');
   { const on = $('#plCats .pl-chip.on'), row = $('#plCats'); if (!plFilt.cat) row.scrollLeft = 0; else if (on) row.scrollLeft = Math.max(0, on.offsetLeft - row.offsetLeft - 16); }
-  const list = base.filter(p => !plFilt.cat || p.cat === plFilt.cat);
+  let list = base.filter(p => !plFilt.cat || p.cat === plFilt.cat);
+  if (plFilt.cat === '__saved') list = savedPrompts().filter(p => words.every(w => (p.title + ' ' + p.text).toLowerCase().includes(w)));
   // released issue prompts first (newest first), then the library, then upcoming issue prompts
   const rank = p => p.issue ? (status(p.issue) === 'live' ? 0 : 2) : 1;
   const own = p => plFilt.subj && plFilt.subj !== '__gen' && p.subj.includes(plFilt.subj) ? 0 : 1;   // the chosen subject's own prompts first
-  list.sort((x, y) => (own(x) - own(y)) || (rank(x) - rank(y)) || (rank(x) === 0 ? y.issue.n - x.issue.n : 0));
+  const score = p => { const r = ratingOf(p.key); return r.up - r.down * 1.5; };   // prompts colleagues say worked rise to the top
+  if (plFilt.cat !== '__saved') list.sort((x, y) => (own(x) - own(y)) || (score(y) - score(x)) || (rank(x) - rank(y)) || (rank(x) === 0 ? y.issue.n - x.issue.n : 0));
   $('#plGenWrap').hidden = true;
   [['#plSubj', plFilt.subj], ['#plStage', plFilt.stage], ['#plTool', plFilt.tool]].forEach(([k, v]) => $(k).parentElement.classList.toggle('set', !!v));
   $('#plCount').textContent = `${list.length} prompt${list.length === 1 ? '' : 's'}`;
@@ -2027,3 +2045,144 @@ function renderSheet(n) {
   $('#shPrint').onclick = () => window.print();
 }
 boot();
+
+/* ======================================================================
+   Staff features: saved prompts, "did it work?" ratings, shared prompts,
+   and a one-page CPD record (PDF via print).
+   ====================================================================== */
+var RATINGS = null, ratingsUnsub = null, SHARED = [], sharedUnsub = null;
+const jget = (k, d) => { try { return JSON.parse(LS.get(k) || '') ?? d; } catch (e) { return d; } };
+const savedKeys = () => jget('ergsNL.saved', []);
+const myVersions = () => jget('ergsNL.mine', []);
+const usedLog = () => jget('ergsNL.used', []);
+const ratedMap = () => jget('ergsNL.rated', {});
+const safeKey = k => String(k).replace(/[^\w:-]/g, '_').slice(0, 100);
+
+function logUse(card, go) {
+  const k = card.dataset.key; if (!k) return;
+  const log = usedLog(); log.unshift({ k, title: card.querySelector('h3')?.textContent || 'Prompt', subj: (card.dataset.subj || '').split('|')[0] || '', d: todayKey(), tool: go && go !== 'copy' ? go : 'Copied' });
+  LS.set('ergsNL.used', JSON.stringify(log.slice(0, 400)));
+}
+// after a prompt is used: a quiet "Did it work?" row on the card
+function askRating(card) {
+  const k = card.dataset.key; if (!k || !card.isConnected || card.hidden || ratedMap()[k]) return;
+  card.querySelector('.pl-rate')?.remove();
+  const r = document.createElement('div'); r.className = 'pl-rate';
+  r.innerHTML = `<span>Did it work?</span><button data-rate="1">👍 It worked</button><button data-rate="-1">👎 Needed fixing</button><button class="pr-x" aria-label="Not now">×</button>`;
+  card.querySelector('.pl-sendrow').after(r);
+  r.addEventListener('click', async e => {
+    e.stopPropagation(); const b = e.target.closest('button'); if (!b) return;
+    if (b.classList.contains('pr-x')) return r.remove();
+    const v = +b.dataset.rate, m = ratedMap(); m[k] = v; LS.set('ergsNL.rated', JSON.stringify(m));
+    r.innerHTML = `<span>${v > 0 ? 'Thanks – that helps colleagues find the best prompts.' : 'Thanks – we’ll look at improving this one.'}</span>`; setTimeout(() => r.remove(), 2600);
+    try { const dev = LS.get('ergsNL.dev'); if (DB && KEY && dev) await setDoc(doc(DB, 'newsletterRatings', safeKey(dev + '_' + k)), { t: await visitToken(), p: String(k).slice(0, 120), v, at: serverTimestamp() }); } catch (er) { console.warn('rate', er.code || er); }
+  });
+}
+function watchRatings() {
+  if (ratingsUnsub || !DB) return;
+  ratingsUnsub = onSnapshot(collection(DB, 'newsletterRatings'), s => {
+    const m = {}; s.docs.forEach(d => { const x = d.data(); if (!x.p) return; const r = (m[x.p] ||= { up: 0, down: 0 }); x.v > 0 ? r.up++ : r.down++; });
+    const first = RATINGS === null; RATINGS = m; if (first && location.hash === '#prompts') renderPrompts();
+  }, e => { console.warn('ratings', e.code || e); RATINGS = RATINGS || {}; ratingsUnsub = null; });
+}
+const ratingOf = k => (RATINGS || {})[k] || { up: 0, down: 0 };
+
+// staff-shared prompts: encrypted with the staff key; the editor approves them in Workflow
+function watchShared() {
+  if (sharedUnsub || !DB) return;
+  sharedUnsub = onSnapshot(collection(DB, 'newsletterShared'), async s => {
+    const out = [];
+    for (const d of s.docs) { try { const x = await decJSON(d.data().enc); out.push({ ...x, docId: d.id, st: d.data().st || 'pending', at: d.data().at?.toMillis?.() || 0 }); } catch (e) {} }
+    SHARED = out.sort((a, b) => b.at - a.at);
+    if (location.hash === '#prompts') renderPrompts(); if (location.hash === '#flow') renderFlow(); if (!location.hash || location.hash === '#home' || location.hash === '#library') renderHome3?.();
+  }, e => { console.warn('shared', e.code || e); sharedUnsub = null; });
+}
+const sharedLive = () => SHARED.filter(x => x.st === 'live').map(x => ({ tool: x.tool || 'Gemini or Copilot', title: x.title, text: noDash(x.text || ''), cat: PL_CATS.includes(x.cat) ? x.cat : 'Resources', subj: [x.subj || 'All subjects'], stage: x.stage || 'Any', key: 'S' + x.docId, issue: null, by: x.name || 'a colleague', fit: `${x.stage && x.stage !== 'Any' ? x.stage + ' ' : ''}${x.subj && x.subj !== 'All subjects' ? x.subj : 'Any subject'} · shared by ${x.name || 'a colleague'}` }));
+
+function savedPrompts() {
+  const keys = savedKeys(), all = allPrompts();
+  const starred = keys.map(k => all.find(p => p.key === k)).filter(Boolean);
+  const mine = myVersions().map(m => ({ tool: m.tool || 'Gemini or Copilot', title: m.title, text: m.text, cat: m.cat || 'Resources', subj: [m.subj || 'All subjects'], stage: m.stage || 'Any', key: 'M' + m.id, issue: null, mine: m, fit: `Your own version${m.d ? ' · saved ' + fmtDay(m.d) : ''}` }));
+  return [...mine, ...starred];
+}
+function toggleStar(k, b) {
+  const s = savedKeys(), i = s.indexOf(k); if (i >= 0) s.splice(i, 1); else s.unshift(k);
+  LS.set('ergsNL.saved', JSON.stringify(s.slice(0, 300)));
+  if (b) { const on = i < 0; b.classList.toggle('on', on); b.textContent = on ? '★' : '☆'; b.setAttribute('aria-pressed', on); b.title = on ? 'Saved – tap to remove' : 'Save this prompt'; }
+  toast(i < 0 ? 'Saved to My saved prompts' : 'Removed from My saved prompts');
+}
+function saveMyVersion(card, text) {
+  const list = myVersions(); const title = (card.querySelector('h3')?.textContent || 'My prompt').replace(/^My version: /, '');
+  list.unshift({ id: Date.now().toString(36), title: 'My version: ' + title, text, subj: (card.dataset.subj || '').split('|')[0] || 'All subjects', cat: card.dataset.cat || 'Resources', stage: card.dataset.stage || 'Any', tool: card.dataset.tool || 'Gemini or Copilot', d: todayKey() });
+  LS.set('ergsNL.mine', JSON.stringify(list.slice(0, 100))); toast('Saved – find it under My saved prompts');
+}
+function deleteMine(id) { LS.set('ergsNL.mine', JSON.stringify(myVersions().filter(m => m.id !== id))); toast('Deleted'); renderPrompts(); }
+
+// "Share a prompt that worked" sheet
+function openSharePrompt(pre) {
+  const main = (mySubjects() || [])[0] || '';
+  const sheet = document.createElement('div'); sheet.className = 'fill-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true');
+  sheet.innerHTML = `<form class="fill-card share-card"><header><span class="eyebrow">Share with colleagues</span><h3>Share a prompt that worked</h3><button type="button" class="fill-x" aria-label="Close">×</button></header>
+    <p class="muted sh-intro">It goes to the editor to check, then appears in the Prompt Bank with your name on it.</p>
+    <div class="fill-fields">
+      <label for="shTitle">Short title</label><input id="shTitle" maxlength="80" required placeholder="e.g. Year 10 river landforms quiz" value="${esc(pre?.title?.replace(/^My version: /, '') || '')}">
+      <label for="shSubj">Subject</label><select id="shSubj"><option>All subjects</option>${SUBJECTS.map(s => `<option ${(pre?.subj || main) === s[0] ? 'selected' : ''}>${esc(s[0])}</option>`).join('')}</select>
+      <label for="shStage">Stage</label><select id="shStage">${['Any', 'KS3', 'GCSE', 'A Level'].map(s => `<option ${pre?.stage === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
+      <label for="shCat">Area</label><select id="shCat">${PL_CATS.map(c => `<option ${pre?.cat === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
+      <label for="shText">The prompt</label><textarea id="shText" rows="8" required maxlength="4000" placeholder="Paste the prompt that worked. Use [brackets] for anything colleagues should change, e.g. [topic] or [Year group=Year 10].">${esc(pre?.text || '')}</textarea>
+    </div>
+    <label class="fill-tidy sh-ok"><input type="checkbox" id="shOk" required><span><b>No pupil names or personal data</b><small>I’ve checked the prompt doesn’t include any pupil or staff personal information.</small></span></label>
+    <footer><button type="submit" class="btn primary">Send for checking</button></footer></form>`;
+  document.body.appendChild(sheet); document.body.classList.add('sp-open');
+  const close = () => { sheet.remove(); document.body.classList.remove('sp-open'); };
+  sheet.querySelector('.fill-x').onclick = close; sheet.addEventListener('click', e => { if (e.target === sheet) close(); });
+  sheet.querySelector('form').addEventListener('submit', async e => {
+    e.preventDefault(); if (!DB || !KEY) return toast('Can’t share right now – check your connection');
+    const b = e.target.querySelector('[type=submit]'); b.disabled = true;
+    const x = { title: $('#shTitle').value.trim().slice(0, 80), text: $('#shText').value.trim().slice(0, 4000), subj: $('#shSubj').value, stage: $('#shStage').value, cat: $('#shCat').value, tool: 'Gemini or Copilot', name: (LS.get('ergsNL.name') || '').slice(0, 60) };
+    try { await setDoc(doc(collection(DB, 'newsletterShared')), { enc: await encJSON(x), t: await visitToken(), st: 'pending', at: serverTimestamp() }); close(); toast('Thanks! Sent to the editor to check'); }
+    catch (er) { console.warn(er); toast('Couldn’t send – try again'); b.disabled = false; }
+  });
+  setTimeout(() => $('#shTitle').focus(), 60);
+}
+async function moderateShared(id, ok) {
+  try { if (ok) await setDoc(doc(DB, 'newsletterShared', id), { st: 'live' }, { merge: true }); else await deleteDoc(doc(DB, 'newsletterShared', id)); toast(ok ? 'Approved – now in the Prompt Bank' : 'Removed'); }
+  catch (er) { toast('Couldn’t update – check you’re signed in'); }
+}
+function sharedQueueHTML() {
+  const pend = SHARED.filter(x => x.st === 'pending'), live = SHARED.filter(x => x.st === 'live');
+  return `<section class="fl-lane fl-shared"><header><h3>Prompts shared by staff</h3><p>${pend.length ? `${pend.length} waiting for you to check` : 'Nothing waiting'} · ${live.length} live in the Prompt Bank</p></header>
+    ${pend.length ? `<ul class="sq-list">${pend.map(x => `<li><div><b>${esc(x.title)}</b><span>${esc(x.name || 'A colleague')} · ${esc(x.subj)} · ${esc(x.stage)} · ${esc(x.cat)}</span><pre>${esc(x.text)}</pre></div><p><button class="btn primary small" data-sq-ok="${esc(x.docId)}">Approve</button><button class="btn small" data-sq-no="${esc(x.docId)}">Remove</button></p></li>`).join('')}</ul>` : ''}
+    ${live.length ? `<details class="sq-live"><summary>Live shared prompts (${live.length})</summary><ul class="sq-list">${live.map(x => `<li><div><b>${esc(x.title)}</b><span>${esc(x.name || 'A colleague')} · ${esc(x.subj)}</span></div><p><button class="btn small" data-sq-no="${esc(x.docId)}">Take down</button></p></li>`).join('')}</ul></details>` : ''}</section>`;
+}
+document.addEventListener('click', e => {
+  const ok = e.target.closest('[data-sq-ok]'), no = e.target.closest('[data-sq-no]');
+  if (ok) moderateShared(ok.dataset.sqOk, true); else if (no) moderateShared(no.dataset.sqNo, false);
+});
+
+// ---------- My CPD record: a one-page summary to print or save as PDF ----------
+function openCPD() {
+  const name = LS.get('ergsNL.name') || 'Member of staff', tried = triedMap(), tips = allTips();
+  const triedList = Object.entries(tried).map(([id, d]) => ({ t: tips.find(x => x.id === id), d })).filter(x => x.t).sort((a, b) => String(b.d).localeCompare(String(a.d)));
+  const used = usedLog(), seen = new Set(), usedU = used.filter(u => { const k = u.k + u.d; if (seen.has(k)) return false; seen.add(k); return true; });
+  const mineUses = Object.entries(USES || {}).flatMap(([iid, arr]) => arr.filter(u => (u.name || '').trim().toLowerCase() === name.trim().toLowerCase()).map(u => ({ ...u, issue: allIssues().find(i => i.id === iid) })));
+  const myShared = SHARED.filter(x => (x.name || '').trim().toLowerCase() === name.trim().toLowerCase() && x.st === 'live');
+  const days = [...new Set([...triedList.map(x => x.d), ...usedU.map(u => u.d)])].sort();
+  const span = days.length ? `${fmtDay(days[0])} to ${fmtDay(days[days.length - 1])}` : 'No activity recorded yet';
+  const apps = [...new Set(triedList.map(x => x.t.app))];
+  const subjCount = {}; usedU.forEach(u => { if (u.subj && u.subj !== 'All subjects') subjCount[u.subj] = (subjCount[u.subj] || 0) + 1; });
+  const sheet = document.createElement('div'); sheet.className = 'cpd-sheet'; sheet.id = 'cpdSheet';
+  sheet.innerHTML = `<div class="cpd-bar"><button class="btn primary" id="cpdPrint">Save as PDF / Print</button><button class="btn" id="cpdClose">Close</button><span>Tip: choose “Save as PDF” as the printer.</span></div>
+  <article class="cpd-page">
+    <header>${window.ERGS_CREST ? `<img src="${window.ERGS_CREST}" alt="">` : ''}<div><span>Enniskillen Royal Grammar School · ERGS Digital Skills &amp; AI</span><h1>Digital Skills &amp; AI CPD record</h1><p><b>${esc(name)}</b> · ${esc(span)} · produced ${fmtDay(todayKey())}</p></div></header>
+    <section class="cpd-stats"><div><b>${triedList.length}</b><span>digital skills tips tried</span></div><div><b>${usedU.length}</b><span>AI prompts used</span></div><div><b>${mineUses.length + myShared.length}</b><span>contributions shared with colleagues</span></div><div><b>${apps.length}</b><span>apps practised</span></div></section>
+    <section><h2>Summary</h2><p>${esc(name.split(' ')[0])} has engaged with the school’s Digital Skills &amp; AI CPD programme, trying ${triedList.length} practical digital skills tip${triedList.length === 1 ? '' : 's'}${apps.length ? ` across ${apps.slice(0, 6).join(', ')}` : ''} and using ${usedU.length} AI prompt${usedU.length === 1 ? '' : 's'} with school-approved tools${Object.keys(subjCount).length ? ` for ${Object.keys(subjCount).slice(0, 4).join(', ')}` : ''}. All AI use followed the school’s guidance: no pupil names or personal data.</p></section>
+    <section><h2>Digital skills tips tried</h2>${triedList.length ? `<table><thead><tr><th>Date</th><th>App</th><th>Tip</th></tr></thead><tbody>${triedList.slice(0, 18).map(x => `<tr><td>${fmtDay(x.d)}</td><td>${esc(x.t.app)}</td><td>${esc(x.t.title)}</td></tr>`).join('')}</tbody></table>${triedList.length > 18 ? `<p class="cpd-more">and ${triedList.length - 18} more</p>` : ''}` : '<p class="cpd-none">None marked yet – tap “I tried this” on a tip.</p>'}</section>
+    <section><h2>AI prompts used</h2>${usedU.length ? `<table><thead><tr><th>Date</th><th>Prompt</th><th>Subject</th><th>Tool</th></tr></thead><tbody>${usedU.slice(0, 18).map(u => `<tr><td>${fmtDay(u.d)}</td><td>${esc(u.title)}</td><td>${esc(u.subj && u.subj !== 'All subjects' ? u.subj : 'General')}</td><td>${esc(u.tool)}</td></tr>`).join('')}</tbody></table>${usedU.length > 18 ? `<p class="cpd-more">and ${usedU.length - 18} more</p>` : ''}` : '<p class="cpd-none">None yet – prompts you send or copy from the Prompt Bank are recorded here.</p>'}</section>
+    ${mineUses.length || myShared.length ? `<section><h2>Reflections and contributions</h2><ul>${mineUses.map(u => `<li>“${esc(u.text)}”${u.issue ? ` <span>(Issue ${u.issue.n}: ${esc(u.issue.title)})</span>` : ''}</li>`).join('')}${myShared.map(x => `<li>Shared the prompt “${esc(x.title)}” with colleagues</li>`).join('')}</ul></section>` : ''}
+    <footer><p>Reflection / next step (optional): ____________________________________________________________</p><p class="cpd-small">Generated from this device’s activity in ERGS Digital Skills &amp; AI. Suitable as evidence for professional review (PRSD).</p></footer>
+  </article>`;
+  document.body.appendChild(sheet); document.body.classList.add('cpd-open'); scrollTo(0, 0);
+  const close = () => { sheet.remove(); document.body.classList.remove('cpd-open'); };
+  $('#cpdClose').onclick = close; $('#cpdPrint').onclick = () => window.print();
+}

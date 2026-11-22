@@ -51,6 +51,22 @@ service cloud.firestore {
         && request.resource.data.t == '0ddd4e393a7f0180e83d86fa' && request.resource.data.c is int
         && request.resource.data.c >= 0 && request.resource.data.c < 5000 && request.resource.data.at == request.time;
     }
+    // "Did it work?" ratings on prompts: one doc per device per prompt.
+    match /newsletterRatings/{id} {
+      allow read: if true;
+      allow delete: if nlEditor();
+      allow create, update: if id.size() <= 160 && request.resource.data.keys().hasOnly(['t','p','v','at'])
+        && request.resource.data.t == '0ddd4e393a7f0180e83d86fa' && request.resource.data.p is string && request.resource.data.p.size() <= 120
+        && (request.resource.data.v == 1 || request.resource.data.v == -1) && request.resource.data.at == request.time;
+    }
+    // Prompts shared by staff (encrypted with the staff key). New ones wait for the editor to approve.
+    match /newsletterShared/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['enc','t','st','at'])
+        && request.resource.data.t == '0ddd4e393a7f0180e83d86fa' && request.resource.data.st == 'pending'
+        && request.resource.data.enc is string && request.resource.data.enc.size() < 12000 && request.resource.data.at == request.time;
+      allow update, delete: if nlEditor();
+    }
     // Tip of the day log: one doc per date.
     match /newsletterTipLog/{day} {
       allow read: if true;
