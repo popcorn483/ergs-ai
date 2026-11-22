@@ -509,7 +509,7 @@ function renderHome3() {
       <div class="h3-actions"><span class="btn h3-btn primary">${L ? 'Open at the latest' : 'Open the binder'}</span><span class="h3-link" data-binder>Start from the cover →</span></div></a>
     <article class="h3-card h3-prompts">${canManage() ? `<span class="h3-label">Prompt bank</span>
       <h2>${pr.length} prompts${mine ? ` for ${esc(mine[0])}${mine.length > 1 ? ' and more' : ''}` : ''}</h2>` : `<h2>Prompt Bank</h2>`}
-      ${pd ? `<div class="h3-today"><span class="h3-tlabel">Today’s prompt <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></span><h3>${esc(pd.title)}</h3><p class="pl-fit h3-fit">🎯 <b>Great for:</b> ${esc(promptFit(pd))}</p><pre class="${pd.text.length > 950 ? 'xxl' : pd.text.length > 650 ? 'xl' : pd.text.length > 420 ? 'l' : ''}">${showTokens(esc(pd.text))}</pre><button class="btn h3-btn h3-use" id="h3TryPrompt">Use this prompt</button></div>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
+      ${pd ? `<div class="h3-today"><span class="h3-tlabel">Today’s prompt <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></span><h3>${esc(pd.title)}</h3><p class="pl-fit h3-fit">🎯 <b>Great for:</b> ${esc(promptFit(pd))}</p>${summaryHTML(pd)}<button class="btn h3-btn h3-use" id="h3TryPrompt">Use this prompt</button></div>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
       <div class="h3-actions"><a class="h3-link" href="#prompts">Browse all prompts →</a></div></article>
     ${ed ? edCard() : ''}
   </div>
@@ -521,7 +521,7 @@ function renderHome3() {
   el.querySelectorAll('[data-tried]').forEach(b => b.addEventListener('click', () => { setTried(b.dataset.tried, !triedMap()[b.dataset.tried]); renderHome3(); }));
   $('#h3TipOpen')?.addEventListener('click', () => showTipSheet(t));
   el.querySelectorAll('[data-area]').forEach(b => b.addEventListener('click', () => { plFilt.cat = b.dataset.area; plFilt.keepCat = true; plFilt.shown = 40; location.hash = 'prompts'; }));
-  $('.h3-today pre')?.addEventListener('click', () => $('#h3TryPrompt').click());
+  $('.h3-today .pl-sum')?.addEventListener('click', () => $('#h3TryPrompt').click());
   $('#h3Cpd')?.addEventListener('click', openCPD);
   $('#h3TryPrompt')?.addEventListener('click', () => { const tmp = document.createElement('div'); tmp.innerHTML = promptCard(pd); const card = tmp.firstElementChild; card.hidden = true; document.body.appendChild(card); openFill(card, (txt, go) => { card.remove(); go && go !== 'copy' ? sendText(txt, go) : copyText(txt, null); }, true); if (!document.querySelector('.fill-sheet')) card.remove(); });
 }
@@ -703,6 +703,34 @@ function promptFit(p) {
   const who = subj.length ? `${st ? st + ' ' : ''}${subj.join(', ')}` : st ? `${st}, any subject` : 'Any subject, any year';
   return `${who} · ${CAT_USE[p.cat] || 'everyday teaching'}${/\[[^\]]*(topic|unit|text|question)[^\]]*\]/i.test(p.text) ? ' · add your own topic' : ''}`;
 }
+// Plain-language overview of a prompt for the card: what it does, what you get, what you can change.
+// The full wording (role, rules, UK English…) is only shown once the teacher taps "Use this prompt".
+const RULE_RE = /^(act as|you are|format:|use uk english|do not ask|do not include|don't ask|base everything|write original|align with|keep both|keep it|questions must|if something|if you are unsure|rules?:|use plain|use accurate|make it|never use|include:|write:|do the following:|for each|the task:)/i;
+const toYou = t => t.replace(/\bmy\b/g, 'your').replace(/\bMy\b/g, 'Your').replace(/\bI'm\b/g, "you're").replace(/\bI want\b/g, 'You want').replace(/\bI can\b/g, 'you can').replace(/\bI should\b/g, 'you should').replace(/\bme\b/g, 'you');
+function promptSummary(p) {
+  const lines = (p.text || '').split('\n').map(l => l.trim()).filter(Boolean);
+  const body = lines.filter(l => !RULE_RE.test(l) && !/^[-•\d]/.test(l) && !/^\[(paste|insert|attach)/i.test(l));
+  let what = body.slice(0, 2).join(' ');
+  if (what.length > 260) what = what.slice(0, 250).replace(/\s+\S*$/, '') + '…';
+  const fl = lines.find(l => /^format:/i.test(l)); let get = fl ? fl.replace(/^format:\s*/i, '') : '';
+  if (!get) { const inc = lines.filter(l => /^- /.test(l)).map(l => l.slice(2)); if (inc.length) get = inc.slice(0, 3).join('; '); }
+  get = get.replace(/\[[^\]\n]{1,220}\]/g, m => tokParts(m).def || tokParts(m).label);
+  if (get.length > 170) get = get.slice(0, 160).replace(/\s+\S*$/, '') + '…';
+  const ins = [...new Set(((p.text || '').match(TOKRE) || []).map(m => tokParts(m).label.replace(/^paste (the |your )?/i, 'Paste ')))].slice(0, 5);
+  return { what: toYou(what || p.title), get, ins };
+}
+function summaryHTML(p) {
+  const sm = promptSummary(p);
+  return `<div class="pl-sum"><p class="ps-what">${showTokens(esc(sm.what))}</p>${sm.get ? `<p class="ps-get"><b>You’ll get:</b> ${esc(sm.get[0].toLowerCase() + sm.get.slice(1))}</p>` : ''}${sm.ins.length ? `<p class="ps-in"><b>You can change:</b> ${sm.ins.map(x => `<span>${esc(x[0].toUpperCase() + x.slice(1))}</span>`).join('')}</p>` : ''}</div>`;
+}
+// which tools a prompt can go to, with the teacher's own tool first
+function cardTools(tool) {
+  let tools = ['Gemini', 'Copilot', 'NotebookLM'].filter(x => tool.includes(x)); if (!tools.length) tools = ['Gemini', 'Copilot'];
+  const mt = myTool();
+  if (mt && /^(Gemini|Copilot)( or (Gemini|Copilot))?$/.test(tool.trim())) tools = [mt, mt === 'Gemini' ? 'Copilot' : 'Gemini'];
+  else if (mt && tools.includes(mt)) tools = [mt, ...tools.filter(x => x !== mt)];
+  return tools;
+}
 function promptCard(p) {
   const ph = t => showTokens(esc(t));
   const live = p.issue && status(p.issue) === 'live';
@@ -718,7 +746,7 @@ function promptCard(p) {
   const starred = savedKeys().includes(p.key), rt = ratingOf(p.key), ed = canManage();
   const badge = rt.up || (ed && rt.down) ? `<span class="pl-score" title="${rt.up} said it worked${ed ? `, ${rt.down} said it needed fixing` : ''}">👍 ${rt.up}${ed && rt.down ? ` · 👎 ${rt.down}` : ''}</span>` : '';
   const extra = p.mine ? `<button class="btn small" data-mine-share="${esc(p.mine.id)}">Share with staff</button><button class="btn small" data-mine-del="${esc(p.mine.id)}">Delete</button>` : '';
-  return `<article class="pl-card" data-key="${esc(p.key)}" data-cat="${esc(p.cat)}" data-stage="${esc(p.stage || 'Any')}" data-tool="${esc(p.tool)}" data-subj="${esc((p.subj || []).join('|'))}" data-raw="${esc(p.text)}"><header><div class="pl-toprow"><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b>${badge}${p.mine ? '' : `<button class="pl-star${starred ? ' on' : ''}" data-star="${esc(p.key)}" aria-pressed="${starred}" title="${starred ? 'Saved – tap to remove' : 'Save this prompt'}">${starred ? '★' : '☆'}</button>`}</div><h3>${esc(p.title)}</h3><p class="pl-fit"><span aria-hidden="true">🎯</span> <b>Great for:</b> ${esc(promptFit(p))}</p></header><pre class="pl-text">${ph(p.text)}</pre><div class="pl-sendrow">${send}</div><footer>${from}<span class="pl-fbtns">${extra}<button class="btn small" data-pledit>✎ Edit</button><button class="btn small" data-plcopy>Copy</button></span></footer></article>`;
+  return `<article class="pl-card" data-key="${esc(p.key)}" data-cat="${esc(p.cat)}" data-stage="${esc(p.stage || 'Any')}" data-tool="${esc(p.tool)}" data-subj="${esc((p.subj || []).join('|'))}" data-raw="${esc(p.text)}"><header><div class="pl-toprow"><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b>${badge}${p.mine ? '' : `<button class="pl-star${starred ? ' on' : ''}" data-star="${esc(p.key)}" aria-pressed="${starred}" title="${starred ? 'Saved – tap to remove' : 'Save this prompt'}">${starred ? '★' : '☆'}</button>`}</div><h3>${esc(p.title)}</h3><p class="pl-fit"><span aria-hidden="true">🎯</span> <b>Great for:</b> ${esc(promptFit(p))}</p></header>${summaryHTML(p)}<div class="pl-sendrow"><button class="btn primary pl-use" data-pledit>Use this prompt</button><span class="pl-usehint">${tools[0] === mt && mt ? `Opens in ${mt}` : `Gemini or Copilot`}</span></div><footer>${from}<span class="pl-fbtns">${extra}</span></footer></article>`;
 }
 // "Send to…": copies the prompt and opens the tool in a new tab (none of these tools accept a prompt in the link, so staff paste with Ctrl+V)
 const TOOL_URL = { Gemini: 'https://gemini.google.com/app', Copilot: 'https://m365.cloud.microsoft/chat', NotebookLM: 'https://notebooklm.google.com/' };
@@ -805,8 +833,8 @@ function openFill(card, action0, edit) {
   const subjOfCard = (card.dataset.subj || '').split('|').find(s => CCEA_TOPICS[s]) || '';
   const label = t => { const k = fieldKind(t), s = tokParts(t).label; return k === 'year' ? 'Year group' : k === 'paste' ? s.charAt(0).toUpperCase() + s.slice(1) : s.charAt(0).toUpperCase() + s.slice(1); };
   const sheet = document.createElement('div'); sheet.className = 'fill-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-label', 'Fill in this prompt');
-  const tools = [...card.querySelectorAll('[data-send]')].map(b => b.dataset.send);
-  sheet.innerHTML = `<form class="fill-card"><header><span class="eyebrow">${toks.length ? 'Make it yours' : 'Edit this prompt'}</span><h3>${esc(card.querySelector('h3').textContent)}</h3><button type="button" class="fill-x" aria-label="Close">×</button></header>
+  const tools = cardTools(card.dataset.tool || 'Gemini or Copilot');
+  sheet.innerHTML = `<form class="fill-card"><header><span class="eyebrow">${toks.length ? 'Make it yours' : 'Edit this prompt'}</span><h3>${esc(card.querySelector('h3').textContent)}</h3><button type="button" class="fill-x" aria-label="Close">×</button></header><p class="fill-what">${showTokens(esc(promptSummary({ text: txt, title: '' }).what))}</p>
     <div class="fill-fields">${toks.map((t, k) => {
       const kind = fieldKind(t), id = 'ff' + k, def = tokParts(t).def;
       if (kind === 'year') { const pick = def && YEARS.includes(def) ? def : mem.year; return `<label for="${id}">Year group</label><select id="${id}" data-tok="${esc(t)}"><option value="">Choose…</option>${YEARS.map(y => `<option ${pick === y ? 'selected' : ''}>${y}</option>`).join('')}</select>`; }
@@ -819,7 +847,7 @@ function openFill(card, action0, edit) {
     }).join('')}</div>
     <datalist id="fillSubj">${(mySubjects() && mySubjects().length ? mySubjects() : SUBJECTS.map(s => s[0])).map(s => `<option value="${esc(s)}">`).join('')}</datalist><datalist id="fillTopics"></datalist><datalist id="fillNeeds">${['Dyslexia', 'Autism (ASD)', 'ADHD', 'Dyspraxia (DCD)', 'speech, language and communication needs', 'working memory difficulties', 'moderate learning difficulties', 'social, emotional and mental health needs', 'anxiety', 'hearing impairment', 'visual impairment', 'dyscalculia'].map(n => `<option value="${n}">`).join('')}</datalist>
     <p class="fill-hint" id="fillHint"></p>
-    <label class="fill-edlab" for="fillPrev">Your prompt <small>edit anything before you send it</small></label><textarea id="fillPrev" class="fill-ed" rows="${edit ? 10 : 6}" spellcheck="true"></textarea>
+    <label class="fill-edlab" for="fillPrev">The full prompt <small>this is exactly what gets sent – edit anything you like</small></label><textarea id="fillPrev" class="fill-ed" rows="${edit ? 10 : 6}" spellcheck="true"></textarea>
     <div class="fill-tidy"><span class="ft-ic" aria-hidden="true">✓</span><span><b>Ready-to-use answer is switched on</b><small>Every prompt asks the AI to skip the waffle: headings, short bullets, answers at the end, UK English, no em dashes. <a href="#" id="fillTidyPeek">See what's added</a></small></span></div>
     <pre class="fill-tidypeek" id="fillTidyText" hidden></pre>
     <footer>${tools.map((x, i) => i && myTool() === tools[0] ? `<button type="submit" class="linkbtn fill-alt" data-go="${x}">Use ${x} instead</button>` : `<button type="submit" class="btn ${i ? '' : 'primary'}" data-go="${x}"><img src="${TOOL_ICON[x]}" alt=""> Send to ${x}</button>`).join('')}<button type="submit" class="btn" data-go="copy">Copy</button><button type="button" class="linkbtn fill-save" data-save-mine>☆ Save my version</button></footer>
@@ -957,7 +985,7 @@ function renderPromptHome() {
   el.hidden = false;
   el.innerHTML = `<div class="plh-text"><span class="eyebrow">Prompt library</span><h2>${total} ready-made prompts</h2>${mine ? `<p class="plh-mine">For ${esc(mine.length > 3 ? mine.slice(0, 3).join(', ') + ' and ' + (mine.length - 3) + ' more' : mine.join(', '))} · <button class="linkbtn" data-mysubj>change</button></p>` : ''}<p>For every subject we teach, from KS3 to A Level – planning, resources, feedback, SEN, revision, admin and more. Filter by subject, stage or AI tool, then copy and go.</p><a class="btn primary" href="#prompts">Browse all prompts</a></div>
     <div class="plh-pick"><span class="plh-label">${mine ? 'Your prompt of the day' : 'Prompt of the day'}</span>${promptCard(p)}</div>`;
-  el.querySelector('[data-plcopy]').addEventListener('click', e => plCopy(e.currentTarget));
+  el.querySelector('[data-plcopy]')?.addEventListener('click', e => plCopy(e.currentTarget));
   el.querySelectorAll('[data-send]').forEach(s => s.addEventListener('click', () => plSend(s)));
   el.querySelector('.pl-card')?.addEventListener('click', e => { if (!e.target.closest('button,a') && !getSelection().toString()) plEdit(e.currentTarget); });
   el.querySelector('[data-pledit]')?.addEventListener('click', e => { e.stopPropagation(); plEdit(e.currentTarget); });

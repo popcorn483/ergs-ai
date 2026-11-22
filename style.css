@@ -1371,3 +1371,19 @@ html.dark .pl-score{background:#173022;color:#9fd5a8}
 html.dark .pl-today{background:linear-gradient(135deg,#2a2212,#221c10);border-color:#4a3c1c}
 html.dark .pl-today .pt-label{color:#e8c97a}
 .sp-ta{margin:6px 0 0;font:14px var(--body);color:#5b6679}.sp-ta .linkbtn{font-weight:600;color:#b04a8f}
+
+/* prompt cards: plain-language overview instead of the raw prompt */
+.pl-sum{margin:10px 0 4px;cursor:pointer}
+.ps-what{font:15.5px/1.5 var(--body);color:#1c2333;margin:0 0 8px}
+.ps-get{font:14px/1.45 var(--body);color:#4a5568;margin:0 0 8px}
+.ps-get b,.ps-in b{color:var(--navy-text,#14284b);font-weight:600}
+.ps-in{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font:13.5px var(--body);color:#4a5568;margin:0}
+.ps-in span{background:#eef3fb;border:1px solid #d6e0ef;border-radius:999px;padding:2px 9px;font-size:12.5px;color:#26406b}
+.pl-sendrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pl-use{padding:10px 18px}
+.pl-usehint{font:12.5px var(--body);color:#6b7688}
+.fill-what{margin:4px 0 12px;font:15px/1.5 var(--body);color:#33405a;background:#f6f8fb;border-radius:10px;padding:10px 12px}
+.h3-today .pl-sum{margin:6px 0 12px}
+html.dark .ps-what{color:#e2e8f0}html.dark .ps-get,html.dark .ps-in{color:#a9b5c6}
+html.dark .ps-in span{background:#1d2b44;border-color:#2f4466;color:#cfdcf2}
+html.dark .fill-what{background:#16233a;color:#cfd8e6}
