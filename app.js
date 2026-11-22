@@ -924,7 +924,7 @@ function openFill(card, action0, edit) {
     const subj = (card.dataset.subj || '').split('|')[0] || 'All subjects';
     if (SHARED.some(x => x.title.toLowerCase() === title.toLowerCase() && x.subj === subj)) return;
     encJSON({ title: title.slice(0, 100), text: text.slice(0, 4000), subj, stage: card.dataset.stage || 'Any', cat: card.dataset.cat || 'Resources', tool: card.dataset.tool || 'Gemini or Copilot', name: (LS.get('ergsNL.name') || '').slice(0, 60), b: card.dataset.key || '' })
-      .then(async enc => setDoc(doc(collection(DB, 'newsletterShared')), { enc, t: await visitToken(), st: 'live', at: serverTimestamp() })).then(() => toast('Your version is now in the Prompt Bank for colleagues')).catch(e => console.warn('variant', e.code || e));
+      .then(async enc => { const t = await visitToken(); return putShared(enc, t); }).then(() => toast('Your version is now in the Prompt Bank for colleagues')).catch(e => console.warn('variant', e.code || e));
   };
   f.querySelector('[data-save-mine]').addEventListener('click', () => saveMyVersion(card, $('#fillPrev').value.trim() || build()));
   f.addEventListener('input', e => {
@@ -2240,10 +2240,15 @@ function openSharePrompt(pre) {
     e.preventDefault(); if (!DB || !KEY) return toast('Can’t share right now – check your connection');
     const b = e.target.querySelector('[type=submit]'); b.disabled = true;
     const x = { title: $('#shTitle').value.trim().slice(0, 80), text: $('#shText').value.trim().slice(0, 4000), subj: $('#shSubj').value, stage: $('#shStage').value, cat: $('#shCat').value, tool: 'Gemini or Copilot', name: (LS.get('ergsNL.name') || '').slice(0, 60) };
-    try { await setDoc(doc(collection(DB, 'newsletterShared')), { enc: await encJSON(x), t: await visitToken(), st: 'live', at: serverTimestamp() }); close(); toast('Thanks! It’s now in the Prompt Bank for everyone'); }
+    try { const st = await putShared(await encJSON(x), await visitToken()); close(); toast(st === 'live' ? 'Thanks! It’s now in the Prompt Bank for everyone' : 'Thanks! Sent to the editor'); }
     catch (er) { console.warn(er); toast('Couldn’t send – try again'); b.disabled = false; }
   });
   setTimeout(() => $('#shTitle').focus(), 60);
+}
+// share straight to live; if the database rules still only allow 'pending', fall back so nothing is lost
+async function putShared(enc, t) {
+  try { await setDoc(doc(collection(DB, 'newsletterShared')), { enc, t, st: 'live', at: serverTimestamp() }); return 'live'; }
+  catch (e) { await setDoc(doc(collection(DB, 'newsletterShared')), { enc, t, st: 'pending', at: serverTimestamp() }); return 'pending'; }
 }
 async function moderateShared(id, ok) {
   try { if (ok) await setDoc(doc(DB, 'newsletterShared', id), { st: 'live' }, { merge: true }); else await deleteDoc(doc(DB, 'newsletterShared', id)); toast(ok ? 'Approved – now in the Prompt Bank' : 'Removed'); }
