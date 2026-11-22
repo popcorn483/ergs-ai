@@ -483,11 +483,8 @@ function carousel() {
   if (g._touched) { g._fix(); g._upd(); } else { go(); requestAnimationFrame(go); }
 }
 /* ---------- staff home: three clean cards (Tip of the day · Binder · Prompt bank) ---------- */
-// one prompt per day, from the teacher's own subjects where possible; the same one on the home page and in the Prompt Bank
-function promptOfDay() {
-  const mine = !canManage() && (mySubjects() || []).length ? mySubjects() : null;
-  const pr = allPrompts().filter(p => (!p.issue || status(p.issue) === 'live') && !p.mine && (!mine || p.subj[0] === 'All subjects' || p.subj.some(s => mine.includes(s))));
-  const own = mine ? pr.filter(p => p.subj.some(s => mine.includes(s))) : []; const pool = own.length ? own : pr;
+function promptOfDay() {   // a general prompt that works for every teacher, whatever they teach (same for everyone each day)
+  const pool = allPrompts().filter(p => (!p.issue || status(p.issue) === 'live') && !p.mine && !p.by && p.subj.length === 1 && p.subj[0] === 'All subjects' && (!p.stage || p.stage === 'Any') && p.tool !== 'NotebookLM');
   return pool.length ? pool[Math.floor(Date.now() / 864e5) % pool.length] : null;
 }
 function renderHome3() {
