@@ -1397,3 +1397,15 @@ html.dark .fill-what{background:#16233a;color:#cfd8e6}
 .ps-lay{margin:6px 0 0;font:13.5px/1.45 var(--body);color:#4a5568}
 .ps-lay b{color:var(--navy-text,#14284b);font-weight:600}
 html.dark .ps-get{color:#cfd8e6}html.dark .ps-get>b{color:#e8c97a}html.dark .ps-get li::before{color:#7fd08c}
+
+/* levels taught per subject */
+.sp-levels{padding:6px 20px 10px;display:grid;gap:10px}
+.sp-levels[hidden],.sp-grid[hidden],.sp-toolrow[hidden],#spSearch[hidden],.sp-panel header p[hidden]{display:none!important}
+.lv-intro{margin:0 0 4px;font:14px/1.45 var(--body);color:#5b6679;text-align:center}
+.lv-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-radius:14px;background:#fff;border:1px solid #e3e8ef;border-left:5px solid var(--c)}
+.lv-name{display:flex;align-items:center;gap:8px;font:600 15px var(--body);color:var(--navy)}
+.lv-name i{font-style:normal;font-size:20px}
+.lv-chips{display:flex;gap:6px}
+.lv-chip{border:1px solid #cdd4de;background:#fff;border-radius:999px;padding:6px 12px;font:600 13px var(--body);color:#5b6679;cursor:pointer}
+.lv-chip.on{background:var(--c);border-color:var(--c);color:#fff}
+html.dark .lv-row{background:#151e2b;border-color:#263246}html.dark .lv-chip{background:#1b2738;color:#a9b5c6;border-color:#34445e}html.dark .lv-chip.on{color:#fff;background:var(--c);border-color:var(--c)}

@@ -357,6 +357,14 @@ const mySubjects = () => { try { const v = JSON.parse(LS.get('ergsNL.subjects') 
 const myTool = () => { const t = LS.get('ergsNL.tool'); return t === 'Gemini' || t === 'Copilot' ? t : ''; };
 function setMyTool(t) { LS.set('ergsNL.tool', t || ''); }
 const toolPick = (cur, attr) => ['Gemini', 'Copilot', ''].map(t => `<button type="button" class="tp-opt${cur === t ? ' on' : ''}" ${attr}="${t}" aria-pressed="${cur === t}">${t ? `<img src="${TOOL_ICON[t]}" alt="">${t}` : 'Not sure yet'}</button>`).join('');
+// levels taught per subject, e.g. { 'History': ['KS3','GCSE'] } – missing means all levels
+const LEVELS = ['KS3', 'GCSE', 'A Level'];
+const myLevels = () => jget('ergsNL.levels', {});
+function levelOK(p) {
+  if (canManage() || !p.stage || p.stage === 'Any') return true;
+  const lv = myLevels(), subs = (p.subj || []).filter(x => lv[x] && lv[x].length);
+  return !subs.length || subs.some(x => lv[x].includes(p.stage));
+}
 function askSubjects(force) {
   if (!force && (mySubjects() || canManage())) return;
   const box = $('#subjPicker'), grid = $('#spGrid'), done = $('#spDone');
@@ -371,7 +379,22 @@ function askSubjects(force) {
   let tp = myTool(); const tpBox = $('#spTool'); tpBox.innerHTML = toolPick(tp, 'data-tp');
   tpBox.onclick = e => { const b = e.target.closest('[data-tp]'); if (!b) return; tp = b.dataset.tp; tpBox.innerHTML = toolPick(tp, 'data-tp'); };
   const close = v => { setMyTool(tp); LS.set('ergsNL.subjects', JSON.stringify(v)); box.hidden = true; document.body.classList.remove('sp-open'); plFilt.subj = v[0] || ''; plFilt.subjSet = true; if ($('#plSubj')) { $('#plCats').dataset.ready = ''; } render(); toast(v.length ? 'Prompts tailored to your subjects' : 'Showing prompts for every subject'); };
-  done.onclick = () => close([...sel]); $('#spSkip').onclick = () => close([]);
+  // step 2: which levels do you teach in each subject?
+  const lvBox = $('#spLevels'), head = box.querySelector('header'), toolRow = box.querySelector('.sp-toolrow');
+  const showGrid = () => { lvBox.hidden = true; grid.hidden = false; toolRow.hidden = false; $('#spSearch').hidden = false; $('#spTitle').textContent = 'What do you teach?'; head.querySelector('p').hidden = false; $('#spTA') && ($('#spTA').parentElement.hidden = false); upd(); done.onclick = toLevels; $('#spSkip').textContent = 'Show me everything'; $('#spSkip').onclick = () => close([]); };
+  const toLevels = () => {
+    const subs = [...sel].filter(n => n !== 'Special Educational Needs'); if (!subs.length) return close([...sel]);
+    const cur = myLevels(), lv = {}; subs.forEach(n => { lv[n] = new Set(cur[n] && cur[n].length ? cur[n] : LEVELS); });
+    const draw = () => { lvBox.innerHTML = `<p class="lv-intro">Untick any level you don’t teach. You’ll only see prompts for the levels you choose.</p>` + subs.map(n => { const sj = SUBJECTS.find(x => x[0] === n) || [n, '📘', '#14284b']; return `<div class="lv-row" style="--c:${sj[2]}"><span class="lv-name"><i aria-hidden="true">${sj[1]}</i>${esc(n)}</span><span class="lv-chips">${LEVELS.map(l => `<button type="button" class="lv-chip${lv[n].has(l) ? ' on' : ''}" data-lv="${esc(n)}|${l}" aria-pressed="${lv[n].has(l)}">${lv[n].has(l) ? '✓ ' : ''}${l}</button>`).join('')}</span></div>`; }).join(''); };
+    draw();
+    lvBox.onclick = e => { const b = e.target.closest('[data-lv]'); if (!b) return; const [n, l] = b.dataset.lv.split('|'); lv[n].has(l) ? lv[n].delete(l) : lv[n].add(l); if (!lv[n].size) lv[n].add(l); draw(); };
+    lvBox.hidden = false; grid.hidden = true; toolRow.hidden = true; $('#spSearch').hidden = true; head.querySelector('p').hidden = true; $('#spTA') && ($('#spTA').parentElement.hidden = true);
+    $('#spTitle').textContent = 'Which levels do you teach?';
+    done.disabled = false; done.textContent = 'Save'; $('#spSkip').textContent = '← Back to subjects'; $('#spSkip').onclick = showGrid;
+    done.onclick = () => { const out = { ...myLevels() }; subs.forEach(n => { out[n] = lv[n].size === LEVELS.length ? [] : [...lv[n]]; }); LS.set('ergsNL.levels', JSON.stringify(out)); close([...sel]); };
+    box.querySelector('.sp-panel').scrollTop = 0;
+  };
+  showGrid();
   upd(); box.hidden = false; document.body.classList.add('sp-open'); setTimeout(() => grid.querySelector('.sp-tile')?.focus(), 300);
 }
 
@@ -934,6 +957,7 @@ function renderPrompts() {
     if (mine && p.subj[0] !== 'All subjects' && !p.subj.some(s => mine.includes(s))) return false;
     if (plFilt.subj === '__gen' ? p.subj[0] !== 'All subjects' : plFilt.subj && !p.subj.includes(plFilt.subj) && !(plFilt.withGen && p.subj[0] === 'All subjects')) return false;
     if (plFilt.stage && !(p.stage === plFilt.stage || p.stage === 'Any')) return false;
+    if (!plFilt.stage && !levelOK(p)) return false;   // only the levels this teacher teaches in each of their subjects
     if (plFilt.tool && !p.tool.includes(plFilt.tool)) return false;
     const hay = (p.title + ' ' + p.text + ' ' + (p.fit || '') + ' ' + (p.issue ? p.issue.title + ' ' + (p.issue.theme || '') : '') + ' ' + p.tool + ' ' + p.subj.join(' ') + ' ' + p.cat).toLowerCase();
     return words.every(w => hay.includes(w));

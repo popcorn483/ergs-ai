@@ -284,6 +284,10 @@ html.dark .ps-get li.ps-more{color:#b3b9c3}
 html.dark .ps-get li.ps-more::before{color:#b3b9c3}
 html.dark .ps-lay{color:#bdc4d0}
 html.dark .ps-lay b{color:var(--navy-text,#c2d0e8)}
+html.dark .lv-intro{color:#b8bec9}
+html.dark .lv-row{background:#151c26;border:1px solid #2e3c50}
+html.dark .lv-name{color:var(--navy-text)}
+html.dark .lv-chip{border:1px solid #304059;background:#151c26;color:#b8bec9}
 
 /* hand-tuned extras */
 html.dark .app-bg{background:linear-gradient(180deg,#0b111a 0%,#0d1420 60%,#12130f 100%)}
