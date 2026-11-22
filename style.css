@@ -1292,3 +1292,9 @@ html.dark #themeBtn .ic-moon{display:none}
 .h3-today pre.xxl{font-size:11.5px;line-height:1.4}
 .fill-tidy .ft-ic{flex:none;width:20px;height:20px;border-radius:50%;background:#2f6b3a;color:#fff;font:700 12px/20px var(--body);text-align:center;margin-top:1px}
 .fill-fields:empty{display:none}
+
+.pl-fit{margin:6px 0 0;font:13px/1.4 var(--body);color:#5b4a1f;background:#fbf3df;border:1px solid #efdfb4;border-radius:8px;padding:5px 9px;display:inline-block}
+.pl-fit b{font-weight:600;color:#6b5420}
+.h3-fit{font-size:12px;margin:2px 0 8px}
+mark.ph.def{background:#eef3fb;color:inherit;border-bottom:1.5px dashed #6b86b3;border-radius:3px;padding:0 2px}
+html.dark mark.ph.def{background:#1d2b44;color:#dce6f5;border-bottom-color:#6f8fc4}

@@ -505,7 +505,7 @@ function renderHome3() {
       <div class="h3-actions"><span class="btn h3-btn primary">${L ? 'Open at the latest' : 'Open the binder'}</span><span class="h3-link" data-binder>Start from the cover →</span></div></a>
     <article class="h3-card h3-prompts">${canManage() ? `<span class="h3-label">Prompt bank</span>
       <h2>${pr.length} prompts${mine ? ` for ${esc(mine[0])}${mine.length > 1 ? ' and more' : ''}` : ''}</h2>` : `<h2>Prompt Bank</h2>`}
-      ${pd ? `<div class="h3-today"><span class="h3-tlabel">Today’s prompt <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></span><h3>${esc(pd.title)}</h3><pre class="${pd.text.length > 950 ? 'xxl' : pd.text.length > 650 ? 'xl' : pd.text.length > 420 ? 'l' : ''}">${esc(pd.text).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`)}</pre><button class="btn h3-btn h3-use" id="h3TryPrompt">Use this prompt</button></div>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
+      ${pd ? `<div class="h3-today"><span class="h3-tlabel">Today’s prompt <span class="h3-tool">${esc(pd.tool.replace(' or ', ' · '))}</span></span><h3>${esc(pd.title)}</h3><p class="pl-fit h3-fit">🎯 <b>Great for:</b> ${esc(promptFit(pd))}</p><pre class="${pd.text.length > 950 ? 'xxl' : pd.text.length > 650 ? 'xl' : pd.text.length > 420 ? 'l' : ''}">${showTokens(esc(pd.text))}</pre><button class="btn h3-btn h3-use" id="h3TryPrompt">Use this prompt</button></div>` : '<p>Ready-made prompts you can send to Gemini or Copilot.</p>'}
       <div class="h3-actions"><a class="h3-link" href="#prompts">Browse all prompts →</a></div></article>
     ${ed ? edCard() : ''}
   </div>
@@ -687,8 +687,16 @@ function allPrompts() {
   const lib = ((CONTENT && CONTENT.plib) || []).map((p, k) => ({ ...p, text: noDash(p.text || ''), subj: Array.isArray(p.subj) ? p.subj : [p.subj], key: 'L' + k, issue: null }));
   return [...fromIssues, ...lib];
 }
+const CAT_USE = { 'Planning': 'planning lessons and units', 'Resources': 'making classroom resources', 'Assessment & Feedback': 'marking, feedback and assessment', 'Inclusion & SEN': 'supporting pupils with additional needs', 'Revision & Exams': 'revision and exam classes', 'Engagement': 'hooks and lively lessons', 'Pastoral & Wellbeing': 'form time and pastoral work', 'Admin & Communication': 'emails, letters and reports', 'Leadership & Data': 'department leadership and data', 'Pupil AI Literacy': 'teaching pupils about AI', 'Metacognition & Cowriting': 'modelling and independent learning' };
+// "Great for" hint: the new CCEA prompts carry their own; others are described from their stage, subject and area
+function promptFit(p) {
+  if (p.fit) return p.fit;
+  const subj = (p.subj || []).filter(x => x !== 'All subjects'), st = p.stage && p.stage !== 'Any' ? p.stage : '';
+  const who = subj.length ? `${st ? st + ' ' : ''}${subj.join(', ')}` : st ? `${st}, any subject` : 'Any subject, any year';
+  return `${who} · ${CAT_USE[p.cat] || 'everyday teaching'}${/\[[^\]]*(topic|unit|text|question)[^\]]*\]/i.test(p.text) ? ' · add your own topic' : ''}`;
+}
 function promptCard(p) {
-  const ph = t => esc(t).replace(/\[[^\]\n]{1,80}\]/g, m => `<mark class="ph">${m}</mark>`);
+  const ph = t => showTokens(esc(t));
   const live = p.issue && status(p.issue) === 'live';
   const from = p.issue ? (live || canManage() ? `<a href="#issue-${esc(p.issue.id)}">From Issue ${p.issue.n} · ${esc(p.issue.title)}</a>` : '<span>From an upcoming issue</span>') : `<span>${esc(p.subj[0] === 'All subjects' ? p.cat : p.subj.join(', ') + ' · ' + p.cat)}${p.stage && p.stage !== 'Any' ? ' · ' + esc(p.stage) : ''}</span>`;
   let tools = ['Gemini', 'Copilot', 'NotebookLM'].filter(x => p.tool.includes(x)); if (!tools.length) tools = ['Gemini', 'Copilot'];
@@ -699,7 +707,7 @@ function promptCard(p) {
   const send = mt && tools[0] === mt
     ? `<button class="pl-send main" data-send="${mt}" title="Copy this prompt and open ${mt}"><img src="${TOOL_ICON[mt]}" alt="">Send to ${mt}</button>` + tools.slice(1).map(x => `<button class="pl-alt" data-send="${x}" title="Copy this prompt and open ${x}">Use ${x} instead</button>`).join('')
     : tools.map(x => `<button class="pl-send" data-send="${x}" title="Copy this prompt and open ${x}"><img src="${TOOL_ICON[x]}" alt="">Send to ${x}</button>`).join('');
-  return `<article class="pl-card" data-subj="${esc((p.subj || []).join('|'))}"><header><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b><h3>${esc(p.title)}</h3></header><pre class="pl-text">${ph(p.text)}</pre><div class="pl-sendrow">${send}</div><footer>${from}<span class="pl-fbtns"><button class="btn small" data-pledit>✎ Edit</button><button class="btn small" data-plcopy>Copy</button></span></footer></article>`;
+  return `<article class="pl-card" data-subj="${esc((p.subj || []).join('|'))}" data-raw="${esc(p.text)}"><header><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b><h3>${esc(p.title)}</h3><p class="pl-fit"><span aria-hidden="true">🎯</span> <b>Great for:</b> ${esc(promptFit(p))}</p></header><pre class="pl-text">${ph(p.text)}</pre><div class="pl-sendrow">${send}</div><footer>${from}<span class="pl-fbtns"><button class="btn small" data-pledit>✎ Edit</button><button class="btn small" data-plcopy>Copy</button></span></footer></article>`;
 }
 // "Send to…": copies the prompt and opens the tool in a new tab (none of these tools accept a prompt in the link, so staff paste with Ctrl+V)
 const TOOL_URL = { Gemini: 'https://gemini.google.com/app', Copilot: 'https://m365.cloud.microsoft/chat', NotebookLM: 'https://notebooklm.google.com/' };
@@ -748,7 +756,13 @@ const CCEA_TOPICS = {
 // The ERGS prospectus says Key Stage 4 courses follow CCEA unless otherwise stated, and none are stated otherwise.
 const YEARS = ['Year 8', 'Year 9', 'Year 10', 'Year 11', 'Year 12', 'Year 13', 'Year 14'];
 const fillMem = () => { try { return JSON.parse(LS.get('ergsNL.fill') || '{}'); } catch (e) { return {}; } };
+// inputs can carry a default: [Label=default] shows as the default text and opens as a pre-filled box
+const TOKRE = /\[[^\]\n]{1,220}\]/g;
+const tokParts = t => { const m = t.slice(1, -1).match(/^([^=]{1,40})=(.*)$/s); return m ? { label: m[1].trim(), def: m[2].trim() } : { label: t.slice(1, -1), def: '' }; };
+const resolveDefaults = t => t.replace(TOKRE, m => { const p = tokParts(m); return p.def ? p.def : m; });
+const showTokens = h => h.replace(/\[[^\]\n]{1,220}\]/g, m => { const p = tokParts(m); return p.def ? `<mark class="ph def" title="${p.label} – tap to change">${p.def}</mark>` : `<mark class="ph">${m}</mark>`; });
 function fieldKind(tok) {
+  tok = '[' + tokParts(tok).label + ']';
   const t = tok.toLowerCase();
   if (/^\[(x|year|year group|year group\/class)\]$/.test(t)) return 'year';
   if (/^\[(subject)\]$/.test(t) || /^\[subject\/topic\]$/.test(t) && false) return 'subject';
@@ -770,21 +784,23 @@ How to lay out your answer (I'm a busy teacher):
 - Never use em dashes. Use commas, colons, brackets or full stops instead.`;
 const tidyOn = () => true;   // always on: every prompt asks for a clean, ready-to-use answer
 const noDash = t => t.replace(/\s*[\u2014]\s*/g, ', ').replace(/\u2013/g, '-');
-const withTidy = (t, on = tidyOn()) => { t = noDash(t); return on && !t.includes("I'm a busy teacher") ? t.trim() + TIDY : t; };
+const withTidy = (t, on = tidyOn()) => { t = noDash(resolveDefaults(t)); return on && !t.includes("I'm a busy teacher") ? t.trim() + TIDY : t; };
 function openFill(card, action0, edit) {
   const action = (t, go) => action0(withTidy(t), go);
-  const txt = card.querySelector('.pl-text').textContent;
-  const toks = [...new Set(txt.match(/\[[^\]\n]{1,80}\]/g) || [])];
+  const txt = card.dataset.raw || card.querySelector('.pl-text').textContent;
+  const toks = [...new Set(txt.match(TOKRE) || [])];
   if (!toks.length && !edit) return action(txt);
   const mem = fillMem(), main = (mySubjects() || [])[0] || '';
   const subjOfCard = (card.dataset.subj || '').split('|').find(s => CCEA_TOPICS[s]) || '';
-  const label = t => { const k = fieldKind(t), s = t.slice(1, -1); return k === 'year' ? 'Year group' : k === 'paste' ? s.charAt(0).toUpperCase() + s.slice(1) : s.charAt(0).toUpperCase() + s.slice(1); };
+  const label = t => { const k = fieldKind(t), s = tokParts(t).label; return k === 'year' ? 'Year group' : k === 'paste' ? s.charAt(0).toUpperCase() + s.slice(1) : s.charAt(0).toUpperCase() + s.slice(1); };
   const sheet = document.createElement('div'); sheet.className = 'fill-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-label', 'Fill in this prompt');
   const tools = [...card.querySelectorAll('[data-send]')].map(b => b.dataset.send);
   sheet.innerHTML = `<form class="fill-card"><header><span class="eyebrow">${toks.length ? 'Make it yours' : 'Edit this prompt'}</span><h3>${esc(card.querySelector('h3').textContent)}</h3><button type="button" class="fill-x" aria-label="Close">×</button></header>
     <div class="fill-fields">${toks.map((t, k) => {
-      const kind = fieldKind(t), id = 'ff' + k;
-      if (kind === 'year') return `<label for="${id}">Year group</label><select id="${id}" data-tok="${esc(t)}"><option value="">Choose…</option>${YEARS.map(y => `<option ${mem.year === y ? 'selected' : ''}>${y}</option>`).join('')}</select>`;
+      const kind = fieldKind(t), id = 'ff' + k, def = tokParts(t).def;
+      if (kind === 'year') { const pick = def && YEARS.includes(def) ? def : mem.year; return `<label for="${id}">Year group</label><select id="${id}" data-tok="${esc(t)}"><option value="">Choose…</option>${YEARS.map(y => `<option ${pick === y ? 'selected' : ''}>${y}</option>`).join('')}</select>`; }
+      if (def && def.length > 60) return `<label for="${id}">${esc(label(t))}</label><textarea id="${id}" rows="3" data-tok="${esc(t)}">${esc(def)}</textarea>`;
+      if (def) return `<label for="${id}">${esc(label(t))}</label><input id="${id}" data-tok="${esc(t)}" ${kind === 'topic' ? 'data-topic list="fillTopics"' : ''} value="${esc(def)}">`;
       if (kind === 'paste') return `<label for="${id}">${esc(label(t))} <small>optional – you can paste this in the AI tool instead</small></label><textarea id="${id}" rows="3" data-tok="${esc(t)}" placeholder="Paste here, or leave blank"></textarea>`;
       if (kind === 'subject') return `<label for="${id}">Subject</label><input id="${id}" data-tok="${esc(t)}" list="fillSubj" value="${esc(subjOfCard || main || mem.subject || '')}" placeholder="e.g. Geography">`;
       if (kind === 'topic') return `<label for="${id}">${esc(label(t))}</label><input id="${id}" data-tok="${esc(t)}" data-topic list="fillTopics" value="${esc(mem.topic && mem.topicSubj === (subjOfCard || main) ? mem.topic : '')}" placeholder="Type or pick a CCEA topic">`;
@@ -800,14 +816,21 @@ function openFill(card, action0, edit) {
   document.body.appendChild(sheet); document.body.classList.add('sp-open');
   const f = sheet.querySelector('form'), fields = [...f.querySelectorAll('[data-tok]')];
   const curSubj = () => { const s = f.querySelector('[list="fillSubj"]'); return (s && s.value.trim()) || subjOfCard || main; };
-  const build = () => { let out = txt; fields.forEach(el => { const v = el.value.trim(); if (v) out = out.split(el.dataset.tok).join(fieldKind(el.dataset.tok) === 'year' && /Year \[/i.test(txt) && el.dataset.tok === '[X]' ? v.replace(/^Year /, '') : v); }); return out; };
+  const build = () => { let out = txt; fields.forEach(el => { const v = el.value.trim() || tokParts(el.dataset.tok).def; if (v) out = out.split(el.dataset.tok).join(fieldKind(el.dataset.tok) === 'year' && /Year \[/i.test(txt) && el.dataset.tok === '[X]' ? v.replace(/^Year /, '') : v); }); return out; };
   const refresh = () => {
     const s = curSubj(), list = CCEA_TOPICS[s] || [];
     $('#fillTopics').innerHTML = list.map(t => `<option value="${esc(t)}">`).join('');
     $('#fillHint').textContent = f.querySelector('[data-topic]') ? (list.length ? `Topic suggestions are from the CCEA GCSE ${s} specification – or type your own.` : 'Type your topic – suggestions appear for subjects with a CCEA GCSE specification.') : '';
     const ta = $('#fillPrev'); if (!ta.dataset.dirty) ta.value = build(); else fields.forEach(el => { const v = el.value.trim(); if (v && ta.value.includes(el.dataset.tok)) ta.value = ta.value.split(el.dataset.tok).join(v); });
   };
-  f.addEventListener('input', e => { if (e.target.id === 'fillPrev') { e.target.dataset.dirty = 1; return; } refresh(); }); refresh();
+  // changing the topic: if the teacher hasn't touched 'Content to cover', swap it for a neutral line so the two never clash
+  const topicEl = fields.find(el => tokParts(el.dataset.tok).label === 'Topic' && tokParts(el.dataset.tok).def), contentEl = fields.find(el => tokParts(el.dataset.tok).label === 'Content to cover');
+  f.addEventListener('input', e => {
+    if (e.target.id === 'fillPrev') { e.target.dataset.dirty = 1; return; }
+    if (e.target === contentEl) contentEl.dataset.edited = 1;
+    if (e.target === topicEl && contentEl && !contentEl.dataset.edited) contentEl.value = topicEl.value.trim() === tokParts(topicEl.dataset.tok).def ? tokParts(contentEl.dataset.tok).def : 'the key content for this topic in the CCEA specification';
+    refresh();
+  }); refresh();
   const close = () => { sheet.remove(); document.body.classList.remove('sp-open'); };
   sheet.addEventListener('click', e => { if (e.target === sheet || e.target.closest('.fill-x')) close(); });
   sheet.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
@@ -863,7 +886,7 @@ function renderPrompts() {
     if (plFilt.subj === '__gen' ? p.subj[0] !== 'All subjects' : plFilt.subj && !p.subj.includes(plFilt.subj) && !(plFilt.withGen && p.subj[0] === 'All subjects')) return false;
     if (plFilt.stage && !(p.stage === plFilt.stage || p.stage === 'Any')) return false;
     if (plFilt.tool && !p.tool.includes(plFilt.tool)) return false;
-    const hay = (p.title + ' ' + p.text + ' ' + (p.issue ? p.issue.title + ' ' + (p.issue.theme || '') : '') + ' ' + p.tool + ' ' + p.subj.join(' ') + ' ' + p.cat).toLowerCase();
+    const hay = (p.title + ' ' + p.text + ' ' + (p.fit || '') + ' ' + (p.issue ? p.issue.title + ' ' + (p.issue.theme || '') : '') + ' ' + p.tool + ' ' + p.subj.join(' ') + ' ' + p.cat).toLowerCase();
     return words.every(w => hay.includes(w));
   });
   const counts = {}; base.forEach(p => { counts[p.cat] = (counts[p.cat] || 0) + 1; });

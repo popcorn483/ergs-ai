@@ -252,6 +252,9 @@ html.dark .fill-tidy b{color:#c8e3cd}
 html.dark .fill-tidy small{color:#c2cdc4}
 html.dark .fill-tidy a{color:#b6dfbe}
 html.dark .fill-tidypeek{background:#171f2a;color:#bfc8db}
+html.dark .pl-fit{color:#e5d9bb;background:#342c19;border:1px solid #584e34}
+html.dark .pl-fit b{color:#e4d6b7}
+html.dark mark.ph.def{background:#19202c}
 
 /* hand-tuned extras */
 html.dark .app-bg{background:linear-gradient(180deg,#0b111a 0%,#0d1420 60%,#12130f 100%)}
