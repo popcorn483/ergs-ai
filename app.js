@@ -352,7 +352,7 @@ const SUBJECTS = [
   ['Moving Image Arts', '🎬', '#2d2d3a'], ['Music', '🎵', '#7c3aed'], ['Drama', '🎭', '#9b2c2c'], ['Performing Arts', '🎤', '#b83280'],
   ['Physical Education', '🏉', '#2f855a'], ['Sports Science and the Active Leisure Industry', '🏃', '#276749'], ['Home Economics', '🍳', '#c05621'], ['Nutrition and Food Science', '🥗', '#5a8f29'],
   ['Business Studies', '📈', '#2c5282'], ['Economics', '💷', '#2a4365'], ['Government and Politics', '🏛️', '#4a5578'], ['Health and Social Care', '🤝', '#b5476a'],
-  ['Agriculture', '🚜', '#6b8e23'], ['Learning for Life and Work', '🧭', '#2b6cb0'], ['Personal Development', '🌱', '#38a169'], ['Careers', '🎓', '#975a16']];
+  ['Agriculture', '🚜', '#6b8e23'], ['Learning for Life and Work', '🧭', '#2b6cb0'], ['Personal Development', '🌱', '#38a169'], ['Careers', '🎓', '#975a16'], ['Special Educational Needs', '🤝', '#b04a8f']];
 const mySubjects = () => { try { const v = JSON.parse(LS.get('ergsNL.subjects') || 'null'); return Array.isArray(v) ? v : null; } catch (e) { return null; } };   // null = not chosen yet, [] = show everything
 const myTool = () => { const t = LS.get('ergsNL.tool'); return t === 'Gemini' || t === 'Copilot' ? t : ''; };
 function setMyTool(t) { LS.set('ergsNL.tool', t || ''); }
@@ -367,6 +367,7 @@ function askSubjects(force) {
   grid.onclick = e => { const t = e.target.closest('[data-subj]'); if (!t) return; const n = t.dataset.subj; if (e.target.closest('.sp-mainbtn')) { sel.delete(n); const rest = [...sel]; sel.clear(); [n, ...rest].forEach(x => sel.add(x)); t.classList.add('on'); mark(); upd(); return; } sel.has(n) ? sel.delete(n) : sel.add(n); t.classList.toggle('on', sel.has(n)); t.setAttribute('aria-pressed', sel.has(n)); mark(); upd(); };
   mark();
   $('#spSearch').value = ''; $('#spSearch').oninput = e => { const q = e.target.value.toLowerCase(); grid.querySelectorAll('.sp-tile').forEach(t => { t.hidden = q && !t.dataset.subj.toLowerCase().includes(q); }); };
+  $('#spTA') && ($('#spTA').onclick = () => { const t = document.querySelector('[data-subj="Special Educational Needs"]'); if (t) { if (!t.classList.contains('on')) t.click(); t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } });
   let tp = myTool(); const tpBox = $('#spTool'); tpBox.innerHTML = toolPick(tp, 'data-tp');
   tpBox.onclick = e => { const b = e.target.closest('[data-tp]'); if (!b) return; tp = b.dataset.tp; tpBox.innerHTML = toolPick(tp, 'data-tp'); };
   const close = v => { setMyTool(tp); LS.set('ergsNL.subjects', JSON.stringify(v)); box.hidden = true; document.body.classList.remove('sp-open'); plFilt.subj = v[0] || ''; plFilt.subjSet = true; if ($('#plSubj')) { $('#plCats').dataset.ready = ''; } render(); toast(v.length ? 'Prompts tailored to your subjects' : 'Showing prompts for every subject'); };
@@ -810,13 +811,13 @@ function openFill(card, action0, edit) {
       const kind = fieldKind(t), id = 'ff' + k, def = tokParts(t).def;
       if (kind === 'year') { const pick = def && YEARS.includes(def) ? def : mem.year; return `<label for="${id}">Year group</label><select id="${id}" data-tok="${esc(t)}"><option value="">Choose…</option>${YEARS.map(y => `<option ${pick === y ? 'selected' : ''}>${y}</option>`).join('')}</select>`; }
       if (def && def.length > 60) return `<label for="${id}">${esc(label(t))}</label><textarea id="${id}" rows="3" data-tok="${esc(t)}">${esc(def)}</textarea>`;
-      if (def) return `<label for="${id}">${esc(label(t))}</label><input id="${id}" data-tok="${esc(t)}" ${kind === 'topic' ? 'data-topic list="fillTopics"' : ''} value="${esc(def)}">`;
+      if (def) return `<label for="${id}">${esc(label(t))}</label><input id="${id}" data-tok="${esc(t)}" ${kind === 'topic' ? 'data-topic list="fillTopics"' : tokParts(t).label === 'Need' ? 'list="fillNeeds"' : ''} value="${esc(def)}">`;
       if (kind === 'paste') return `<label for="${id}">${esc(label(t))} <small>optional – you can paste this in the AI tool instead</small></label><textarea id="${id}" rows="3" data-tok="${esc(t)}" placeholder="Paste here, or leave blank"></textarea>`;
       if (kind === 'subject') return `<label for="${id}">Subject</label><input id="${id}" data-tok="${esc(t)}" list="fillSubj" value="${esc(subjOfCard || main || mem.subject || '')}" placeholder="e.g. Geography">`;
       if (kind === 'topic') return `<label for="${id}">${esc(label(t))}</label><input id="${id}" data-tok="${esc(t)}" data-topic list="fillTopics" value="${esc(mem.topic && mem.topicSubj === (subjOfCard || main) ? mem.topic : '')}" placeholder="Type or pick a CCEA topic">`;
       return `<label for="${id}">${esc(label(t))}</label><input id="${id}" data-tok="${esc(t)}" placeholder="${esc(t.slice(1, -1))}">`;
     }).join('')}</div>
-    <datalist id="fillSubj">${(mySubjects() && mySubjects().length ? mySubjects() : SUBJECTS.map(s => s[0])).map(s => `<option value="${esc(s)}">`).join('')}</datalist><datalist id="fillTopics"></datalist>
+    <datalist id="fillSubj">${(mySubjects() && mySubjects().length ? mySubjects() : SUBJECTS.map(s => s[0])).map(s => `<option value="${esc(s)}">`).join('')}</datalist><datalist id="fillTopics"></datalist><datalist id="fillNeeds">${['Dyslexia', 'Autism (ASD)', 'ADHD', 'Dyspraxia (DCD)', 'speech, language and communication needs', 'working memory difficulties', 'moderate learning difficulties', 'social, emotional and mental health needs', 'anxiety', 'hearing impairment', 'visual impairment', 'dyscalculia'].map(n => `<option value="${n}">`).join('')}</datalist>
     <p class="fill-hint" id="fillHint"></p>
     <label class="fill-edlab" for="fillPrev">Your prompt <small>edit anything before you send it</small></label><textarea id="fillPrev" class="fill-ed" rows="${edit ? 10 : 6}" spellcheck="true"></textarea>
     <div class="fill-tidy"><span class="ft-ic" aria-hidden="true">✓</span><span><b>Ready-to-use answer is switched on</b><small>Every prompt asks the AI to skip the waffle: headings, short bullets, answers at the end, UK English, no em dashes. <a href="#" id="fillTidyPeek">See what's added</a></small></span></div>
@@ -833,13 +834,17 @@ function openFill(card, action0, edit) {
     $('#fillHint').textContent = f.querySelector('[data-topic]') ? (list.length ? `Topic suggestions are from the CCEA GCSE ${s} specification – or type your own.` : 'Type your topic – suggestions appear for subjects with a CCEA GCSE specification.') : '';
     const ta = $('#fillPrev'); if (!ta.dataset.dirty) ta.value = build(); else fields.forEach(el => { const v = el.value.trim(); if (v && ta.value.includes(el.dataset.tok)) ta.value = ta.value.split(el.dataset.tok).join(v); });
   };
-  // changing the topic: if the teacher hasn't touched 'Content to cover', swap it for a neutral line so the two never clash
-  const topicEl = fields.find(el => tokParts(el.dataset.tok).label === 'Topic' && tokParts(el.dataset.tok).def), contentEl = fields.find(el => tokParts(el.dataset.tok).label === 'Content to cover');
+  // linked boxes: changing the main one (Topic or Need) swaps untouched detail boxes for a neutral line, so they never clash
+  const DEPS = { 'Topic': { 'Content to cover': 'the key content for this topic in the CCEA specification' },
+    'Need': { 'Need details': 'the typical difficulties associated with this need', 'Helpful approaches': 'approaches known to help pupils with this need' } };
+  const byLabel = l => fields.find(el => tokParts(el.dataset.tok).label === l);
   f.querySelector('[data-save-mine]').addEventListener('click', () => saveMyVersion(card, $('#fillPrev').value.trim() || build()));
   f.addEventListener('input', e => {
     if (e.target.id === 'fillPrev') { e.target.dataset.dirty = 1; return; }
-    if (e.target === contentEl) contentEl.dataset.edited = 1;
-    if (e.target === topicEl && contentEl && !contentEl.dataset.edited) contentEl.value = topicEl.value.trim() === tokParts(topicEl.dataset.tok).def ? tokParts(contentEl.dataset.tok).def : 'the key content for this topic in the CCEA specification';
+    e.target.dataset.edited = 1;
+    const lab = e.target.dataset.tok ? tokParts(e.target.dataset.tok).label : '', deps = DEPS[lab];
+    if (deps) { const changed = e.target.value.trim() !== tokParts(e.target.dataset.tok).def;
+      Object.entries(deps).forEach(([dl, neutral]) => { const d = byLabel(dl); if (d && !d.dataset.edited) d.value = changed ? neutral : tokParts(d.dataset.tok).def; }); }
     refresh();
   }); refresh();
   const close = () => { sheet.remove(); document.body.classList.remove('sp-open'); };

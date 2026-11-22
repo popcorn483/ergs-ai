@@ -1370,3 +1370,4 @@ html.dark .pl-score{background:#173022;color:#9fd5a8}
 .pl-today .pl-card{margin:0}
 html.dark .pl-today{background:linear-gradient(135deg,#2a2212,#221c10);border-color:#4a3c1c}
 html.dark .pl-today .pt-label{color:#e8c97a}
+.sp-ta{margin:6px 0 0;font:14px var(--body);color:#5b6679}.sp-ta .linkbtn{font-weight:600;color:#b04a8f}
