@@ -368,6 +368,9 @@ const ROLES = [   // [name, icon, colour, description, subject option it maps to
   ['Teaching assistant', '🤝', '#b04a8f', 'Supporting pupils with SEN', 'Special Educational Needs'],
   ['Admin & Office', '🗂️', '#4a5d7a', 'Office, admin or support staff', 'Admin & Office']];
 const myRoles = () => jget('ergsNL.roles', []);
+// only teaching staff are allocated a Gemini or Copilot pro licence
+const TEACHING_ROLES = ['Subject teacher', 'Curriculum Leader', 'Head of Year', 'Form teacher', 'Senior Leadership Team'];
+const isTeaching = () => { const r = myRoles(); return !r.length || r.some(x => TEACHING_ROLES.includes(x)); };
 const SUBJ_INTRO = 'Pick your subjects and we’ll show you prompts for them, plus the general ones that work for everyone. You can change this any time.';
 // prompt areas that suit each role come first in the Prompt Bank
 const ROLE_AREAS = { 'Curriculum Leader': ['Leadership & Data', 'Planning'], 'Head of Year': ['Pastoral & Wellbeing', 'Admin & Communication'], 'Form teacher': ['Pastoral & Wellbeing'], 'Senior Leadership Team': ['Leadership & Data', 'Admin & Communication'], 'Teaching assistant': ['Inclusion & SEN'], 'Admin & Office': ['Admin & Communication'] };
@@ -400,6 +403,7 @@ function askSubjects(force) {
   // final step: which AI tool does your licence give you? (its own screen)
   const tlBox = $('#spToolStep');
   const showTool = back => {
+    if (!isTeaching()) { tp = ''; return close([...sel]); }   // support staff don't get a licence: skip this screen, both tools stay available
     const draw = () => { tlBox.innerHTML = [['Gemini', 'Google Gemini Pro', 'You’ve been given a Gemini Pro licence on your school Google account'], ['Copilot', 'Microsoft 365 Copilot', 'You’ve been given a Copilot licence on your school Microsoft account'], ['', 'Not allocated yet', 'Both will be shown on every prompt – choose in Settings once your licence arrives']]
       .map(([v, n, d]) => `<button type="button" class="tl-opt${tp === v ? ' on' : ''}" data-tp="${v}" aria-pressed="${tp === v}">${v ? `<img src="${TOOL_ICON[v]}" alt="">` : '<span class="tl-q" aria-hidden="true">?</span>'}<span><b>${n}</b><small>${d}</small></span><i class="tl-tick" aria-hidden="true">✓</i></button>`).join(''); };
     draw(); tlBox.onclick = e => { const x = e.target.closest('[data-tp]'); if (!x) return; tp = x.dataset.tp; draw(); };
@@ -576,6 +580,7 @@ function renderHome3() {
       <span class="h3-label">The binder</span>
       <div class="h3-book" aria-hidden="true"><img alt="" src="${window.ERGS_CREST || ''}"><b>ERGS Digital Skills &amp; AI</b><i>${live.length} issues</i></div>
       <h2>${L ? `Issue ${L.n}: ${esc(L.title)}` : 'Every issue in one place'}</h2><p>${L ? esc(L.summary || 'The latest issue') : 'Turn the pages like a printed book.'}</p>
+      ${(() => { const rec = live.filter(i => !L || i.id !== L.id).sort((a, b) => (+b.n || 0) - (+a.n || 0)).slice(0, 3); return rec.length ? `<div class="h3-recent"><span class="h3-rlabel">Also in the binder</span>${rec.map(i => `<span class="h3-ri" data-bk="${esc(i.id)}"><b>${esc(String(i.n))}</b><span>${esc(i.title)}</span><i aria-hidden="true">›</i></span>`).join('')}</div>` : ''; })()}
       <div class="h3-actions"><span class="btn h3-btn primary">${L ? 'Open at the latest' : 'Open the binder'}</span><span class="h3-link" data-binder>Start from the cover →</span></div></a>
     <article class="h3-card h3-prompts">${canManage() ? `<span class="h3-label">Prompt bank</span>
       <h2>${pr.length} prompts${mine ? ` for ${esc(mine[0])}${mine.length > 1 ? ' and more' : ''}` : ''}</h2>` : `<h2>Prompt Bank</h2>`}
@@ -587,7 +592,7 @@ function renderHome3() {
   $('#h3Grid')?.addEventListener('click', () => { document.body.classList.toggle('show-grid'); renderHome3(); });
   $('#h3Release')?.addEventListener('click', e => { const b = e.currentTarget; if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Tap again to release'; setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = 'Release now'; } }, 4000); return; } setRelease(b.dataset.id, { s: 'live' }, 'Released – staff can see it now'); });
   el.querySelector('[data-binder]')?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); Binder.target = 'cover'; location.hash = 'binder'; });
-  $('#h3Binder')?.addEventListener('click', e => { if (e.target.closest('[data-binder]')) return; e.preventDefault(); Binder.target = L ? L.id : null; if (location.hash === '#binder') Binder.open(); else location.hash = 'binder'; });
+  $('#h3Binder')?.addEventListener('click', e => { if (e.target.closest('[data-binder]')) return; e.preventDefault(); const bk = e.target.closest('[data-bk]'); Binder.target = bk ? bk.dataset.bk : L ? L.id : null; if (location.hash === '#binder') Binder.open(); else location.hash = 'binder'; });
   el.querySelectorAll('[data-tried]').forEach(b => b.addEventListener('click', () => { setTried(b.dataset.tried, !triedMap()[b.dataset.tried]); renderHome3(); }));
   $('#h3TipOpen')?.addEventListener('click', () => showTipSheet(t));
   el.querySelectorAll('[data-area]').forEach(b => b.addEventListener('click', () => { plFilt.cat = b.dataset.area; plFilt.keepCat = true; plFilt.shown = 40; location.hash = 'prompts'; }));
@@ -1053,7 +1058,7 @@ function renderPrompts() {
   // step 1: "What do you want a prompt for?" – a grid of big cards; step 2: the prompts for that choice
   const choosing = plFilt.cat === null && !plFilt.q;
   $('#plPick').hidden = !choosing; ['#plSels', '#plCount', '#plList'].forEach(s => { $(s).hidden = choosing; }); $('#plIntro').hidden = !choosing;
-  $('#plCrumb').hidden = choosing; $('#plMyTool').hidden = !choosing;
+  $('#plCrumb').hidden = choosing; $('#plMyTool').hidden = !choosing || !isTeaching();
   { const pd = choosing ? promptOfDay() : null; $('#plToday').hidden = !pd; $('#plToday').innerHTML = pd ? `<span class="pt-label">✨ Prompt of the day</span>${promptCard(pd)}` : ''; }
   if (choosing) {
     $('#plTitle').textContent = 'What do you want a prompt for?'; $('#plMore').hidden = true;
@@ -2386,7 +2391,7 @@ function openSettings() {
     <section class="set-sec set-share"><h4>Share the app</h4><p class="set-val">Get the link or QR code for colleagues, or install it on this device.</p><button class="btn primary small" id="setShare">Share or install</button></section>
     <section class="set-sec"><h4>Your name</h4><div class="set-row"><input id="setName" maxlength="60" value="${esc(name)}" placeholder="First and last name"><button class="btn small" id="setNameSave">Save</button></div></section>
     <section class="set-sec"><h4>Role, subjects and levels</h4><p class="set-val">${esc(roles.join(', ') || 'No role chosen')}<br>${esc(lvText || subs.join(', ') || 'No subjects chosen')}</p><button class="btn small" id="setSubj">Change role, subjects and levels</button></section>
-    <section class="set-sec"><h4>My AI licence</h4><div class="tp-seg" id="setTool">${toolPick(myTool(), 'data-st')}</div></section>
+    ${isTeaching() ? `<section class="set-sec"><h4>My AI licence</h4><div class="tp-seg" id="setTool">${toolPick(myTool(), 'data-st')}</div></section>` : ''}
     <section class="set-sec"><h4>Appearance</h4><div class="tp-seg"><button type="button" class="tp-opt${dark ? '' : ' on'}" data-th="light">☀️ Light</button><button type="button" class="tp-opt${dark ? ' on' : ''}" data-th="dark">🌙 Dark</button></div></section>
     <section class="set-sec"><h4>My data on this device</h4><p class="set-val">${savedKeys().length + myVersions().length} saved prompts · ${usedLog().length} prompts used · ${Object.keys(triedMap()).length} tips tried</p>
       <div class="set-btns"><button class="btn small" data-clear="saved">Clear saved prompts</button><button class="btn small" data-clear="history">Clear my CPD history</button></div></section>
@@ -2399,7 +2404,7 @@ function openSettings() {
   $('#setNameSave').onclick = () => { const v = $('#setName').value.trim().replace(/\s+/g, ' '); if (v.split(' ').length < 2) return toast('Please enter your first and last name'); LS.set('ergsNL.name', v.slice(0, 60)); LS.del('ergsNL.nameSent'); trackVisit?.(); toast('Name saved'); render(); };
   $('#setSubj').onclick = () => { close(); askSubjects(true); };
   $('#setShare').onclick = () => { close(); openShare(null); };
-  $('#setTool').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; setMyTool(b.dataset.st); $('#setTool').innerHTML = toolPick(myTool(), 'data-st'); toast(b.dataset.st ? `Prompts will open in ${b.dataset.st}` : 'Licence not allocated yet – both shown'); };
+  if ($('#setTool')) $('#setTool').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; setMyTool(b.dataset.st); $('#setTool').innerHTML = toolPick(myTool(), 'data-st'); toast(b.dataset.st ? `Prompts will open in ${b.dataset.st}` : 'Licence not allocated yet – both shown'); };
   sheet.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { const d = b.dataset.th === 'dark'; LS.set('ergsNL.theme', d ? 'dark' : 'light'); applyTheme(d); sheet.querySelectorAll('[data-th]').forEach(x => x.classList.toggle('on', x === b)); });
   sheet.querySelectorAll('[data-clear]').forEach(b => b.onclick = () => {
     if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to confirm'; return; }
