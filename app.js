@@ -397,17 +397,29 @@ function askSubjects(force) {
   const close = v => { setMyTool(tp); LS.set('ergsNL.subjects', JSON.stringify(v)); box.hidden = true; document.body.classList.remove('sp-open'); plFilt.subj = v[0] || ''; plFilt.subjSet = true; if ($('#plSubj')) { $('#plCats').dataset.ready = ''; } render(); toast(v.length ? 'Prompts tailored to your subjects' : 'Showing prompts for every subject'); };
   // step 2: which levels do you teach in each subject?
   const lvBox = $('#spLevels'), head = box.querySelector('header'), toolRow = box.querySelector('.sp-toolrow');
-  const showGrid = () => { lvBox.hidden = true; rlBox.hidden = true; grid.hidden = false; toolRow.hidden = false; $('#spSearch').hidden = false; $('#spTitle').textContent = 'What do you teach?'; head.querySelector('p').hidden = false; $('.sp-ta') && ($('.sp-ta').hidden = true); upd(); done.onclick = toLevels; $('#spSkip').hidden = firstTime; $('#spSkip').textContent = 'Cancel'; $('#spSkip').onclick = cancel; };
+  // final step: which AI tool does your licence give you? (its own screen)
+  const tlBox = $('#spToolStep');
+  const showTool = back => {
+    const draw = () => { tlBox.innerHTML = [['Gemini', 'Google Gemini', 'If your school account uses Google (Gemini, NotebookLM, Classroom)'], ['Copilot', 'Microsoft Copilot', 'If your school account uses Microsoft 365 (Copilot, Word, Teams)'], ['', 'Not sure yet', 'Both options will be shown on every prompt – you can choose later in Settings']]
+      .map(([v, n, d]) => `<button type="button" class="tl-opt${tp === v ? ' on' : ''}" data-tp="${v}" aria-pressed="${tp === v}">${v ? `<img src="${TOOL_ICON[v]}" alt="">` : '<span class="tl-q" aria-hidden="true">?</span>'}<span><b>${n}</b><small>${d}</small></span><i class="tl-tick" aria-hidden="true">✓</i></button>`).join(''); };
+    draw(); tlBox.onclick = e => { const x = e.target.closest('[data-tp]'); if (!x) return; tp = x.dataset.tp; draw(); };
+    tlBox.hidden = false; grid.hidden = true; lvBox.hidden = true; rlBox.hidden = true; toolRow.hidden = true; $('#spSearch').hidden = true;
+    $('#spTitle').textContent = 'Which AI tool do you use?'; head.querySelector('p').hidden = false; head.querySelector('p').textContent = 'Prompts will open in this tool first. Choose the one your school licence gives you.';
+    done.disabled = false; done.textContent = 'Finish'; done.onclick = () => close([...sel]);
+    $('#spSkip').hidden = false; $('#spSkip').textContent = '← Back'; $('#spSkip').onclick = () => { tlBox.hidden = true; head.querySelector('p').textContent = SUBJ_INTRO; back(); };
+    box.querySelector('.sp-panel').scrollTop = 0;
+  };
+  const showGrid = () => { lvBox.hidden = true; rlBox.hidden = true; grid.hidden = false; toolRow.hidden = true; tlBox.hidden = true; $('#spSearch').hidden = false; $('#spTitle').textContent = 'What do you teach?'; head.querySelector('p').hidden = false; $('.sp-ta') && ($('.sp-ta').hidden = true); upd(); done.onclick = toLevels; $('#spSkip').hidden = firstTime; $('#spSkip').textContent = 'Cancel'; $('#spSkip').onclick = cancel; };
   const toLevels = () => {
-    const subs = [...sel].filter(n => !NOLEVEL.includes(n)); if (!subs.length) return close([...sel]);
+    const subs = [...sel].filter(n => !NOLEVEL.includes(n)); if (!subs.length) return showTool(showGrid);
     const cur = myLevels(), lv = {}; subs.forEach(n => { lv[n] = new Set(cur[n] && cur[n].length ? cur[n] : LEVELS); });
     const draw = () => { lvBox.innerHTML = `<p class="lv-intro">Untick any level you don’t teach. You’ll only see prompts for the levels you choose.</p>` + subs.map(n => { const sj = SUBJECTS.find(x => x[0] === n) || [n, '📘', '#14284b']; return `<div class="lv-row" style="--c:${sj[2]}"><span class="lv-name"><i aria-hidden="true">${sj[1]}</i>${esc(n)}</span><span class="lv-chips">${LEVELS.map(l => `<button type="button" class="lv-chip${lv[n].has(l) ? ' on' : ''}" data-lv="${esc(n)}|${l}" aria-pressed="${lv[n].has(l)}">${lv[n].has(l) ? '✓ ' : ''}${l}</button>`).join('')}</span></div>`; }).join(''); };
     draw();
     lvBox.onclick = e => { const b = e.target.closest('[data-lv]'); if (!b) return; const [n, l] = b.dataset.lv.split('|'); lv[n].has(l) ? lv[n].delete(l) : lv[n].add(l); if (!lv[n].size) lv[n].add(l); draw(); };
-    lvBox.hidden = false; grid.hidden = true; toolRow.hidden = true; $('#spSearch').hidden = true; head.querySelector('p').hidden = true; $('.sp-ta') && ($('.sp-ta').hidden = true);
+    lvBox.hidden = false; tlBox.hidden = true; grid.hidden = true; toolRow.hidden = true; $('#spSearch').hidden = true; head.querySelector('p').hidden = true; $('.sp-ta') && ($('.sp-ta').hidden = true);
     $('#spTitle').textContent = 'Which levels do you teach?';
     done.disabled = false; done.textContent = 'Save'; $('#spSkip').hidden = false; $('#spSkip').textContent = '← Back to subjects'; $('#spSkip').onclick = showGrid;
-    done.onclick = () => { const out = { ...myLevels() }; subs.forEach(n => { out[n] = lv[n].size === LEVELS.length ? [] : [...lv[n]]; }); LS.set('ergsNL.levels', JSON.stringify(out)); close([...sel]); };
+    done.onclick = () => { const out = { ...myLevels() }; subs.forEach(n => { out[n] = lv[n].size === LEVELS.length ? [] : [...lv[n]]; }); LS.set('ergsNL.levels', JSON.stringify(out)); showTool(toLevels); };
     box.querySelector('.sp-panel').scrollTop = 0;
   };
   // step 0: what is your role? (pick all that apply) – then Next shows the subjects, with role options pre-ticked

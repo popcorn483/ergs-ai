@@ -298,6 +298,13 @@ html.dark .set-sec h4{color:var(--navy-text,#c2d0e8)}
 html.dark .set-row input{border:1px solid #304059}
 html.dark .set-val{color:#bdc4d0}
 html.dark .set-red{color:#dea8a8!important;border-color:#563838!important}
+html.dark .tl-opt{border:2px solid #2e3c50;background:#151c26;color:#ccd3e3}
+html.dark .tl-q{background:#1f2329;color:#b8bec9}
+html.dark .tl-opt b{color:var(--navy-text)}
+html.dark .tl-opt small{color:#b8bec9}
+html.dark .tl-tick{border:2px solid #304059}
+html.dark .tl-opt.on{border-color:var(--navy-text)}
+html.dark .tl-opt.on .tl-tick{border-color:var(--navy-text)}
 
 /* hand-tuned extras */
 html.dark .app-bg{background:linear-gradient(180deg,#0b111a 0%,#0d1420 60%,#12130f 100%)}
