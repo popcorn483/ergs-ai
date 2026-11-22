@@ -72,6 +72,14 @@ service cloud.firestore {
       allow read: if true;
       allow write, delete: if nlEditor() && (request.resource == null || (request.resource.data.enc is string && request.resource.data.enc.size() < 20000));
     }
+    // Push notification subscriptions (one per device). Readable so the GitHub Action can send; only a push key, no personal data.
+    match /newsletterPush/{id} {
+      allow read: if true;
+      allow create, update: if id.size() <= 48 && request.resource.data.keys().hasOnly(['t','sub','at','off'])
+        && request.resource.data.t == '0ddd4e393a7f0180e83d86fa' && request.resource.data.sub is string && request.resource.data.sub.size() < 2000
+        && request.resource.data.off is bool && request.resource.data.at == request.time;
+      allow delete: if nlEditor();
+    }
     // Tip of the day log: one doc per date.
     match /newsletterTipLog/{day} {
       allow read: if true;

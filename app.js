@@ -2389,6 +2389,7 @@ function openSettings() {
   const sheet = document.createElement('div'); sheet.className = 'fill-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-label', 'My settings');
   sheet.innerHTML = `<div class="fill-card set-card"><header><span class="eyebrow">This device</span><h3>Settings &amp; sharing</h3><button type="button" class="fill-x" aria-label="Close">×</button></header>
     <section class="set-sec set-share"><h4>Share the app</h4><p class="set-val">Get the link or QR code for colleagues, or install it on this device.</p><button class="btn primary small" id="setShare">Share or install</button></section>
+    <section class="set-sec"><h4>Notifications</h4><div id="setPush"><p class="set-val">Checking…</p></div></section>
     <section class="set-sec"><h4>Your name</h4><div class="set-row"><input id="setName" maxlength="60" value="${esc(name)}" placeholder="First and last name"><button class="btn small" id="setNameSave">Save</button></div></section>
     <section class="set-sec"><h4>Role, subjects and levels</h4><p class="set-val">${esc(roles.join(', ') || 'No role chosen')}<br>${esc(lvText || subs.join(', ') || 'No subjects chosen')}</p><button class="btn small" id="setSubj">Change role, subjects and levels</button></section>
     ${isTeaching() ? `<section class="set-sec"><h4>My AI licence</h4><div class="tp-seg" id="setTool">${toolPick(myTool(), 'data-st')}</div></section>` : ''}
@@ -2404,6 +2405,7 @@ function openSettings() {
   $('#setNameSave').onclick = () => { const v = $('#setName').value.trim().replace(/\s+/g, ' '); if (v.split(' ').length < 2) return toast('Please enter your first and last name'); LS.set('ergsNL.name', v.slice(0, 60)); LS.del('ergsNL.nameSent'); trackVisit?.(); toast('Name saved'); render(); };
   $('#setSubj').onclick = () => { close(); askSubjects(true); };
   $('#setShare').onclick = () => { close(); openShare(null); };
+  drawPushSetting($('#setPush'));
   if ($('#setTool')) $('#setTool').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; setMyTool(b.dataset.st); $('#setTool').innerHTML = toolPick(myTool(), 'data-st'); toast(b.dataset.st ? `Prompts will open in ${b.dataset.st}` : 'Licence not allocated yet – both shown'); };
   sheet.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { const d = b.dataset.th === 'dark'; LS.set('ergsNL.theme', d ? 'dark' : 'light'); applyTheme(d); sheet.querySelectorAll('[data-th]').forEach(x => x.classList.toggle('on', x === b)); });
   sheet.querySelectorAll('[data-clear]').forEach(b => b.onclick = () => {
@@ -2423,3 +2425,37 @@ function openSettings() {
   };
 }
 $('#settingsBtn')?.addEventListener('click', openSettings);
+
+
+// ---------- push notifications when a new issue goes live ----------
+const VAPID_PUB = 'BEe7rUELYZBgozXUrPCd1SW5w9vp5MHI_v_4MeI2LhOrmcg7J6pEw1HbR9ZUJpmgxJVVP-RtztOEX2dlNzFQ2zU';
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const b64u = s => { const p = '='.repeat((4 - s.length % 4) % 4); const r = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+async function pushId(endpoint) { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(endpoint)); return 'p' + [...new Uint8Array(h)].slice(0, 20).map(b => b.toString(16).padStart(2, '0')).join(''); }
+async function pushState() {
+  if (!pushSupported()) return isIOS && !standalone() ? 'ios-install' : 'unsupported';
+  if (Notification.permission === 'denied') return 'denied';
+  const reg = await navigator.serviceWorker.getRegistration(); const sub = reg && await reg.pushManager.getSubscription();
+  return sub && LS.get('ergsNL.push') === '1' ? 'on' : 'off';
+}
+async function enablePush() {
+  const perm = await Notification.requestPermission(); if (perm !== 'granted') { toast('Notifications weren’t allowed'); return false; }
+  const reg = await navigator.serviceWorker.ready;
+  const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUB) });
+  await setDoc(doc(DB, 'newsletterPush', await pushId(sub.endpoint)), { t: await visitToken(), sub: JSON.stringify(sub.toJSON()), at: serverTimestamp(), off: false });
+  LS.set('ergsNL.push', '1'); toast('You’ll get a notification when a new issue goes live'); return true;
+}
+async function disablePush() {
+  const reg = await navigator.serviceWorker.getRegistration(); const sub = reg && await reg.pushManager.getSubscription();
+  if (sub) { try { await setDoc(doc(DB, 'newsletterPush', await pushId(sub.endpoint)), { t: await visitToken(), sub: '', at: serverTimestamp(), off: true }); } catch (e) {} await sub.unsubscribe().catch(() => {}); }
+  LS.del('ergsNL.push'); toast('Notifications turned off');
+}
+async function drawPushSetting(el) {
+  const st = await pushState();
+  el.innerHTML = st === 'on' ? `<p class="set-val">🔔 On – you’ll be told when a new issue goes live in the binder.</p><button class="btn small" data-push="off">Turn off</button>`
+    : st === 'off' ? `<p class="set-val">Get a notification on this device when a new issue goes live.</p><button class="btn primary small" data-push="on">🔔 Turn on notifications</button>`
+    : st === 'denied' ? `<p class="set-val">Notifications are blocked for this site. Allow them in your browser or phone settings, then come back here.</p>`
+    : st === 'ios-install' ? `<p class="set-val">On iPhone and iPad, install the app first (Share → Add to Home Screen), open it from the home screen, then turn notifications on here.</p>`
+    : `<p class="set-val">This browser doesn’t support notifications.</p>`;
+  el.onclick = async e => { const b = e.target.closest('[data-push]'); if (!b) return; b.disabled = true; try { b.dataset.push === 'on' ? await enablePush() : await disablePush(); } catch (er) { console.warn(er); toast('Couldn’t change notifications – try again'); } drawPushSetting(el); };
+}
