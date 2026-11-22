@@ -1519,7 +1519,3 @@ html.dark .tl-opt{background:#151e2b;border-color:#263246;color:#e2e8f0}html.dar
   .h3-binder .h3-book{width:104px!important;height:146px!important;padding:13px 6px 0 13px!important;margin:4px 0 8px 4px!important;align-self:flex-start}
   .h3-binder .h3-book img{width:28px!important}.h3-binder .h3-book b{font-size:8.5px!important}.h3-binder .h3-book i{font-size:10px!important;margin-bottom:12px!important}
 }
-
-.shr-start{margin-top:12px;border-top:1px solid #e3e8ef;padding-top:10px}
-.shr-start summary{cursor:pointer;font:600 14px var(--body);color:var(--navy-text,#14284b)}
-.shr-start p{font:13.5px/1.45 var(--body);color:#4a5568;margin:8px 0}

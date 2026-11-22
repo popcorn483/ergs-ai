@@ -308,9 +308,6 @@ html.dark .tl-opt.on .tl-tick{border-color:var(--navy-text)}
 html.dark .h3-ri{background:rgba(21,29,42,.08);border:1px solid rgba(39,53,73,.12)}
 html.dark .h3-ri:hover{background:rgba(21,29,42,.16)}
 html.dark .h3-ri b{background:#493f23;color:#c2d0e8}
-html.dark .shr-start{border-top:1px solid #2e3c50}
-html.dark .shr-start summary{color:var(--navy-text,#c2d0e8)}
-html.dark .shr-start p{color:#bdc4d0}
 
 /* hand-tuned extras */
 html.dark .app-bg{background:linear-gradient(180deg,#0b111a 0%,#0d1420 60%,#12130f 100%)}

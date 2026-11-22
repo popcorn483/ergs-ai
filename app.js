@@ -1513,13 +1513,6 @@ function openShare(issue) {
     : isIOS ? '<ol class="shr-steps"><li>Tap the <b>Share</b> button in Safari</li><li>Choose <b>Add to Home Screen</b></li></ol>'
     : isAndroid ? '<ol class="shr-steps"><li>Open the browser menu <b>⋮</b></li><li>Choose <b>Install app</b> or <b>Add to Home screen</b></li></ol>'
     : '<p class="shr-note">In Chrome or Edge, click the install icon at the right of the address bar.</p>';
-  // Windows: browsers don't let a web page set this itself, so show the two-click way to make it open at sign-in
-  const isWin = /Windows/i.test(navigator.userAgent), isEdge = /Edg\//.test(navigator.userAgent);
-  const startupHTML = !isWin ? '' : `<details class="shr-start"${standalone() ? ' open' : ''}><summary>🪟 Start with Windows</summary>
-    <p>Make ERGS Digital Skills &amp; AI open automatically when you sign in to this PC.</p>
-    ${isEdge ? `<ol class="shr-steps"><li>Install the app first (above).</li><li>In Edge, go to <b>edge://apps</b> (type it in the address bar).</li><li>Find <b>ERGS Digital Skills &amp; AI</b>, click <b>⋯ → Details</b>.</li><li>Turn on <b>Start app on sign-in</b>.</li></ol>`
-      : `<ol class="shr-steps"><li>Install the app first (above).</li><li>In Chrome, go to <b>chrome://apps</b> (type it in the address bar).</li><li>Right-click <b>ERGS Digital Skills &amp; AI</b>.</li><li>Tick <b>Start app when you sign in</b>.</li></ol>`}
-    <p class="shr-note">On school (C2k) PCs this setting may be managed for you and might not stay on.</p></details>`;
   const ov = document.createElement('div'); ov.className = 'shr-ov';
   ov.innerHTML = `<div class="shr" role="dialog" aria-modal="true" aria-label="Share">
     <div class="shr-head"><h2>Share</h2><button class="shr-x" aria-label="Close">×</button></div>
@@ -1527,7 +1520,7 @@ function openShare(issue) {
     <div class="shr-qr"></div>
     <p class="shr-cap">Scan with a phone camera to open</p>
     <div class="shr-copy"><input readonly aria-label="Address"><button class="btn primary" id="shrCopy">Copy</button></div>
-    <div class="shr-inst"><h3>Install the app</h3>${installHTML}${startupHTML}
+    <div class="shr-inst"><h3>Install the app</h3>${installHTML}
       <p class="shr-other">${isIOS ? 'On Android: browser menu ⋮ → Install app' : isAndroid ? 'On iPhone: Safari Share → Add to Home Screen' : 'On phones – iPhone: Share → Add to Home Screen · Android: menu ⋮ → Install app'}</p></div>
     <p class="shr-foot">Colleagues will need the staff password the first time they open it.</p>
   </div>`;
