@@ -380,8 +380,10 @@ function levelOK(p) {
   return !subs.length || subs.some(x => lv[x].includes(p.stage));
 }
 function askSubjects(force) {
-  if (!force && (mySubjects() || canManage())) return;
+  if (!force && ((mySubjects() || []).length || canManage())) return;   // staff who skipped before are asked again
   const box = $('#subjPicker'), grid = $('#spGrid'), done = $('#spDone');
+  const firstTime = !(mySubjects() || []).length;   // first visit: role and subjects must be chosen, no skipping
+  const cancel = () => { box.hidden = true; document.body.classList.remove('sp-open'); };
   const sel = new Set(mySubjects() || []);
   const upd = () => { done.disabled = !sel.size; done.textContent = sel.size ? `Continue with ${sel.size} subject${sel.size === 1 ? '' : 's'}` : 'Pick at least one'; };
   grid.innerHTML = SUBJECTS.map(([n, ic, col], k) => `<button type="button" class="sp-tile${sel.has(n) ? ' on' : ''}" data-subj="${esc(n)}" aria-pressed="${sel.has(n)}" style="--c:${col};--d:${k * 18}ms"><span class="sp-ic" aria-hidden="true">${ic}</span><span class="sp-name">${esc(n)}</span><i class="sp-tick" aria-hidden="true">✓</i><span class="sp-main">Main</span><span class="sp-mainbtn" role="button" title="Make this my main subject">☆ Make main</span></button>`).join('');
@@ -395,7 +397,7 @@ function askSubjects(force) {
   const close = v => { setMyTool(tp); LS.set('ergsNL.subjects', JSON.stringify(v)); box.hidden = true; document.body.classList.remove('sp-open'); plFilt.subj = v[0] || ''; plFilt.subjSet = true; if ($('#plSubj')) { $('#plCats').dataset.ready = ''; } render(); toast(v.length ? 'Prompts tailored to your subjects' : 'Showing prompts for every subject'); };
   // step 2: which levels do you teach in each subject?
   const lvBox = $('#spLevels'), head = box.querySelector('header'), toolRow = box.querySelector('.sp-toolrow');
-  const showGrid = () => { lvBox.hidden = true; rlBox.hidden = true; grid.hidden = false; toolRow.hidden = false; $('#spSearch').hidden = false; $('#spTitle').textContent = 'What do you teach?'; head.querySelector('p').hidden = false; $('.sp-ta') && ($('.sp-ta').hidden = true); upd(); done.onclick = toLevels; $('#spSkip').textContent = 'Show me everything'; $('#spSkip').onclick = () => close([]); };
+  const showGrid = () => { lvBox.hidden = true; rlBox.hidden = true; grid.hidden = false; toolRow.hidden = false; $('#spSearch').hidden = false; $('#spTitle').textContent = 'What do you teach?'; head.querySelector('p').hidden = false; $('.sp-ta') && ($('.sp-ta').hidden = true); upd(); done.onclick = toLevels; $('#spSkip').hidden = firstTime; $('#spSkip').textContent = 'Cancel'; $('#spSkip').onclick = cancel; };
   const toLevels = () => {
     const subs = [...sel].filter(n => !NOLEVEL.includes(n)); if (!subs.length) return close([...sel]);
     const cur = myLevels(), lv = {}; subs.forEach(n => { lv[n] = new Set(cur[n] && cur[n].length ? cur[n] : LEVELS); });
@@ -404,7 +406,7 @@ function askSubjects(force) {
     lvBox.onclick = e => { const b = e.target.closest('[data-lv]'); if (!b) return; const [n, l] = b.dataset.lv.split('|'); lv[n].has(l) ? lv[n].delete(l) : lv[n].add(l); if (!lv[n].size) lv[n].add(l); draw(); };
     lvBox.hidden = false; grid.hidden = true; toolRow.hidden = true; $('#spSearch').hidden = true; head.querySelector('p').hidden = true; $('.sp-ta') && ($('.sp-ta').hidden = true);
     $('#spTitle').textContent = 'Which levels do you teach?';
-    done.disabled = false; done.textContent = 'Save'; $('#spSkip').textContent = '← Back to subjects'; $('#spSkip').onclick = showGrid;
+    done.disabled = false; done.textContent = 'Save'; $('#spSkip').hidden = false; $('#spSkip').textContent = '← Back to subjects'; $('#spSkip').onclick = showGrid;
     done.onclick = () => { const out = { ...myLevels() }; subs.forEach(n => { out[n] = lv[n].size === LEVELS.length ? [] : [...lv[n]]; }); LS.set('ergsNL.levels', JSON.stringify(out)); close([...sel]); };
     box.querySelector('.sp-panel').scrollTop = 0;
   };
@@ -418,7 +420,7 @@ function askSubjects(force) {
     const nx = () => { done.disabled = !rs.size; done.textContent = rs.size ? 'Next: your subjects →' : 'Pick at least one'; };
     rlBox.hidden = false; grid.hidden = true; $('#spLevels').hidden = true; toolRow.hidden = true; $('#spSearch').hidden = true; $('.sp-ta') && ($('.sp-ta').hidden = true);
     $('#spTitle').textContent = 'What’s your role?'; head.querySelector('p').hidden = false; head.querySelector('p').textContent = 'Pick all that apply. We’ll tailor the prompts and tips to what you do.';
-    $('#spSkip').textContent = 'Skip'; $('#spSkip').onclick = () => { rlBox.hidden = true; head.querySelector('p').textContent = SUBJ_INTRO; showGrid(); };
+    $('#spSkip').hidden = firstTime; $('#spSkip').textContent = 'Cancel'; $('#spSkip').onclick = cancel;
     done.onclick = () => {
       LS.set('ergsNL.roles', JSON.stringify([...rs]));
       ROLES.forEach(([n, , , , subj]) => { if (subj && rs.has(n) && !sel.has(subj)) { sel.add(subj); grid.querySelector(`[data-subj="${CSS.escape(subj)}"]`)?.classList.add('on'); } });
