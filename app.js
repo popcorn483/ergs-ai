@@ -352,13 +352,14 @@ const SUBJECTS = [
   ['Moving Image Arts', '🎬', '#2d2d3a'], ['Music', '🎵', '#7c3aed'], ['Drama', '🎭', '#9b2c2c'], ['Performing Arts', '🎤', '#b83280'],
   ['Physical Education', '🏉', '#2f855a'], ['Sports Science and the Active Leisure Industry', '🏃', '#276749'], ['Home Economics', '🍳', '#c05621'], ['Nutrition and Food Science', '🥗', '#5a8f29'],
   ['Business Studies', '📈', '#2c5282'], ['Economics', '💷', '#2a4365'], ['Government and Politics', '🏛️', '#4a5578'], ['Health and Social Care', '🤝', '#b5476a'],
-  ['Agriculture', '🚜', '#6b8e23'], ['Learning for Life and Work', '🧭', '#2b6cb0'], ['Personal Development', '🌱', '#38a169'], ['Careers', '🎓', '#975a16'], ['Special Educational Needs', '🤝', '#b04a8f']];
+  ['Agriculture', '🚜', '#6b8e23'], ['Learning for Life and Work', '🧭', '#2b6cb0'], ['Personal Development', '🌱', '#38a169'], ['Careers', '🎓', '#975a16'], ['Special Educational Needs', '🤝', '#b04a8f'], ['Admin & Office', '🗂️', '#4a5d7a'], ['Senior Leadership Team', '🏛️', '#5a3e8a']];
 const mySubjects = () => { try { const v = JSON.parse(LS.get('ergsNL.subjects') || 'null'); return Array.isArray(v) ? v : null; } catch (e) { return null; } };   // null = not chosen yet, [] = show everything
 const myTool = () => { const t = LS.get('ergsNL.tool'); return t === 'Gemini' || t === 'Copilot' ? t : ''; };
 function setMyTool(t) { LS.set('ergsNL.tool', t || ''); }
 const toolPick = (cur, attr) => ['Gemini', 'Copilot', ''].map(t => `<button type="button" class="tp-opt${cur === t ? ' on' : ''}" ${attr}="${t}" aria-pressed="${cur === t}">${t ? `<img src="${TOOL_ICON[t]}" alt="">${t}` : 'Not sure yet'}</button>`).join('');
 // levels taught per subject, e.g. { 'History': ['KS3','GCSE'] } – missing means all levels
 const LEVELS = ['KS3', 'GCSE', 'A Level'];
+const NOLEVEL = ['Special Educational Needs', 'Admin & Office', 'Senior Leadership Team'];   // roles rather than taught subjects: no levels to pick
 const myLevels = () => jget('ergsNL.levels', {});
 function levelOK(p) {
   if (canManage() || !p.stage || p.stage === 'Any') return true;
@@ -375,20 +376,20 @@ function askSubjects(force) {
   grid.onclick = e => { const t = e.target.closest('[data-subj]'); if (!t) return; const n = t.dataset.subj; if (e.target.closest('.sp-mainbtn')) { sel.delete(n); const rest = [...sel]; sel.clear(); [n, ...rest].forEach(x => sel.add(x)); t.classList.add('on'); mark(); upd(); return; } sel.has(n) ? sel.delete(n) : sel.add(n); t.classList.toggle('on', sel.has(n)); t.setAttribute('aria-pressed', sel.has(n)); mark(); upd(); };
   mark();
   $('#spSearch').value = ''; $('#spSearch').oninput = e => { const q = e.target.value.toLowerCase(); grid.querySelectorAll('.sp-tile').forEach(t => { t.hidden = q && !t.dataset.subj.toLowerCase().includes(q); }); };
-  $('#spTA') && ($('#spTA').onclick = () => { const t = document.querySelector('[data-subj="Special Educational Needs"]'); if (t) { if (!t.classList.contains('on')) t.click(); t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } });
+  document.querySelectorAll('.sp-ta [data-role]').forEach(b => { b.onclick = () => { const t = grid.querySelector(`[data-subj="${CSS.escape(b.dataset.role)}"]`); if (t) { if (!t.classList.contains('on')) t.click(); t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } }; });
   let tp = myTool(); const tpBox = $('#spTool'); tpBox.innerHTML = toolPick(tp, 'data-tp');
   tpBox.onclick = e => { const b = e.target.closest('[data-tp]'); if (!b) return; tp = b.dataset.tp; tpBox.innerHTML = toolPick(tp, 'data-tp'); };
   const close = v => { setMyTool(tp); LS.set('ergsNL.subjects', JSON.stringify(v)); box.hidden = true; document.body.classList.remove('sp-open'); plFilt.subj = v[0] || ''; plFilt.subjSet = true; if ($('#plSubj')) { $('#plCats').dataset.ready = ''; } render(); toast(v.length ? 'Prompts tailored to your subjects' : 'Showing prompts for every subject'); };
   // step 2: which levels do you teach in each subject?
   const lvBox = $('#spLevels'), head = box.querySelector('header'), toolRow = box.querySelector('.sp-toolrow');
-  const showGrid = () => { lvBox.hidden = true; grid.hidden = false; toolRow.hidden = false; $('#spSearch').hidden = false; $('#spTitle').textContent = 'What do you teach?'; head.querySelector('p').hidden = false; $('#spTA') && ($('#spTA').parentElement.hidden = false); upd(); done.onclick = toLevels; $('#spSkip').textContent = 'Show me everything'; $('#spSkip').onclick = () => close([]); };
+  const showGrid = () => { lvBox.hidden = true; grid.hidden = false; toolRow.hidden = false; $('#spSearch').hidden = false; $('#spTitle').textContent = 'What do you teach?'; head.querySelector('p').hidden = false; $('.sp-ta') && ($('.sp-ta').hidden = false); upd(); done.onclick = toLevels; $('#spSkip').textContent = 'Show me everything'; $('#spSkip').onclick = () => close([]); };
   const toLevels = () => {
-    const subs = [...sel].filter(n => n !== 'Special Educational Needs'); if (!subs.length) return close([...sel]);
+    const subs = [...sel].filter(n => !NOLEVEL.includes(n)); if (!subs.length) return close([...sel]);
     const cur = myLevels(), lv = {}; subs.forEach(n => { lv[n] = new Set(cur[n] && cur[n].length ? cur[n] : LEVELS); });
     const draw = () => { lvBox.innerHTML = `<p class="lv-intro">Untick any level you don’t teach. You’ll only see prompts for the levels you choose.</p>` + subs.map(n => { const sj = SUBJECTS.find(x => x[0] === n) || [n, '📘', '#14284b']; return `<div class="lv-row" style="--c:${sj[2]}"><span class="lv-name"><i aria-hidden="true">${sj[1]}</i>${esc(n)}</span><span class="lv-chips">${LEVELS.map(l => `<button type="button" class="lv-chip${lv[n].has(l) ? ' on' : ''}" data-lv="${esc(n)}|${l}" aria-pressed="${lv[n].has(l)}">${lv[n].has(l) ? '✓ ' : ''}${l}</button>`).join('')}</span></div>`; }).join(''); };
     draw();
     lvBox.onclick = e => { const b = e.target.closest('[data-lv]'); if (!b) return; const [n, l] = b.dataset.lv.split('|'); lv[n].has(l) ? lv[n].delete(l) : lv[n].add(l); if (!lv[n].size) lv[n].add(l); draw(); };
-    lvBox.hidden = false; grid.hidden = true; toolRow.hidden = true; $('#spSearch').hidden = true; head.querySelector('p').hidden = true; $('#spTA') && ($('#spTA').parentElement.hidden = true);
+    lvBox.hidden = false; grid.hidden = true; toolRow.hidden = true; $('#spSearch').hidden = true; head.querySelector('p').hidden = true; $('.sp-ta') && ($('.sp-ta').hidden = true);
     $('#spTitle').textContent = 'Which levels do you teach?';
     done.disabled = false; done.textContent = 'Save'; $('#spSkip').textContent = '← Back to subjects'; $('#spSkip').onclick = showGrid;
     done.onclick = () => { const out = { ...myLevels() }; subs.forEach(n => { out[n] = lv[n].size === LEVELS.length ? [] : [...lv[n]]; }); LS.set('ergsNL.levels', JSON.stringify(out)); close([...sel]); };
