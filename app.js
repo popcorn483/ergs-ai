@@ -356,7 +356,7 @@ const SUBJECTS = [
 const mySubjects = () => { try { const v = JSON.parse(LS.get('ergsNL.subjects') || 'null'); return Array.isArray(v) ? v : null; } catch (e) { return null; } };   // null = not chosen yet, [] = show everything
 const myTool = () => { const t = LS.get('ergsNL.tool'); return t === 'Gemini' || t === 'Copilot' ? t : ''; };
 function setMyTool(t) { LS.set('ergsNL.tool', t || ''); }
-const toolPick = (cur, attr) => ['Gemini', 'Copilot', ''].map(t => `<button type="button" class="tp-opt${cur === t ? ' on' : ''}" ${attr}="${t}" aria-pressed="${cur === t}">${t ? `<img src="${TOOL_ICON[t]}" alt="">${t}` : 'Not sure yet'}</button>`).join('');
+const toolPick = (cur, attr) => ['Gemini', 'Copilot', ''].map(t => `<button type="button" class="tp-opt${cur === t ? ' on' : ''}" ${attr}="${t}" aria-pressed="${cur === t}">${t ? `<img src="${TOOL_ICON[t]}" alt="">${t}` : 'Not allocated yet'}</button>`).join('');
 // levels taught per subject, e.g. { 'History': ['KS3','GCSE'] } – missing means all levels
 const LEVELS = ['KS3', 'GCSE', 'A Level'];
 const ROLES = [   // [name, icon, colour, description, subject option it maps to]
@@ -400,11 +400,11 @@ function askSubjects(force) {
   // final step: which AI tool does your licence give you? (its own screen)
   const tlBox = $('#spToolStep');
   const showTool = back => {
-    const draw = () => { tlBox.innerHTML = [['Gemini', 'Google Gemini', 'If your school account uses Google (Gemini, NotebookLM, Classroom)'], ['Copilot', 'Microsoft Copilot', 'If your school account uses Microsoft 365 (Copilot, Word, Teams)'], ['', 'Not sure yet', 'Both options will be shown on every prompt – you can choose later in Settings']]
+    const draw = () => { tlBox.innerHTML = [['Gemini', 'Google Gemini Pro', 'You’ve been given a Gemini Pro licence on your school Google account'], ['Copilot', 'Microsoft 365 Copilot', 'You’ve been given a Copilot licence on your school Microsoft account'], ['', 'Not allocated yet', 'Both will be shown on every prompt – choose in Settings once your licence arrives']]
       .map(([v, n, d]) => `<button type="button" class="tl-opt${tp === v ? ' on' : ''}" data-tp="${v}" aria-pressed="${tp === v}">${v ? `<img src="${TOOL_ICON[v]}" alt="">` : '<span class="tl-q" aria-hidden="true">?</span>'}<span><b>${n}</b><small>${d}</small></span><i class="tl-tick" aria-hidden="true">✓</i></button>`).join(''); };
     draw(); tlBox.onclick = e => { const x = e.target.closest('[data-tp]'); if (!x) return; tp = x.dataset.tp; draw(); };
     tlBox.hidden = false; grid.hidden = true; lvBox.hidden = true; rlBox.hidden = true; toolRow.hidden = true; $('#spSearch').hidden = true;
-    $('#spTitle').textContent = 'Which AI tool do you use?'; head.querySelector('p').hidden = false; head.querySelector('p').textContent = 'Prompts will open in this tool first. Choose the one your school licence gives you.';
+    $('#spTitle').textContent = 'Which AI licence do you have?'; head.querySelector('p').hidden = false; head.querySelector('p').textContent = 'Each member of staff is allocated a pro licence for either Gemini or Copilot. Prompts will open in yours.';
     done.disabled = false; done.textContent = 'Finish'; done.onclick = () => close([...sel]);
     $('#spSkip').hidden = false; $('#spSkip').textContent = '← Back'; $('#spSkip').onclick = () => { tlBox.hidden = true; head.querySelector('p').textContent = SUBJ_INTRO; back(); };
     box.querySelector('.sp-panel').scrollTop = 0;
@@ -1023,7 +1023,7 @@ function renderPrompts() {
     $('#plGen').addEventListener('change', e => set('withGen', e.target.checked));
     $('#plCats').addEventListener('click', e => { const b = e.target.closest('[data-cat]'); if (b) set('cat', b.dataset.cat); });
     $('#plPick').addEventListener('click', e => { if (e.target.closest('[data-share]')) return openSharePrompt(); const b = e.target.closest('[data-cat]'); if (b) { set('cat', b.dataset.cat); scrollTo({ top: 0, behavior: 'smooth' }); } });
-    $('#plMyTool').addEventListener('click', e => { const b = e.target.closest('[data-mt]'); if (!b) return; setMyTool(b.dataset.mt); toast(b.dataset.mt ? `Prompts will open in ${b.dataset.mt} – you can still pick the other one` : 'No default AI tool – both are shown'); renderPrompts(); });
+    $('#plMyTool').addEventListener('click', e => { const b = e.target.closest('[data-mt]'); if (!b) return; setMyTool(b.dataset.mt); toast(b.dataset.mt ? `Prompts will open in ${b.dataset.mt} – you can still pick the other one` : 'Licence not allocated yet – both are shown'); renderPrompts(); });
     $('#plCrumb').addEventListener('click', e => { if (e.target.closest('[data-back]')) { plFilt.q = ''; $('#plQ').value = ''; set('cat', null); scrollTo({ top: 0, behavior: 'smooth' }); } });
     $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: plFilt.cat ?? '', subj: (!canManage() && (mySubjects() || [])[0]) || '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); $('#plSubj').value = plFilt.subj; renderPrompts(); });
     if (!$('#plMore').dataset.w) { $('#plMore').dataset.w = 1; $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); }); $('#plMySubj').addEventListener('click', () => askSubjects(true)); }
@@ -1049,7 +1049,7 @@ function renderPrompts() {
     return words.every(w => hay.includes(w));
   });
   const counts = {}; base.forEach(p => { counts[p.cat] = (counts[p.cat] || 0) + 1; });
-  $('#plMyTool').innerHTML = `<span class="tp-lab">My AI tool</span>${toolPick(myTool(), 'data-mt')}`;
+  $('#plMyTool').innerHTML = `<span class="tp-lab">My AI licence</span>${toolPick(myTool(), 'data-mt')}`;
   // step 1: "What do you want a prompt for?" – a grid of big cards; step 2: the prompts for that choice
   const choosing = plFilt.cat === null && !plFilt.q;
   $('#plPick').hidden = !choosing; ['#plSels', '#plCount', '#plList'].forEach(s => { $(s).hidden = choosing; }); $('#plIntro').hidden = !choosing;
@@ -2386,7 +2386,7 @@ function openSettings() {
     <section class="set-sec set-share"><h4>Share the app</h4><p class="set-val">Get the link or QR code for colleagues, or install it on this device.</p><button class="btn primary small" id="setShare">Share or install</button></section>
     <section class="set-sec"><h4>Your name</h4><div class="set-row"><input id="setName" maxlength="60" value="${esc(name)}" placeholder="First and last name"><button class="btn small" id="setNameSave">Save</button></div></section>
     <section class="set-sec"><h4>Role, subjects and levels</h4><p class="set-val">${esc(roles.join(', ') || 'No role chosen')}<br>${esc(lvText || subs.join(', ') || 'No subjects chosen')}</p><button class="btn small" id="setSubj">Change role, subjects and levels</button></section>
-    <section class="set-sec"><h4>My AI tool</h4><div class="tp-seg" id="setTool">${toolPick(myTool(), 'data-st')}</div></section>
+    <section class="set-sec"><h4>My AI licence</h4><div class="tp-seg" id="setTool">${toolPick(myTool(), 'data-st')}</div></section>
     <section class="set-sec"><h4>Appearance</h4><div class="tp-seg"><button type="button" class="tp-opt${dark ? '' : ' on'}" data-th="light">☀️ Light</button><button type="button" class="tp-opt${dark ? ' on' : ''}" data-th="dark">🌙 Dark</button></div></section>
     <section class="set-sec"><h4>My data on this device</h4><p class="set-val">${savedKeys().length + myVersions().length} saved prompts · ${usedLog().length} prompts used · ${Object.keys(triedMap()).length} tips tried</p>
       <div class="set-btns"><button class="btn small" data-clear="saved">Clear saved prompts</button><button class="btn small" data-clear="history">Clear my CPD history</button></div></section>
@@ -2399,7 +2399,7 @@ function openSettings() {
   $('#setNameSave').onclick = () => { const v = $('#setName').value.trim().replace(/\s+/g, ' '); if (v.split(' ').length < 2) return toast('Please enter your first and last name'); LS.set('ergsNL.name', v.slice(0, 60)); LS.del('ergsNL.nameSent'); trackVisit?.(); toast('Name saved'); render(); };
   $('#setSubj').onclick = () => { close(); askSubjects(true); };
   $('#setShare').onclick = () => { close(); openShare(null); };
-  $('#setTool').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; setMyTool(b.dataset.st); $('#setTool').innerHTML = toolPick(myTool(), 'data-st'); toast(b.dataset.st ? `Prompts will open in ${b.dataset.st}` : 'No default AI tool'); };
+  $('#setTool').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; setMyTool(b.dataset.st); $('#setTool').innerHTML = toolPick(myTool(), 'data-st'); toast(b.dataset.st ? `Prompts will open in ${b.dataset.st}` : 'Licence not allocated yet – both shown'); };
   sheet.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { const d = b.dataset.th === 'dark'; LS.set('ergsNL.theme', d ? 'dark' : 'light'); applyTheme(d); sheet.querySelectorAll('[data-th]').forEach(x => x.classList.toggle('on', x === b)); });
   sheet.querySelectorAll('[data-clear]').forEach(b => b.onclick = () => {
     if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to confirm'; return; }
