@@ -359,6 +359,19 @@ function setMyTool(t) { LS.set('ergsNL.tool', t || ''); }
 const toolPick = (cur, attr) => ['Gemini', 'Copilot', ''].map(t => `<button type="button" class="tp-opt${cur === t ? ' on' : ''}" ${attr}="${t}" aria-pressed="${cur === t}">${t ? `<img src="${TOOL_ICON[t]}" alt="">${t}` : 'Not sure yet'}</button>`).join('');
 // levels taught per subject, e.g. { 'History': ['KS3','GCSE'] } – missing means all levels
 const LEVELS = ['KS3', 'GCSE', 'A Level'];
+const ROLES = [   // [name, icon, colour, description, subject option it maps to]
+  ['Subject teacher', '📚', '#1f4f8f', 'I teach one or more subjects', ''],
+  ['Curriculum Leader', '🧭', '#2f7d6b', 'Head of department or subject lead', ''],
+  ['Head of Year', '🧑‍🤝‍🧑', '#8a5a2b', 'Pastoral lead for a year group', ''],
+  ['Form teacher', '🏫', '#6b5b95', 'I have a form class', ''],
+  ['Senior Leadership Team', '🏛️', '#5a3e8a', 'Principal, vice principal or senior teacher', 'Senior Leadership Team'],
+  ['Teaching assistant', '🤝', '#b04a8f', 'Supporting pupils with SEN', 'Special Educational Needs'],
+  ['Admin & Office', '🗂️', '#4a5d7a', 'Office, admin or support staff', 'Admin & Office']];
+const myRoles = () => jget('ergsNL.roles', []);
+const SUBJ_INTRO = 'Pick your subjects and we’ll show you prompts for them, plus the general ones that work for everyone. You can change this any time.';
+// prompt areas that suit each role come first in the Prompt Bank
+const ROLE_AREAS = { 'Curriculum Leader': ['Leadership & Data', 'Planning'], 'Head of Year': ['Pastoral & Wellbeing', 'Admin & Communication'], 'Form teacher': ['Pastoral & Wellbeing'], 'Senior Leadership Team': ['Leadership & Data', 'Admin & Communication'], 'Teaching assistant': ['Inclusion & SEN'], 'Admin & Office': ['Admin & Communication'] };
+const roleAreas = () => [...new Set(myRoles().flatMap(r => ROLE_AREAS[r] || []))];
 const NOLEVEL = ['Special Educational Needs', 'Admin & Office', 'Senior Leadership Team'];   // roles rather than taught subjects: no levels to pick
 const myLevels = () => jget('ergsNL.levels', {});
 function levelOK(p) {
@@ -382,7 +395,7 @@ function askSubjects(force) {
   const close = v => { setMyTool(tp); LS.set('ergsNL.subjects', JSON.stringify(v)); box.hidden = true; document.body.classList.remove('sp-open'); plFilt.subj = v[0] || ''; plFilt.subjSet = true; if ($('#plSubj')) { $('#plCats').dataset.ready = ''; } render(); toast(v.length ? 'Prompts tailored to your subjects' : 'Showing prompts for every subject'); };
   // step 2: which levels do you teach in each subject?
   const lvBox = $('#spLevels'), head = box.querySelector('header'), toolRow = box.querySelector('.sp-toolrow');
-  const showGrid = () => { lvBox.hidden = true; grid.hidden = false; toolRow.hidden = false; $('#spSearch').hidden = false; $('#spTitle').textContent = 'What do you teach?'; head.querySelector('p').hidden = false; $('.sp-ta') && ($('.sp-ta').hidden = false); upd(); done.onclick = toLevels; $('#spSkip').textContent = 'Show me everything'; $('#spSkip').onclick = () => close([]); };
+  const showGrid = () => { lvBox.hidden = true; rlBox.hidden = true; grid.hidden = false; toolRow.hidden = false; $('#spSearch').hidden = false; $('#spTitle').textContent = 'What do you teach?'; head.querySelector('p').hidden = false; $('.sp-ta') && ($('.sp-ta').hidden = true); upd(); done.onclick = toLevels; $('#spSkip').textContent = 'Show me everything'; $('#spSkip').onclick = () => close([]); };
   const toLevels = () => {
     const subs = [...sel].filter(n => !NOLEVEL.includes(n)); if (!subs.length) return close([...sel]);
     const cur = myLevels(), lv = {}; subs.forEach(n => { lv[n] = new Set(cur[n] && cur[n].length ? cur[n] : LEVELS); });
@@ -395,7 +408,26 @@ function askSubjects(force) {
     done.onclick = () => { const out = { ...myLevels() }; subs.forEach(n => { out[n] = lv[n].size === LEVELS.length ? [] : [...lv[n]]; }); LS.set('ergsNL.levels', JSON.stringify(out)); close([...sel]); };
     box.querySelector('.sp-panel').scrollTop = 0;
   };
-  showGrid();
+  // step 0: what is your role? (pick all that apply) – then Next shows the subjects, with role options pre-ticked
+  const rlBox = $('#spRoles');
+  const showRoles = () => {
+    const rs = new Set(myRoles());
+    const draw = () => { rlBox.innerHTML = ROLES.map(([n, ic, col, sub], k) => `<button type="button" class="sp-tile rl-tile${rs.has(n) ? ' on' : ''}" data-role-pick="${esc(n)}" aria-pressed="${rs.has(n)}" style="--c:${col};--d:${k * 30}ms"><span class="sp-ic" aria-hidden="true">${ic}</span><span class="sp-name">${esc(n)}<small>${esc(sub)}</small></span><i class="sp-tick" aria-hidden="true">✓</i></button>`).join(''); };
+    draw();
+    rlBox.onclick = e => { const b = e.target.closest('[data-role-pick]'); if (!b) return; const n = b.dataset.rolePick; rs.has(n) ? rs.delete(n) : rs.add(n); draw(); nx(); };
+    const nx = () => { done.disabled = !rs.size; done.textContent = rs.size ? 'Next: your subjects →' : 'Pick at least one'; };
+    rlBox.hidden = false; grid.hidden = true; $('#spLevels').hidden = true; toolRow.hidden = true; $('#spSearch').hidden = true; $('.sp-ta') && ($('.sp-ta').hidden = true);
+    $('#spTitle').textContent = 'What’s your role?'; head.querySelector('p').hidden = false; head.querySelector('p').textContent = 'Pick all that apply. We’ll tailor the prompts and tips to what you do.';
+    $('#spSkip').textContent = 'Skip'; $('#spSkip').onclick = () => { rlBox.hidden = true; head.querySelector('p').textContent = SUBJ_INTRO; showGrid(); };
+    done.onclick = () => {
+      LS.set('ergsNL.roles', JSON.stringify([...rs]));
+      ROLES.forEach(([n, , , , subj]) => { if (subj && rs.has(n) && !sel.has(subj)) { sel.add(subj); grid.querySelector(`[data-subj="${CSS.escape(subj)}"]`)?.classList.add('on'); } });
+      mark(); rlBox.hidden = true; head.querySelector('p').textContent = SUBJ_INTRO; showGrid();
+      $('#spTitle').textContent = rs.has('Subject teacher') || rs.has('Curriculum Leader') ? 'What do you teach?' : 'Your area';
+    };
+    nx(); box.querySelector('.sp-panel').scrollTop = 0;
+  };
+  showRoles();
   upd(); box.hidden = false; document.body.classList.add('sp-open'); setTimeout(() => grid.querySelector('.sp-tile')?.focus(), 300);
 }
 
@@ -1011,7 +1043,7 @@ function renderPrompts() {
   { const pd = choosing ? promptOfDay() : null; $('#plToday').hidden = !pd; $('#plToday').innerHTML = pd ? `<span class="pt-label">✨ Prompt of the day</span>${promptCard(pd)}` : ''; }
   if (choosing) {
     $('#plTitle').textContent = 'What do you want a prompt for?'; $('#plMore').hidden = true;
-    $('#plPick').innerHTML = PL_CATS.filter(c => counts[c]).map(c => { const [ic, col] = PL_AREA[c]; return `<button class="pp-card" style="--c:${col}" data-cat="${esc(c)}"><span class="pp-ic" aria-hidden="true">${ic}</span><b>${esc(c)}</b><span class="pp-desc">${esc(PL_DESC[c] || '')}</span></button>`; }).join('')
+    const ra = roleAreas(); $('#plPick').innerHTML = [...PL_CATS].sort((x, y) => (ra.includes(x) ? ra.indexOf(x) : 99) - (ra.includes(y) ? ra.indexOf(y) : 99)).filter(c => counts[c]).map(c => { const [ic, col] = PL_AREA[c]; return `<button class="pp-card" style="--c:${col}" data-cat="${esc(c)}"><span class="pp-ic" aria-hidden="true">${ic}</span><b>${esc(c)}</b><span class="pp-desc">${esc(PL_DESC[c] || '')}</span>${ra.includes(c) ? '<em class="pp-role">For your role</em>' : ''}</button>`; }).join('')
       + `<button class="pp-card pp-all" data-cat=""><span class="pp-ic" aria-hidden="true">🗂️</span><b>Show me everything</b><span class="pp-desc">Browse every prompt with filters</span></button>`
       + `<button class="pp-card pp-all pp-share" data-share><span class="pp-ic" aria-hidden="true">✍️</span><b>Share a prompt that worked</b><span class="pp-desc">Add your own to the bank, with your name on it</span></button>`;
     const nSaved = savedPrompts().length;
