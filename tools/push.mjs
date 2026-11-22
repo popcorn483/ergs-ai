@@ -24,10 +24,13 @@ if (!state) { fs.writeFileSync(STATE, JSON.stringify({ notified: live, gone: [] 
 const fresh = live.filter(id => !state.notified.includes(id));
 if (!fresh.length) { console.log('No new issues.'); process.exit(0); }
 
-const num = id => { const k = order.indexOf(id); return k >= 0 ? k + 1 : null; };
+const series = (st.series?.arrayValue?.values || []).map(v => v.stringValue);
+const maxW = Math.max(0, ...Object.keys(rel).concat(order).map(id => /^w(\d+)$/.test(id) ? +id.slice(1) : 0));
+// issue number as the app shows it: saved running order if there is one, otherwise originals (w1, w2…) then the series
+const num = id => { const k = order.indexOf(id); if (k >= 0) return k + 1; if (/^w\d+$/.test(id)) return +id.slice(1); const j = series.indexOf(id); return j >= 0 ? maxW + j + 1 : null; };
 const nums = fresh.map(num).filter(Boolean).sort((a, b) => a - b);
 const payload = JSON.stringify(fresh.length === 1
-  ? { title: `📘 Issue ${nums[0] || ''} is now live`.replace('  ', ' '), body: 'A new issue of ERGS Digital Skills & AI is in the binder. Tap to read it.', url: `${SITE}#issue-${fresh[0]}`, tag: 'issue-' + fresh[0] }
+  ? { title: nums[0] ? `📘 Issue ${nums[0]} is now live` : '📘 A new issue is now live', body: 'A new issue of ERGS Digital Skills & AI is in the binder. Tap to read it.', url: `${SITE}#issue-${fresh[0]}`, tag: 'issue-' + fresh[0] }
   : { title: `📘 ${fresh.length} new issues are live`, body: `Issues ${nums.join(', ')} are now in the binder. Tap to read them.`, url: `${SITE}#binder`, tag: 'issues-' + fresh.join('-') });
 
 let subs = [], token = '';
