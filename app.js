@@ -483,14 +483,20 @@ function carousel() {
   if (g._touched) { g._fix(); g._upd(); } else { go(); requestAnimationFrame(go); }
 }
 /* ---------- staff home: three clean cards (Tip of the day · Binder · Prompt bank) ---------- */
+// one prompt per day, from the teacher's own subjects where possible; the same one on the home page and in the Prompt Bank
+function promptOfDay() {
+  const mine = !canManage() && (mySubjects() || []).length ? mySubjects() : null;
+  const pr = allPrompts().filter(p => (!p.issue || status(p.issue) === 'live') && !p.mine && (!mine || p.subj[0] === 'All subjects' || p.subj.some(s => mine.includes(s))));
+  const own = mine ? pr.filter(p => p.subj.some(s => mine.includes(s))) : []; const pool = own.length ? own : pr;
+  return pool.length ? pool[Math.floor(Date.now() / 864e5) % pool.length] : null;
+}
 function renderHome3() {
   const el = $('#home3'); if (!el) return; watchShared(); watchUses();
   el.hidden = false; const ed = canManage();
   const t = window.TODAY_TIP, live = allIssues().filter(i => status(i) === 'live'), L = live[live.length - 1];
   const mine = !ed && (mySubjects() || []).length ? mySubjects() : null;
   const pr = allPrompts().filter(p => (!p.issue || status(p.issue) === 'live') && (!mine || p.subj[0] === 'All subjects' || p.subj.some(s => mine.includes(s))));
-  const own = mine ? pr.filter(p => p.subj.some(s => mine.includes(s))) : []; const pool = own.length ? own : pr;
-  const pd = pool.length ? pool[Math.floor(Date.now() / 864e5) % pool.length] : null;
+  const pd = promptOfDay();
   const hr = new Date().getHours(), first = (LS.get('ergsNL.name') || '').split(' ')[0];
   const tried = t && triedMap()[t.id];
   el.innerHTML = `<div class="h3-greet"><h1>${hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening'}${first ? ', ' + esc(first) : ''}</h1><p>${ed ? 'Editor view – what staff see today, plus your release desk.' : 'Three things for today – each takes a minute or two.'}</p><p class="h3-cpd"><button type="button" class="linkbtn" id="h3Cpd">📄 My CPD record</button></p></div>
@@ -884,12 +890,13 @@ function renderPrompts() {
     $('#plCrumb').addEventListener('click', e => { if (e.target.closest('[data-back]')) { plFilt.q = ''; $('#plQ').value = ''; set('cat', null); scrollTo({ top: 0, behavior: 'smooth' }); } });
     $('#plReset').addEventListener('click', () => { Object.assign(plFilt, { q: '', cat: plFilt.cat ?? '', subj: (!canManage() && (mySubjects() || [])[0]) || '', stage: '', tool: '', shown: 40, withGen: true }); $('#plGen').checked = true; $('#plQ').value = ''; ['#plStage', '#plTool'].forEach(s => { $(s).value = ''; }); $('#plSubj').value = plFilt.subj; renderPrompts(); });
     if (!$('#plMore').dataset.w) { $('#plMore').dataset.w = 1; $('#plMore').addEventListener('click', () => { plFilt.shown += 40; renderPrompts(); }); $('#plMySubj').addEventListener('click', () => askSubjects(true)); }
-    $('#plList').addEventListener('click', e => {
+    const cardClick = e => {
       const st_ = e.target.closest('[data-star]'); if (st_) { e.stopPropagation(); toggleStar(st_.dataset.star, st_); if (plFilt.cat === '__saved') renderPrompts(); return; }
       const md = e.target.closest('[data-mine-del]'); if (md) return deleteMine(md.dataset.mineDel);
       const ms = e.target.closest('[data-mine-share]'); if (ms) { const m = myVersions().find(x => x.id === ms.dataset.mineShare); return openSharePrompt(m); }
       const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); const s = e.target.closest('[data-send]'); if (s) plSend(s); const ed = e.target.closest('[data-pledit]'); if (ed) return plEdit(ed);
-      const card = e.target.closest('.pl-card'); if (card && !e.target.closest('button,a,select,input') && !getSelection().toString()) plEdit(card); });
+      const card = e.target.closest('.pl-card'); if (card && !e.target.closest('button,a,select,input') && !getSelection().toString()) plEdit(card); };
+    $('#plList').addEventListener('click', cardClick); $('#plToday').addEventListener('click', cardClick);
     }
   }
   const mine = canManage() ? null : (mySubjects() || []).length ? mySubjects() : null;
@@ -908,6 +915,7 @@ function renderPrompts() {
   const choosing = plFilt.cat === null && !plFilt.q;
   $('#plPick').hidden = !choosing; ['#plSels', '#plCount', '#plList'].forEach(s => { $(s).hidden = choosing; }); $('#plIntro').hidden = !choosing;
   $('#plCrumb').hidden = choosing; $('#plMyTool').hidden = !choosing;
+  { const pd = choosing ? promptOfDay() : null; $('#plToday').hidden = !pd; $('#plToday').innerHTML = pd ? `<span class="pt-label">✨ Prompt of the day</span>${promptCard(pd)}` : ''; }
   if (choosing) {
     $('#plTitle').textContent = 'What do you want a prompt for?'; $('#plMore').hidden = true;
     $('#plPick').innerHTML = PL_CATS.filter(c => counts[c]).map(c => { const [ic, col] = PL_AREA[c]; return `<button class="pp-card" style="--c:${col}" data-cat="${esc(c)}"><span class="pp-ic" aria-hidden="true">${ic}</span><b>${esc(c)}</b><span class="pp-desc">${esc(PL_DESC[c] || '')}</span></button>`; }).join('')
