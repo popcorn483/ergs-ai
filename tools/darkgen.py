@@ -86,6 +86,7 @@ def emit(text, out, media=None):
             continue
         if pre.startswith('@'): continue
         if pre.startswith(':root') or SKIP_SEL.search(pre): continue
+        if re.search(r'\.sp-(?!panel|main|toolrow|search|find|foot|head)', pre): continue   # splash/intro and the picker's coloured tiles keep their own colours
         decls = []
         for d in re.split(r';(?![^(]*\))', body):
             if ':' not in d: continue

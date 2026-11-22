@@ -73,9 +73,6 @@ html.dark .bp-pages{background:repeating-linear-gradient(90deg,#151c26 0 1px,#1e
 html.dark .bp-cover{background:#171e2a;color:#c2d0e8}
 html.dark .bp-cover small{color:#dbc8aa}
 html.dark .bp-cover i{color:#b9c5d8}
-html.dark .sp-bg::after{background-image:repeating-linear-gradient(135deg,rgba(21,29,42,.028) 0 1px,transparent 1px 12px)}
-html.dark .sp-crest{background:#151c26}
-html.dark .sp-load{background:rgba(21,29,42,.12)}
 html.dark .shr{background:#151c26}
 html.dark .shr-head h2{color:var(--navy-text)}
 html.dark .shr-copy input{border:1px solid #304059;background:#161e2a}
@@ -181,10 +178,6 @@ html.dark .sp-panel{background:#171e2a}
 html.dark .sp-panel h2{color:var(--navy-text)}
 html.dark .sp-panel header p{color:#bdc3d0}
 html.dark #spSearch{border:1px solid #304059;background:#151c26}
-html.dark .sp-tile{background:radial-gradient(120% 90% at 85% 10%,rgba(21,29,42,.28),transparent 55%),linear-gradient(150deg,var(--c),color-mix(in srgb,var(--c) 60%,#000))}
-html.dark .sp-tile:focus-visible{outline:3px solid #5d5131}
-html.dark .sp-tick{background:rgba(21,29,42,.25);border:2px solid rgba(39,53,73,.7)}
-html.dark .sp-tile.on .sp-tick{background:#151c26;border-color:#273549}
 html.dark .sp-panel footer{border-top:1px solid #2e3e55;background:#151c26}
 html.dark .pl-mysubj{color:var(--navy-text)}
 html.dark .plh-mine{color:#e4d4b7!important}
