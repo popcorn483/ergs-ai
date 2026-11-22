@@ -709,27 +709,26 @@ const RULE_RE = /^(act as|you are|format:|use uk english|do not ask|do not inclu
 const toYou = t => t.replace(/\bmy\b/g, 'your').replace(/\bMy\b/g, 'Your').replace(/\bI'm\b/g, "you're").replace(/\bI want\b/g, 'You want').replace(/\bI can\b/g, 'you can').replace(/\bI should\b/g, 'you should').replace(/\bme\b/g, 'you');
 function promptSummary(p) {
   const lines = (p.text || '').split('\n').map(l => l.trim()).filter(Boolean);
-  const body = lines.filter(l => !RULE_RE.test(l) && !/^[-•\d]/.test(l) && !/^\[(paste|insert|attach)/i.test(l));
+  const plain = t => t.replace(/\[[^\]\n]{1,220}\]/g, m => tokParts(m).def || tokParts(m).label);
+  const clip = (t, n) => (t.length > n ? t.slice(0, n - 6).replace(/\s+\S*$/, '') + '…' : t);
+  const body = lines.filter(l => !RULE_RE.test(l) && !/^([-•]|\d+\.)/.test(l) && !/^\[(paste|insert|attach)/i.test(l));
   let what = body.slice(0, 2).join(' ');
-  if (what.length > 260) what = what.slice(0, 250).replace(/\s+\S*$/, '') + '…';
-  const fl = lines.find(l => /^format:/i.test(l)); let get = fl ? fl.replace(/^format:\s*/i, '') : '';
-  if (!get) { const inc = lines.filter(l => /^- /.test(l)).map(l => l.slice(2)); if (inc.length) get = inc.slice(0, 3).join('; '); }
-  get = get.replace(/\[[^\]\n]{1,220}\]/g, m => tokParts(m).def || tokParts(m).label);
-  if (get.length > 170) get = get.slice(0, 160).replace(/\s+\S*$/, '') + '…';
+  if (what.length > 260) what = clip(what, 260);
+  // what you get: the prompt's own checklist of contents, then how it is laid out
+  const items = lines.filter(l => /^([-•]|\d+\.)\s/.test(l)).map(l => clip(plain(l.replace(/^([-•]|\d+\.)\s*/, '')), 120));
+  const fl = lines.find(l => /^format:/i.test(l)); let layout = fl ? plain(fl.replace(/^format:\s*/i, '')) : '';
+  let get = items;
+  if (!get.length && layout) { get = layout.split(/;\s+|,?\s+then\s+|\.\s+/).map(x => x.trim()).filter(x => x.length > 3).map(x => clip(x, 120)); layout = ''; }
+  layout = clip(layout, 200);
   const ins = [...new Set(((p.text || '').match(TOKRE) || []).map(m => tokParts(m).label.replace(/^paste (the |your )?/i, 'Paste ')))].slice(0, 5);
-  return { what: toYou(what || p.title), get, ins };
+  return { what: toYou(what || p.title), get: get.slice(0, 6), more: Math.max(0, get.length - 6), layout, ins };
 }
+const upFirst = t => t ? t[0].toUpperCase() + t.slice(1) : t;
 function summaryHTML(p) {
   const sm = promptSummary(p);
-  return `<div class="pl-sum"><p class="ps-what">${showTokens(esc(sm.what))}</p>${sm.get ? `<p class="ps-get"><b>You’ll get:</b> ${esc(sm.get[0].toLowerCase() + sm.get.slice(1))}</p>` : ''}${sm.ins.length ? `<p class="ps-in"><b>You can change:</b> ${sm.ins.map(x => `<span>${esc(x[0].toUpperCase() + x.slice(1))}</span>`).join('')}</p>` : ''}</div>`;
-}
-// which tools a prompt can go to, with the teacher's own tool first
-function cardTools(tool) {
-  let tools = ['Gemini', 'Copilot', 'NotebookLM'].filter(x => tool.includes(x)); if (!tools.length) tools = ['Gemini', 'Copilot'];
-  const mt = myTool();
-  if (mt && /^(Gemini|Copilot)( or (Gemini|Copilot))?$/.test(tool.trim())) tools = [mt, mt === 'Gemini' ? 'Copilot' : 'Gemini'];
-  else if (mt && tools.includes(mt)) tools = [mt, ...tools.filter(x => x !== mt)];
-  return tools;
+  return `<div class="pl-sum"><p class="ps-what">${showTokens(esc(sm.what))}</p>
+    ${sm.get.length ? `<div class="ps-get"><b>What you’ll get</b><ul>${sm.get.map(x => `<li>${esc(upFirst(x))}</li>`).join('')}${sm.more ? `<li class="ps-more">and ${sm.more} more</li>` : ''}</ul>${sm.layout ? `<p class="ps-lay"><b>Laid out as:</b> ${esc(sm.layout[0].toLowerCase() + sm.layout.slice(1))}</p>` : ''}</div>` : sm.layout ? `<p class="ps-lay"><b>What you’ll get:</b> ${esc(sm.layout)}</p>` : ''}
+    ${sm.ins.length ? `<p class="ps-in"><b>You can change:</b> ${sm.ins.map(x => `<span>${esc(upFirst(x))}</span>`).join('')}</p>` : ''}</div>`;
 }
 function promptCard(p) {
   const ph = t => showTokens(esc(t));

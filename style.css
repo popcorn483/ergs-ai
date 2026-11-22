@@ -1387,3 +1387,13 @@ html.dark .pl-today .pt-label{color:#e8c97a}
 html.dark .ps-what{color:#e2e8f0}html.dark .ps-get,html.dark .ps-in{color:#a9b5c6}
 html.dark .ps-in span{background:#1d2b44;border-color:#2f4466;color:#cfdcf2}
 html.dark .fill-what{background:#16233a;color:#cfd8e6}
+
+.ps-get{margin:0 0 10px;font:14px/1.45 var(--body);color:#33405a}
+.ps-get>b{display:block;font:400 11px var(--display);letter-spacing:.1em;text-transform:uppercase;color:#7a5a12;margin-bottom:4px}
+.ps-get ul{margin:0;padding:0;list-style:none;display:grid;gap:3px}
+.ps-get li{position:relative;padding-left:18px}
+.ps-get li::before{content:"✓";position:absolute;left:0;top:0;color:#2f6b3a;font-weight:700}
+.ps-get li.ps-more{color:#6b7688;font-style:italic}.ps-get li.ps-more::before{content:"+";color:#6b7688}
+.ps-lay{margin:6px 0 0;font:13.5px/1.45 var(--body);color:#4a5568}
+.ps-lay b{color:var(--navy-text,#14284b);font-weight:600}
+html.dark .ps-get{color:#cfd8e6}html.dark .ps-get>b{color:#e8c97a}html.dark .ps-get li::before{color:#7fd08c}

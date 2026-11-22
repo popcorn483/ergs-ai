@@ -277,6 +277,13 @@ html.dark .ps-in{color:#bdc4d0}
 html.dark .ps-in span{background:#19202c;border:1px solid #353e4c;color:#b5c6e3}
 html.dark .pl-usehint{color:#b3b9c3}
 html.dark .fill-what{color:#bfc8db;background:#171f2a}
+html.dark .ps-get{color:#bfc8db}
+html.dark .ps-get>b{color:#e3d6b7}
+html.dark .ps-get li::before{color:#b6dfbe}
+html.dark .ps-get li.ps-more{color:#b3b9c3}
+html.dark .ps-get li.ps-more::before{color:#b3b9c3}
+html.dark .ps-lay{color:#bdc4d0}
+html.dark .ps-lay b{color:var(--navy-text,#c2d0e8)}
 
 /* hand-tuned extras */
 html.dark .app-bg{background:linear-gradient(180deg,#0b111a 0%,#0d1420 60%,#12130f 100%)}
