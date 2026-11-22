@@ -1439,4 +1439,4 @@ html.dark .set-sec{border-color:#263246}html.dark .set-val{color:#a9b5c6}html.da
   .iconbtn svg{width:17px;height:17px}
   .mast nav a,.masthead nav a{letter-spacing:.04em}
 }
-@media (max-width:430px){ #themeBtn{display:none} }
+@media (max-width:360px){ #themeBtn{display:none} }

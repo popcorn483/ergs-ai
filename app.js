@@ -1525,7 +1525,7 @@ function openShare(issue) {
   });
   ov.querySelector('#shrInstall')?.addEventListener('click', async () => { if (!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice.catch(() => {}); deferredInstall = null; close(); });
 }
-$('#shareBtn').addEventListener('click', () => openShare(null));
+$('#shareBtn')?.addEventListener('click', () => openShare(null));
 $('#shareIssueBtn').addEventListener('click', () => { const id = location.hash.slice(7); openShare(allIssues().find(x => x.id === id) || null); });
 /* ---------- automatic updates ----------
    The app fingerprints its own files. When anything is pushed to GitHub, open and installed copies
@@ -2368,7 +2368,8 @@ function openSettings() {
   const name = LS.get('ergsNL.name') || '', roles = myRoles(), subs = mySubjects() || [], lv = myLevels(), dark = document.documentElement.classList.contains('dark');
   const lvText = subs.filter(x => !NOLEVEL.includes(x)).map(x => `${x}${lv[x] && lv[x].length ? ' (' + lv[x].join(', ') + ')' : ''}`).join(' · ');
   const sheet = document.createElement('div'); sheet.className = 'fill-sheet'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true'); sheet.setAttribute('aria-label', 'My settings');
-  sheet.innerHTML = `<div class="fill-card set-card"><header><span class="eyebrow">This device</span><h3>My settings</h3><button type="button" class="fill-x" aria-label="Close">×</button></header>
+  sheet.innerHTML = `<div class="fill-card set-card"><header><span class="eyebrow">This device</span><h3>Settings &amp; sharing</h3><button type="button" class="fill-x" aria-label="Close">×</button></header>
+    <section class="set-sec set-share"><h4>Share the app</h4><p class="set-val">Get the link or QR code for colleagues, or install it on this device.</p><button class="btn primary small" id="setShare">Share or install</button></section>
     <section class="set-sec"><h4>Your name</h4><div class="set-row"><input id="setName" maxlength="60" value="${esc(name)}" placeholder="First and last name"><button class="btn small" id="setNameSave">Save</button></div></section>
     <section class="set-sec"><h4>Role, subjects and levels</h4><p class="set-val">${esc(roles.join(', ') || 'No role chosen')}<br>${esc(lvText || subs.join(', ') || 'No subjects chosen')}</p><button class="btn small" id="setSubj">Change role, subjects and levels</button></section>
     <section class="set-sec"><h4>My AI tool</h4><div class="tp-seg" id="setTool">${toolPick(myTool(), 'data-st')}</div></section>
@@ -2383,6 +2384,7 @@ function openSettings() {
   sheet.querySelector('.fill-x').onclick = close; sheet.addEventListener('click', e => { if (e.target === sheet) close(); });
   $('#setNameSave').onclick = () => { const v = $('#setName').value.trim().replace(/\s+/g, ' '); if (v.split(' ').length < 2) return toast('Please enter your first and last name'); LS.set('ergsNL.name', v.slice(0, 60)); LS.del('ergsNL.nameSent'); trackVisit?.(); toast('Name saved'); render(); };
   $('#setSubj').onclick = () => { close(); askSubjects(true); };
+  $('#setShare').onclick = () => { close(); openShare(null); };
   $('#setTool').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; setMyTool(b.dataset.st); $('#setTool').innerHTML = toolPick(myTool(), 'data-st'); toast(b.dataset.st ? `Prompts will open in ${b.dataset.st}` : 'No default AI tool'); };
   sheet.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { const d = b.dataset.th === 'dark'; LS.set('ergsNL.theme', d ? 'dark' : 'light'); applyTheme(d); sheet.querySelectorAll('[data-th]').forEach(x => x.classList.toggle('on', x === b)); });
   sheet.querySelectorAll('[data-clear]').forEach(b => b.onclick = () => {
