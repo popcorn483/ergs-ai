@@ -59,13 +59,18 @@ service cloud.firestore {
         && request.resource.data.t == '0ddd4e393a7f0180e83d86fa' && request.resource.data.p is string && request.resource.data.p.size() <= 120
         && (request.resource.data.v == 1 || request.resource.data.v == -1) && request.resource.data.at == request.time;
     }
-    // Prompts shared by staff (encrypted with the staff key). New ones wait for the editor to approve.
+    // Prompts shared by staff (encrypted with the staff key). They go live straight away; the editor can take them down.
     match /newsletterShared/{id} {
       allow read: if true;
       allow create: if request.resource.data.keys().hasOnly(['enc','t','st','at'])
-        && request.resource.data.t == '0ddd4e393a7f0180e83d86fa' && request.resource.data.st == 'pending'
+        && request.resource.data.t == '0ddd4e393a7f0180e83d86fa' && request.resource.data.st in ['pending', 'live']
         && request.resource.data.enc is string && request.resource.data.enc.size() < 12000 && request.resource.data.at == request.time;
       allow update, delete: if nlEditor();
+    }
+    // The editor's edits to library prompts (encrypted), applied for everyone; only the editor can write.
+    match /newsletterPromptEdits/{id} {
+      allow read: if true;
+      allow write, delete: if nlEditor() && (request.resource == null || (request.resource.data.enc is string && request.resource.data.enc.size() < 20000));
     }
     // Tip of the day log: one doc per date.
     match /newsletterTipLog/{day} {

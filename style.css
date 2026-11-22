@@ -1409,3 +1409,10 @@ html.dark .ps-get{color:#cfd8e6}html.dark .ps-get>b{color:#e8c97a}html.dark .ps-
 .lv-chip{border:1px solid #cdd4de;background:#fff;border-radius:999px;padding:6px 12px;font:600 13px var(--body);color:#5b6679;cursor:pointer}
 .lv-chip.on{background:var(--c);border-color:var(--c);color:#fff}
 html.dark .lv-row{background:#151e2b;border-color:#263246}html.dark .lv-chip{background:#1b2738;color:#a9b5c6;border-color:#34445e}html.dark .lv-chip.on{color:#fff;background:var(--c);border-color:var(--c)}
+.fill-sharemine{display:flex;gap:10px;align-items:flex-start;margin:12px 0 2px;padding:10px 12px;border-radius:10px;background:#eef3fb;border:1px solid #d6e0ef;cursor:pointer}
+.fill-sharemine input{margin-top:3px;width:18px!important;height:18px;flex:none;accent-color:#1f4f8f}
+.fill-sharemine b{display:block;font:600 14px var(--body);color:#14284b}
+.fill-sharemine small{display:block;font:12.5px/1.4 var(--body);color:#4a5578;margin-top:2px}
+.fill-fields label small{font:12px var(--body);text-transform:none;letter-spacing:0;color:#8a6a12;margin-left:6px}
+.pl-admedit{border-color:#d9c48e!important;color:#7a5a12!important}
+html.dark .fill-sharemine{background:#16233a;border-color:#2b3a52}html.dark .fill-sharemine b{color:#dce6f5}html.dark .fill-sharemine small{color:#a9b5c6}
