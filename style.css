@@ -1556,3 +1556,20 @@ html.lite .sp-rule{width:140px!important}html.lite .sp-rule::after{animation:non
 html.dark .pl-gist{color:#cfd8e6}html.dark .pl-tags .tg{background:#1d2b44;color:#cfdcf2}html.dark .pl-tags .tg.st{background:#2c5293}html.dark .pl-tags .tg.wh{background:#2a2212;color:#e8c97a}html.dark .pl-more summary{color:#a9b5c6}
 .pl-more{text-align:left}.pl-card footer:has(.pl-fbtns:empty)>:first-child:empty{display:none}.pl-use{font-size:13px!important;padding:9px 16px!important}
 .pl-more .ps-get>b{display:none}
+
+/* screensaver wordmark: ERGS in gold with a slow, polished sheen; school colours in the bar beneath */
+.saver-ergs{margin:6px 0 0;font:700 clamp(64px,12vw,150px)/1 var(--display);letter-spacing:.14em;padding-left:.14em;text-align:center;
+  color:#e2c48a;background:linear-gradient(105deg,#a8823f 0%,#e2c48a 22%,#f7e7c0 34%,#ffffff 40%,#f7e7c0 46%,#e2c48a 58%,#a8823f 80%,#e2c48a 100%);background-size:250% 100%;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 6px 24px rgba(0,0,0,.35));
+  opacity:0;animation:spUp .9s .5s ease forwards,ergsSheen 7s 1.4s ease-in-out infinite}
+@keyframes ergsSheen{0%{background-position:120% 0}55%,100%{background-position:-30% 0}}
+.saver-bar{display:flex;gap:6px;justify-content:center;margin:18px 0 0;opacity:0;animation:spFade .6s 1s forwards}
+.saver-bar i{display:block;height:4px;width:46px;border-radius:2px;background:#c8102e}
+.saver-bar i:nth-child(2){background:#e2c48a;width:70px}
+.saver-bar i:nth-child(3){background:#2f5aa8}
+/* no gloss on the crest on the screensaver */
+.saver .coin-shine{display:none!important}
+.saver .coin-face.front::after,.saver .coin-face.front::before{display:none!important}
+html.lite .saver-ergs{animation:none!important;opacity:1!important;-webkit-text-fill-color:#e2c48a;background:none;filter:none}
+html.lite .saver-bar{animation:none!important;opacity:1!important}
+@media (prefers-reduced-motion:reduce){.saver-ergs{animation:spUp .9s .5s ease forwards}}

@@ -226,8 +226,8 @@ function startSaver() {
         <div class="coin3d"><div class="coin-spin"><div class="coin-face front"><img class="sp-crest" alt="" src="${window.ERGS_CREST || ''}"></div><div class="coin-edge"></div><div class="coin-face back"><span>ERGS<b>AI</b></span></div></div><div class="coin-shine"></div></div>
         <div class="coin-shadow"></div></div>
       <p class="sp-school">Enniskillen Royal Grammar School</p>
-      <h1 class="sp-title">ERGS Digital Skills &amp; AI</h1>
-      <div class="sp-rule"></div>
+      <h1 class="saver-ergs">ERGS</h1>
+      <div class="saver-bar" aria-hidden="true"><i></i><i></i><i></i></div>
       <p class="saver-clock"></p><p class="saver-date"></p><p class="saver-period"></p>
     </div><p class="sp-foot">Tap or press any key to continue</p>`;
   const blocked = () => document.getElementById('splash') || !$('#gate').hidden || $('#app').hidden || document.querySelector('dialog[open], .modal:not([hidden])');
