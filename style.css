@@ -1539,3 +1539,20 @@ html.lite .app-net{display:none}
 .set-lite b{display:block;font:600 14px var(--body);color:var(--navy-text,#14284b)}
 .set-lite small{display:block;font:12.5px/1.4 var(--body);color:#5b6679;margin-top:2px}
 html.lite .sp-rule{width:140px!important}html.lite .sp-rule::after{animation:none!important;opacity:1!important}html.lite .saver.monday::after{animation:none!important;opacity:1!important;transform:none!important}
+
+/* prompt cards at a glance: title, one line, tags; details on demand */
+.pl-gist{margin:6px 0 8px;font:15px/1.45 var(--body);color:#33405a}
+.pl-tags{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.pl-tags .tg{font:600 12px var(--body);padding:3px 9px;border-radius:999px;background:#eef1f6;color:#3b4d6b}
+.pl-tags .tg.st{background:#14284b;color:#fff}
+.pl-tags .tg.wh{background:#fbf3df;color:#6b5420}
+.pl-more{margin:0 0 10px}
+.pl-more summary{cursor:pointer;font:600 13px var(--body);color:#4a5578;list-style:none;display:inline-flex;align-items:center;gap:5px}
+.pl-more summary::-webkit-details-marker{display:none}
+.pl-more summary::after{content:"▾";font-size:11px;transition:transform .15s}
+.pl-more[open] summary::after{transform:rotate(180deg)}
+.pl-more .pl-sum{margin-top:8px;cursor:default}
+.pl-card h3{margin-bottom:0}
+html.dark .pl-gist{color:#cfd8e6}html.dark .pl-tags .tg{background:#1d2b44;color:#cfdcf2}html.dark .pl-tags .tg.st{background:#2c5293}html.dark .pl-tags .tg.wh{background:#2a2212;color:#e8c97a}html.dark .pl-more summary{color:#a9b5c6}
+.pl-more{text-align:left}.pl-card footer:has(.pl-fbtns:empty)>:first-child:empty{display:none}.pl-use{font-size:13px!important;padding:9px 16px!important}
+.pl-more .ps-get>b{display:none}

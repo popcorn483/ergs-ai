@@ -814,9 +814,18 @@ function promptSummary(p) {
   return { what: toYou(what || p.title), get: get.slice(0, 6), more: Math.max(0, get.length - 6), layout, ins };
 }
 const upFirst = t => t ? t[0].toUpperCase() + t.slice(1) : t;
-function summaryHTML(p) {
+// at-a-glance line for a card: one short sentence plus a few tags
+function gistHTML(p) {
   const sm = promptSummary(p);
-  return `<div class="pl-sum"><p class="ps-what">${showTokens(esc(sm.what))}</p>
+  let g = sm.what.replace(/\[[^\]\n]{1,220}\]/g, m => tokParts(m).def || tokParts(m).label).split(/(?<=[.!?])\s/)[0];
+  if (g.length > 115) g = g.slice(0, 108).replace(/\s+\S*$/, '') + '…';
+  const subj = (p.subj || []).find(x => x !== 'All subjects'), segs = (p.fit || promptFit(p)).split(' · '); let when = segs.pop(); if (/add your own topic|swap the topic/i.test(when)) when = CAT_USE[p.cat] || segs.pop();
+  const tags = [p.stage && p.stage !== 'Any' ? `<span class="tg st">${esc(p.stage)}</span>` : '', subj ? `<span class="tg">${esc(subj)}</span>` : '', when ? `<span class="tg wh">🎯 ${esc(upFirst(when))}</span>` : ''].join('');
+  return `<p class="pl-gist">${esc(g)}</p><div class="pl-tags">${tags}</div>`;
+}
+function summaryHTML(p, noWhat) {
+  const sm = promptSummary(p);
+  return `<div class="pl-sum">${noWhat ? '' : `<p class="ps-what">${showTokens(esc(sm.what))}</p>`}
     ${sm.get.length ? `<div class="ps-get"><b>What you’ll get</b><ul>${sm.get.map(x => `<li>${esc(upFirst(x))}</li>`).join('')}${sm.more ? `<li class="ps-more">and ${sm.more} more</li>` : ''}</ul>${sm.layout ? `<p class="ps-lay"><b>Laid out as:</b> ${esc(sm.layout[0].toLowerCase() + sm.layout.slice(1))}</p>` : ''}</div>` : sm.layout ? `<p class="ps-lay"><b>What you’ll get:</b> ${esc(sm.layout)}</p>` : ''}
     ${sm.ins.length ? `<p class="ps-in"><b>You can change:</b> ${sm.ins.map(x => `<span>${esc(upFirst(x))}</span>`).join('')}</p>` : ''}</div>`;
 }
@@ -831,7 +840,7 @@ function cardTools(tool) {
 function promptCard(p) {
   const ph = t => showTokens(esc(t));
   const live = p.issue && status(p.issue) === 'live';
-  const from = p.mine ? `<span>Your own version</span>` : p.by ? `<span>Shared by ${esc(p.by)}</span>` : p.issue ? (live || canManage() ? `<a href="#issue-${esc(p.issue.id)}">From Issue ${p.issue.n} · ${esc(p.issue.title)}</a>` : '<span>From an upcoming issue</span>') : `<span>${esc(p.subj[0] === 'All subjects' ? p.cat : p.subj.join(', ') + ' · ' + p.cat)}${p.stage && p.stage !== 'Any' ? ' · ' + esc(p.stage) : ''}</span>`;
+  const from = p.mine ? `<span>Your own version</span>` : p.by ? `<span>Shared by ${esc(p.by)}</span>` : p.issue ? (live || canManage() ? `<a href="#issue-${esc(p.issue.id)}">From Issue ${p.issue.n} · ${esc(p.issue.title)}</a>` : '<span>From an upcoming issue</span>') : '';
   let tools = ['Gemini', 'Copilot', 'NotebookLM'].filter(x => p.tool.includes(x)); if (!tools.length) tools = ['Gemini', 'Copilot'];
   const mt = myTool();
   // plain Gemini/Copilot prompts work in either, so lead with the teacher's own tool and offer the other as "Use … instead"
@@ -844,7 +853,7 @@ function promptCard(p) {
   const badge = rt.up || (ed && rt.down) ? `<span class="pl-score" title="${rt.up} said it worked${ed ? `, ${rt.down} said it needed fixing` : ''}">👍 ${rt.up}${ed && rt.down ? ` · 👎 ${rt.down}` : ''}</span>` : '';
   const adm = ed && !p.mine ? `<button class="btn small pl-admedit" data-admin-edit="${esc(p.key)}">✏️ Edit prompt</button>` : '';
   const extra = adm + (p.mine ? `<button class="btn small" data-mine-share="${esc(p.mine.id)}">Share with staff</button><button class="btn small" data-mine-del="${esc(p.mine.id)}">Delete</button>` : '');
-  return `<article class="pl-card" data-key="${esc(p.key)}" data-cat="${esc(p.cat)}" data-stage="${esc(p.stage || 'Any')}" data-tool="${esc(p.tool)}" data-subj="${esc((p.subj || []).join('|'))}" data-raw="${esc(p.text)}"><header><div class="pl-toprow"><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b>${badge}${p.mine ? '' : `<button class="pl-star${starred ? ' on' : ''}" data-star="${esc(p.key)}" aria-pressed="${starred}" title="${starred ? 'Saved – tap to remove' : 'Save this prompt'}">${starred ? '★' : '☆'}</button>`}</div><h3>${esc(p.title)}</h3><p class="pl-fit"><span aria-hidden="true">🎯</span> <b>Great for:</b> ${esc(promptFit(p))}</p></header>${summaryHTML(p)}<div class="pl-sendrow"><button class="btn primary pl-use" data-pledit>Use this prompt</button><span class="pl-usehint">${tools[0] === mt && mt ? `Opens in ${mt}` : `Gemini or Copilot`}</span></div><footer>${from}<span class="pl-fbtns">${extra}</span></footer></article>`;
+  return `<article class="pl-card" data-key="${esc(p.key)}" data-cat="${esc(p.cat)}" data-stage="${esc(p.stage || 'Any')}" data-tool="${esc(p.tool)}" data-subj="${esc((p.subj || []).join('|'))}" data-raw="${esc(p.text)}"><header><div class="pl-toprow"><b class="pl-tool">${esc(p.tool.replace(' or ', ' · '))}</b>${badge}${p.mine ? '' : `<button class="pl-star${starred ? ' on' : ''}" data-star="${esc(p.key)}" aria-pressed="${starred}" title="${starred ? 'Saved – tap to remove' : 'Save this prompt'}">${starred ? '★' : '☆'}</button>`}</div><h3>${esc(p.title)}</h3></header>${gistHTML(p)}<details class="pl-more"><summary>What you’ll get</summary>${summaryHTML(p, true)}</details><div class="pl-sendrow"><button class="btn primary pl-use" data-pledit>Use this prompt</button><span class="pl-usehint">${tools[0] === mt && mt ? `Opens in ${mt}` : `Gemini or Copilot`}</span></div><footer>${from}<span class="pl-fbtns">${extra}</span></footer></article>`;
 }
 // "Send to…": copies the prompt and opens the tool in a new tab (none of these tools accept a prompt in the link, so staff paste with Ctrl+V)
 const TOOL_URL = { Gemini: 'https://gemini.google.com/app', Copilot: 'https://m365.cloud.microsoft/chat', NotebookLM: 'https://notebooklm.google.com/' };
@@ -1039,7 +1048,7 @@ function renderPrompts() {
       const md = e.target.closest('[data-mine-del]'); if (md) return deleteMine(md.dataset.mineDel);
       const ms = e.target.closest('[data-mine-share]'); if (ms) { const m = myVersions().find(x => x.id === ms.dataset.mineShare); return openSharePrompt(m); }
       const b = e.target.closest('[data-plcopy]'); if (b) plCopy(b); const s = e.target.closest('[data-send]'); if (s) plSend(s); const ed = e.target.closest('[data-pledit]'); if (ed) return plEdit(ed);
-      const card = e.target.closest('.pl-card'); if (card && !e.target.closest('button,a,select,input') && !getSelection().toString()) plEdit(card); };
+      const card = e.target.closest('.pl-card'); if (card && !e.target.closest('button,a,select,input,summary,details') && !getSelection().toString()) plEdit(card); };
     $('#plList').addEventListener('click', cardClick); $('#plToday').addEventListener('click', cardClick);
     }
   }

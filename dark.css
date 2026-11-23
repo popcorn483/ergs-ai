@@ -311,6 +311,10 @@ html.dark .h3-ri b{background:#493f23;color:#c2d0e8}
 html.dark.lite .mast{background:rgba(21,29,42,.96)}
 html.dark .set-lite b{color:var(--navy-text,#c2d0e8)}
 html.dark .set-lite small{color:#b8bec9}
+html.dark .pl-gist{color:#bfc8db}
+html.dark .pl-tags .tg{background:#1f2329;color:#b9c5d8}
+html.dark .pl-tags .tg.wh{background:#342c19;color:#e4d6b7}
+html.dark .pl-more summary{color:#b5bcd2}
 
 /* hand-tuned extras */
 html.dark .app-bg{background:linear-gradient(180deg,#0b111a 0%,#0d1420 60%,#12130f 100%)}
