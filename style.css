@@ -1521,3 +1521,21 @@ html.dark .tl-opt{background:#151e2b;border-color:#263246;color:#e2e8f0}html.dar
 }
 /* cover footer band: % margins are measured against the padded content box, so convert so it runs exactly from the spine to the page edge */
 .cvf-foot{margin:0 -11.842% 0 -10.526%!important;padding:7.9% 11.842% 9.2% 10.526%!important}
+
+/* ===== classroom board mode (html.lite): no 3D, no fade-in animations, no blur – everything simply shows ===== */
+html.lite .splash *,html.lite .gate *{animation:none!important;transition:none!important}
+html.lite .splash .sp-school,html.lite .splash .sp-title,html.lite .splash .sp-title .ch,html.lite .splash .sp-title .wd,html.lite .splash .sp-rule,html.lite .splash .sp-foot,
+html.lite .splash .saver-clock,html.lite .splash .saver-date,html.lite .splash .saver-period,html.lite .splash .sp-crestwrap,html.lite .splash .sp-load,html.lite .splash .sp-sub,
+html.lite .gate .sp-school,html.lite .gate .sp-title,html.lite .gate .sp-title .ch,html.lite .gate .sp-rule,html.lite .gate .sp-crestwrap{opacity:1!important;transform:none!important}
+html.lite .coin3d,html.lite .coin-spin{transform:none!important;transform-style:flat!important}
+html.lite .coin-edge,html.lite .coin-face.back,html.lite .coin-shine,html.lite .coin-shadow,html.lite .sp-orbit,html.lite .sp-net{display:none!important}
+html.lite .coin-face.front{transform:none!important;backface-visibility:visible!important}
+html.lite .saver-drift{animation:none!important}
+html.lite *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+html.lite .mast{background:rgba(255,255,255,.96)}
+html.lite .app-net{display:none}
+.set-lite{display:flex;gap:10px;align-items:flex-start;margin:12px 0 0;cursor:pointer}
+.set-lite input{margin-top:3px;width:18px;height:18px;flex:none}
+.set-lite b{display:block;font:600 14px var(--body);color:var(--navy-text,#14284b)}
+.set-lite small{display:block;font:12.5px/1.4 var(--body);color:#5b6679;margin-top:2px}
+html.lite .sp-rule{width:140px!important}html.lite .sp-rule::after{animation:none!important;opacity:1!important}html.lite .saver.monday::after{animation:none!important;opacity:1!important;transform:none!important}

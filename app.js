@@ -128,10 +128,11 @@ function hideSplash(minMs) {
   const wait = Math.max(0, minMs - (performance.now() - SPLASH_T0));
   return new Promise(r => setTimeout(() => { sp.classList.add('out'); setTimeout(() => { sp.remove(); r(); }, 650); }, wait));
 }
+const LITE = () => document.documentElement.classList.contains('lite');   // classroom board mode: flat, low-power animations
 function mountIntro() {
   document.querySelectorAll('.coin-edge').forEach(ed => { if (ed.children.length) return; ed.innerHTML = Array.from({ length: 14 }, (_, i) => `<i style="transform:translateZ(${(-6.5 + i).toFixed(1)}px)"></i>`).join(''); });
   document.querySelectorAll('.sp-title').forEach(t => { if (t.classList.contains('split')) return; const txt = t.textContent; t.setAttribute('aria-label', txt); let i = 0; t.innerHTML = txt.split(' ').map(w => `<span class="wd" aria-hidden="true">${[...w].map(ch => `<span class="ch" style="--i:${i++}">${esc(ch)}</span>`).join('')}</span>${w === 'Digital' ? '<br>' : ' '}`).join(''); t.classList.add('split'); });
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || LITE();
   document.querySelectorAll('.sp-net').forEach(cv => {
     if (cv.dataset.on) return; cv.dataset.on = 1;
     const host = cv.closest('.splash,.gate'); host.insertBefore(cv, host.querySelector('.sp-bg').nextSibling);
@@ -155,7 +156,7 @@ function mountIntro() {
 }
 function appNet() {
   const cv = document.querySelector('.app-net'); if (!cv) return;
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || LITE();
   const G = 26, O = 13;   // must match the CSS dot grid: 26px tiles, dot in the middle of each tile
   const ctx = cv.getContext('2d'); let W, H, d, cols, rows, pts = [], pulses = [], last = 0, want = 0;
   const gp = () => ({ i: Math.random() * cols | 0, j: Math.random() * rows | 0, born: performance.now() - (reduce ? 1e6 : 0), life: 14000 + Math.random() * 16000, hub: Math.random() < .15 });
@@ -2393,7 +2394,8 @@ function openSettings() {
     <section class="set-sec"><h4>Your name</h4><div class="set-row"><input id="setName" maxlength="60" value="${esc(name)}" placeholder="First and last name"><button class="btn small" id="setNameSave">Save</button></div></section>
     <section class="set-sec"><h4>Role, subjects and levels</h4><p class="set-val">${esc(roles.join(', ') || 'No role chosen')}<br>${esc(lvText || subs.join(', ') || 'No subjects chosen')}</p><button class="btn small" id="setSubj">Change role, subjects and levels</button></section>
     ${isTeaching() ? `<section class="set-sec"><h4>My AI licence</h4><div class="tp-seg" id="setTool">${toolPick(myTool(), 'data-st')}</div></section>` : ''}
-    <section class="set-sec"><h4>Appearance</h4><div class="tp-seg"><button type="button" class="tp-opt${dark ? '' : ' on'}" data-th="light">☀️ Light</button><button type="button" class="tp-opt${dark ? ' on' : ''}" data-th="dark">🌙 Dark</button></div></section>
+    <section class="set-sec"><h4>Appearance</h4><div class="tp-seg"><button type="button" class="tp-opt${dark ? '' : ' on'}" data-th="light">☀️ Light</button><button type="button" class="tp-opt${dark ? ' on' : ''}" data-th="dark">🌙 Dark</button></div>
+      <label class="set-lite"><input type="checkbox" id="setLite" ${LITE() ? 'checked' : ''}><span><b>Classroom board mode</b><small>Simpler, flat animations for interactive whiteboards like Clevertouch, so the screensaver and intro display properly.</small></span></label></section>
     <section class="set-sec"><h4>My data on this device</h4><p class="set-val">${savedKeys().length + myVersions().length} saved prompts · ${usedLog().length} prompts used · ${Object.keys(triedMap()).length} tips tried</p>
       <div class="set-btns"><button class="btn small" data-clear="saved">Clear saved prompts</button><button class="btn small" data-clear="history">Clear my CPD history</button></div></section>
     <section class="set-sec set-danger"><h4>Start again</h4><p class="set-val">Reset your choices (role, subjects, levels, AI tool and theme) and go through the welcome screens again. Your saved prompts and history are kept.</p>
@@ -2407,6 +2409,7 @@ function openSettings() {
   $('#setShare').onclick = () => { close(); openShare(null); };
   drawPushSetting($('#setPush'));
   if ($('#setTool')) $('#setTool').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; setMyTool(b.dataset.st); $('#setTool').innerHTML = toolPick(myTool(), 'data-st'); toast(b.dataset.st ? `Prompts will open in ${b.dataset.st}` : 'Licence not allocated yet – both shown'); };
+  $('#setLite').onchange = e => { LS.set('ergsNL.lite', e.target.checked ? '1' : '0'); location.reload(); };
   sheet.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { const d = b.dataset.th === 'dark'; LS.set('ergsNL.theme', d ? 'dark' : 'light'); applyTheme(d); sheet.querySelectorAll('[data-th]').forEach(x => x.classList.toggle('on', x === b)); });
   sheet.querySelectorAll('[data-clear]').forEach(b => b.onclick = () => {
     if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to confirm'; return; }
